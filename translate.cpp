@@ -22,8 +22,11 @@
    All of the relevant methods with detailed explanations are in the ./include directory
 
    Usage:  ./translate.out [input.c] -rose:o [output.cu]
-*/  
-
+*/
+/**
+ * Forked from Automatic Transcompiler of Affine C Programs to CUDA By Leart Krasniqi
+ * Tend to add feature multifiles and function analysis.
+ */
 #include "rose.h"
 #include <iostream>
 #include "./include/loop_attr.hpp"
@@ -49,9 +52,19 @@ int main(int argc, char **argv)
 	SgProject *project = frontend(argc, argv);
 
 	/* Obtain the global scope */
-	SgGlobal *globalScope = SageInterface::getFirstGlobalScope(project);
-	
+	/* 在使用Makefile的项目中将此程序作为编译器时，需要过滤输入不是源文件的情况 */
+	SgGlobal *globalScope = nullptr;
+	if (project->get_fileList().empty() == false)
+	{
+		globalScope = SageInterface::getFirstGlobalScope(project);
+	}
+	else
+	{
+		printMsg("ROSE: No source files detected (Skip To Linker mode).");
+	}
+
 	/* Get all function definitions */
+	// 所有函数定义的vector容器
 	Rose_STL_Container<SgNode*> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition);
 	Rose_STL_Container<SgNode*>::const_iterator func_iter = functions.begin();
 	
@@ -65,7 +78,7 @@ int main(int argc, char **argv)
 	bool ecs_fn_flag = false;
 	
 	/* Loop through each function definition */
-	while(func_iter != functions.end())
+	while(func_iter != functions.end() && globalScope != nullptr)
 	{
 		/* Get the actual definition node */
 		SgFunctionDefinition* defn = isSgFunctionDefinition(*func_iter);
@@ -265,15 +278,18 @@ int main(int argc, char **argv)
 	}
 
 	/* #define the CUDA_BLOCKs */
-	SgLocatedNode *top_scope = globalScope;
-	SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
-	if(first_stmt)
+	if(globalScope != nullptr){
+		SgLocatedNode *top_scope = globalScope;
+		SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
+		if(first_stmt)
 		top_scope = first_stmt;
+		
+		SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_X 128");
+		SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Y 1");
+		SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
+	}
 
-	SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_X 128");
-	SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Y 1");
-	SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
-
+	
 	/* Obtain translation */
 	project->unparse();
 
