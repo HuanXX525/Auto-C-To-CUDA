@@ -289,7 +289,32 @@ int main(int argc, char **argv)
 		SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
 	}
 
-	
+	// 遍历项目中的每一个文件
+	for (int i = 0; i < project->numberOfFiles(); ++i)
+	{
+		SgFile &file = project->get_file(i);
+		SgSourceFile *sourceFile = isSgSourceFile(&file);
+
+		if (sourceFile)
+		{
+			// 1. 获取原始文件名（例如 "main.c"）
+			std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
+
+			// 2. 找到最后一个点号的位置，去掉原后缀
+			size_t lastDot = originalName.find_last_of(".");
+			std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
+
+			// 3. 构造新的输出文件名（例如 "main.cu"）
+			std::string newName = baseName + ".cu";
+
+			// 4. 【关键步骤】设置输出文件名
+			// 设置后，ROSE 将不再使用默认的 rose_ 前缀逻辑
+			sourceFile->set_unparse_output_filename(newName);
+
+			// （可选）如果你想直接控制输出目录，可以设置完整路径
+			// sourceFile->set_output_filename("/path/to/output/" + newName);
+		}
+	}
 	/* Obtain translation */
 	project->unparse();
 
