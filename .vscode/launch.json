@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "调试AUTOCTOCUDA(config args)",
+            "type": "cppdbg",
+            "request": "launch",
+            // 这里的路径 CMake Tools 会自动帮你处理，或者手动指定 build 里的路径
+            "program": "${command:cmake.launchTargetPath}", 
+            "args": [
+                "-c",
+                "${workspaceFolder}/benchmarks/n-body/nbody.c"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}", // 建议设置工作目录为项目根目录
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

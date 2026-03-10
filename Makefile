@@ -16,6 +16,9 @@ ROSE_LIBS = $(ROSE_LIB_DIR)/librose.la
 
 BUILD_DIR = build
 
+debug: CXXFLAGS += -g -DC2CUDEBUG
+debug: translate
+
 # PROJ_DEPS = normalize.lo affine.lo dependency.lo parallel.lo kernel.lo preprocess.lo
 PROJ_DEPS =  $(BUILD_DIR)/normalize.lo $(BUILD_DIR)/affine.lo $(BUILD_DIR)/dependency.lo $(BUILD_DIR)/parallel.lo $(BUILD_DIR)/kernel.lo $(BUILD_DIR)/preprocess.lo
 

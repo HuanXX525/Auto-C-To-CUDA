@@ -29,6 +29,7 @@
  */
 #include "rose.h"
 #include <iostream>
+#include "./include/logger.h"
 #include "./include/loop_attr.hpp"
 #include "./include/normalize/normalize.hpp"
 #include "./include/affine/affine.hpp"
@@ -50,7 +51,7 @@ int main(int argc, char **argv)
 {
 	ROSE_INITIALIZE;
 	SgProject *project = frontend(argc, argv);
-
+	log_info("ROSE: Starting translation...");
 	/* Obtain the global scope */
 	/* 在使用Makefile的项目中将此程序作为编译器时，需要过滤输入不是源文件的情况 */
 	SgGlobal *globalScope = nullptr;
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		printMsg("ROSE: No source files detected (Skip To Linker mode).");
+		log_info("ROSE: No source files detected (Skip Translate).");
 	}
 
 	/* Get all function definitions */

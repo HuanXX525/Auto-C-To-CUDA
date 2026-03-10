@@ -35,3 +35,5 @@
 *.app
 
 build/*
+
+./me-or-ai.sh
