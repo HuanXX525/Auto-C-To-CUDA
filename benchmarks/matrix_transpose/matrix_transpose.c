@@ -1,5 +1,7 @@
 /* Simple program to obtain transpose of a matrix */
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #define M 1000
 #define N 500
 int main()
