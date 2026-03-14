@@ -1,5 +1,19 @@
 /* Implementation of dependency tests */
 #include "dependency.hpp"
+/////////
+// void debug_dump_stmts(const std::vector<SgNode *> &stmts, const std::string &label)
+// {
+// 	std::cout << "--- " << label << " ---" << std::endl;
+// 	for (size_t i = 0; i < stmts.size(); ++i)
+// 	{
+// 		if (stmts[i])
+// 		{
+// 			std::cout << "[" << i << "] Type: " << stmts[i]->class_name()
+// 					  << " | Code: " << stmts[i]->unparseToString() << std::endl;
+// 		}
+// 	}
+// }
+/////////
 
 /* Determines if dependencies may exist, or if they definitely do not exist */
 int dependencyExists(SgForStatement *loop_nest)
@@ -14,11 +28,12 @@ int dependencyExists(SgForStatement *loop_nest)
 	/* Obtain body of loop nest (assuming it is perfectly nested) */
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 	SgStatement *body = isSgForStatement(inner_loops[loop_nest_size - 1])->get_loop_body();
-	
+
 	/* Obtain the read/write references in the body */
 	std::vector<SgNode*> read_stmts, write_stmts;
 	SageInterface::collectReadWriteRefs(body, read_stmts, write_stmts);
-	
+	// debug_dump_stmts(read_stmts, "READ STMT");
+	// debug_dump_stmts(write_stmts, "WRITE STMT");
 	/* Collect read/write vars in the body */
 	std::set<SgInitializedName*> read_vars, write_vars;
 	SageInterface::collectReadWriteVariables(body, read_vars, write_vars);
