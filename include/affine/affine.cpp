@@ -1,6 +1,8 @@
 /* Implementation of affine test functions */
 #include "affine.hpp"
 #include <algorithm>
+#include "../logger.h"
+#include "../fileio/io.h"
 
 /* Test whether loop nest is affine */
 bool affineTest(SgForStatement *loop_nest)
@@ -12,11 +14,43 @@ bool affineTest(SgForStatement *loop_nest)
 	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
 	int loop_nest_size = attr->get_nest_size();	
 	
-	/* Check to see if there are any function calls in the loop. If so, return false to remain conservative */
-	Rose_STL_Container<SgNode*> fn_calls = NodeQuery::querySubTree(loop_nest, V_SgFunctionCallExp);
-	if(fn_calls.size() > 0)
-		return false;
-	
+	// /* Check to see if there are any function calls in the loop. If so, return false to remain conservative */
+	// /* 此处会将所有的带函数调用的循环排除掉 */
+	// Rose_STL_Container<SgNode*> fn_calls = NodeQuery::querySubTree(loop_nest, V_SgFunctionCallExp);
+	// if(fn_calls.size() > 0)
+	// 	return false;
+	/* 检查函数是否在白名单 */
+	Rose_STL_Container<SgNode *> fn_calls = NodeQuery::querySubTree(loop_nest, V_SgFunctionCallExp);
+	std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
+	for (SgNode *node : fn_calls)
+	{
+		SgFunctionCallExp *call = isSgFunctionCallExp(node);
+		if (!call)
+			continue;
+
+		// 1. 获取函数符号
+		SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
+		if (!symbol)
+		{
+			// 如果找不到符号（例如复杂的函数指针调用），为了保守起见，返回 false
+			log_info("> getAssociatedFunctionSymbol flase Skip");
+			return false;
+		}
+
+		// 2. 获取函数名称字符串
+		std::string funcName = symbol->get_name().getString();
+
+		// 3. 调用你的单例类进行白名单检查
+		if (std::find(safe_funcs.begin(), safe_funcs.end(), funcName) == safe_funcs.end())
+		{
+			/* 如果函数不在白名单中，则认为该循环是不安全的，返回 false */
+			log_info("Loop Skip Find a unsafeFunction -> %s", funcName.c_str());
+			return false;
+		}
+	}
+	/* 如果运行到这里，说明所有函数调用都在白名单中 */
+
+
 	/* Obtain the body of the loop nest (assuming the nest is perfectly nested) */
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 	SgStatement *body = isSgForStatement(inner_loops[loop_nest_size - 1])->get_loop_body();

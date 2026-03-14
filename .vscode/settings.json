@@ -1,0 +1,10 @@
+{
+    "cmake.ignoreCMakeListsMissing": true,
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/huanxx/ShareWithWindows/Auto-C-To-CUDA",
+            "binaryPath": "/home/huanxx/ShareWithWindows/Auto-C-To-CUDA/translate.out",
+            "binaryArgs": []
+        }
+    ]
+}

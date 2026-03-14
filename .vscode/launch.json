@@ -6,10 +6,9 @@
             "type": "cppdbg",
             "request": "launch",
             // 这里的路径 CMake Tools 会自动帮你处理，或者手动指定 build 里的路径
-            "program": "${command:cmake.launchTargetPath}", 
+            "program": "${command:makefile.launchTargetPath}", 
             "args": [
-                "-c",
-                "${workspaceFolder}/benchmarks/n-body/nbody.c"
+                "${workspaceFolder}/tests/function_call/main.c"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}", // 建议设置工作目录为项目根目录

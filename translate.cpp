@@ -29,6 +29,7 @@
  */
 #include "rose.h"
 #include <iostream>
+#include "./include/fileio/io.h"
 #include "./include/logger.h"
 #include "./include/loop_attr.hpp"
 #include "./include/normalize/normalize.hpp"
@@ -39,33 +40,33 @@
 #include "./include/preprocess/preprocess.hpp"
 #define DEBUG 0
 
-
-void printMsg(std::string msg)
-{
-	#if DEBUG
-	std::cout << msg << std::endl;
-	#endif
-}
-
 int main(int argc, char **argv)
 {
+	Config::getInstance().load();
 	ROSE_INITIALIZE;
 	SgProject *project = frontend(argc, argv);
-	log_info("ROSE: Starting translation...");
 	/* Obtain the global scope */
-	/* 在使用Makefile的项目中将此程序作为编译器时，需要过滤输入不是源文件的情况 */
-	SgGlobal *globalScope = nullptr;
+	/* 在使用Makefile的项目中将此程序作为编译器时，需要过滤输入不是源文件的情况
+	** 并非问题关键，需要解决多文件依赖问题
+	*/
+	SgGlobal *globalScope = nullptr; // 一个文件的全局作用域
 	if (project->get_fileList().empty() == false)
 	{
 		globalScope = SageInterface::getFirstGlobalScope(project);
+		SgFile *file = SageInterface::getEnclosingFileNode(globalScope);
+		if (file)
+		{
+			std::string fileName = file->get_sourceFileNameWithoutPath();
+			log_info(">>>> Translating file: %s <<<<", fileName.c_str());
+		}
 	}
 	else
 	{
-		log_info("ROSE: No source files detected (Skip Translate).");
+		log_info("No source files detected (Skip Translate).");
 	}
 
 	/* Get all function definitions */
-	// 所有函数定义的vector容器
+	// 所有函数定义的vector容器，因为语句必须依附于函数运行，因此从函数体定义入手
 	Rose_STL_Container<SgNode*> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition);
 	Rose_STL_Container<SgNode*>::const_iterator func_iter = functions.begin();
 	
@@ -79,12 +80,14 @@ int main(int argc, char **argv)
 	bool ecs_fn_flag = false;
 	
 	/* Loop through each function definition */
+	/* 对从project中查询到的所有函数定义Node执行以下操作 */
 	while(func_iter != functions.end() && globalScope != nullptr)
 	{
 		/* Get the actual definition node */
 		SgFunctionDefinition* defn = isSgFunctionDefinition(*func_iter);
 
 		/* Query for any while loops and try to convert them into for loops */
+		/* 尝试转化函数定义中存在的while循环为for循环 */
 		Rose_STL_Container<SgNode*> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
 		for(auto while_iter = whileLoops.begin(); while_iter != whileLoops.end(); /* EMPTY -- Increment at end of loop */)
 		{
@@ -111,6 +114,7 @@ int main(int argc, char **argv)
 		Rose_STL_Container<SgNode*> forLoops = NodeQuery::querySubTree(defn,V_SgForStatement);
 		
 		/* Check if we can convert any imperf nests into perf ones */
+		/* 尝试转化函数定义中所有for循环为完美for循环 */
 		auto for_iter = forLoops.begin();
 		while(for_iter != forLoops.end())
 		{
@@ -143,6 +147,7 @@ int main(int argc, char **argv)
 		}
 		
 		/* Re-query to obtain any transformed loop nests */
+		/* querySubTree使用深度优先搜索排序查询到的节点，因此此循环收集了所有最外层的循环 */
 		forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
 		for_iter = forLoops.begin();
 		while(for_iter != forLoops.end())
@@ -175,8 +180,10 @@ int main(int argc, char **argv)
 			bool perf = isPerfectlyNested(loop_nest);
 
 			/* If the nest is imperfect here (i.e. even after we tried transforming it), skip this nest */
-			if(!perf)			
+			if(!perf){
+				log_info("Loop Nest Skipped (Not Perfect)");
 				continue;
+			}
 
 
 			/* Obtain the attribute of the nest */
@@ -186,13 +193,14 @@ int main(int argc, char **argv)
 			/* Perform normalization */
 			if(!normalizeLoopNest(loop_nest))
 			{
-				printMsg("Loop Nest Skipped (Not Normalized)");
+				log_info("Loop Nest Skipped (Not Normalized)");
 				attr->set_nest_flag(false);
 				continue;
 			}
 
 			
 			/* Obtain the iteration, bound, and symbolic_constant vectors for the loop nest */
+			/* 获取迭代变量、边界和符号常量 */
 			std::list<std::string> iter_vec, symb_vec;
 			std::list<SgExpression*> bound_vec;
 			Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
@@ -202,17 +210,20 @@ int main(int argc, char **argv)
 				SgForStatement *l = isSgForStatement(*inner_it);
 				
 				/* Iteration variables */
+				/* 迭代变量获取 */
 				iter_vec.push_back( SageInterface::getLoopIndexVariable(l)->get_name().getString() );
 				
 				/* Bounds Expressions */
+				/* 获得边界，由于标准化了一定是上界 */
 				SgExpression *bound = isSgBinaryOp(l->get_test_expr())->get_rhs_operand();
 				bound_vec.push_back(bound);
 
 				/* Symbolic Constants -- Query for any variable references in the bounds expression */
-				Rose_STL_Container<SgNode*> v = NodeQuery::querySubTree(bound, V_SgVarRefExp);
+				/* 获取其中的符号常量并存储的集合中 */
+				Rose_STL_Container<SgNode*> v = NodeQuery::querySubTree(bound, V_SgVarRefExp); // 边界表达式的变量集合
 				for(Rose_STL_Container<SgNode*>::iterator v_it = v.begin(); v_it != v.end(); v_it++)
 				{
-					std::string var_name = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString();
+					std::string var_name = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString(); // 变量的字符串
 					
 					/* Keep only unique vars */
 					if( std::find(symb_vec.begin(), symb_vec.end(), var_name) != symb_vec.end() )
@@ -234,39 +245,34 @@ int main(int argc, char **argv)
 			/* Affine test */
 			if(!affineTest(loop_nest))
 			{
-				printMsg("Loop Nest Skipped (Not Affine)");
+				log_info("Loop Nest Skipped (Not Affine)");
 				attr->set_nest_flag(false);
 				continue;
 			}
-
 
 			/* Dependency Tests */
 			switch(dependencyExists(loop_nest))
 			{
 				case 0: /* Code Generation */
-					printMsg("No Dependency Exists");
+					log_info("No Dependency Exists");
 					kernelCodeGenSimple(loop_nest, globalScope, nest_id);
 					break;
 				
 				case 1: /* Parallelism Extraction */
-					printMsg("Dependency Exists");
+					log_info("Dependency Exists");
 					if(!extractParallelism(loop_nest, globalScope, nest_id, ecs_fn_flag))
-						printMsg("Loop Nest Skipped (Could Not Extract Parallelism");
+						log_info("Loop Nest Skipped (Could Not Extract Parallelism");
 
 					break;
 				
 				case 2: /* Skip Loop Nest */
-					printMsg("Loop Nest Skipped (Could Not Determine Dependence)");
-				        attr->set_nest_flag(false);
+					log_info("Loop Nest Skipped (Could Not Determine Dependence)");
+					attr->set_nest_flag(false);
 					continue;
 				
 				default: /* Should not reach here, skip loop to be safe */	
 					continue;
-			}
-
-			
-			
-			
+			}	
 		}
 
 
@@ -279,6 +285,7 @@ int main(int argc, char **argv)
 	}
 
 	/* #define the CUDA_BLOCKs */
+	/* 在文件的第一个语句前面添加下面的声明 */
 	if(globalScope != nullptr){
 		SgLocatedNode *top_scope = globalScope;
 		SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
@@ -290,7 +297,7 @@ int main(int argc, char **argv)
 		SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
 	}
 
-	// 遍历项目中的每一个文件
+	/* 对所有文件进行后缀转化 */
 	for (int i = 0; i < project->numberOfFiles(); ++i)
 	{
 		SgFile &file = project->get_file(i);

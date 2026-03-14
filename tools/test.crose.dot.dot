@@ -1,0 +1,35 @@
+digraph "G./test.crose.dot.dot" {
+"0x7f418bc61178"[label="3:4\nSgFunctionParameterList\n isFriend = false \n isExtern = false \n firstNondefiningDeclaration = 0x7f418bc61178\n definingDeclaration = (nil)\n!isForward\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:0\n0x7f418bc61178\ntest.c:1:1 (physical line=1) (raw line:col=1:1)\ntest.c:1:17 (physical line=1) (raw line:col=1:17)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b9aa010"[label="6:7\nSgBasicBlock\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:0\n0x7f418b9aa010\ntest.c:1:18 (physical line=1) (raw line:col=1:18)\ntest.c:3:1 (physical line=3) (raw line:col=3:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b911010"[label="5:8\nSgFunctionDefinition\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:1\n0x7f418b911010\ntest.c:1:18 (physical line=1) (raw line:col=1:18)\ntest.c:3:1 (physical line=3) (raw line:col=3:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b911010" -> "0x7f418b9aa010"[label="body" dir=both ];
+"0x7f418c581010"[label="2:9\nSgFunctionDeclaration\nfunc\n isFriend = false \n isExtern = false \n firstNondefiningDeclaration = 0x7f418c580ad0\n definingDeclaration = 0x7f418c581010\n!isForward\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:3\n0x7f418c581010\ntest.c:1:1 (physical line=1) (raw line:col=1:1)\ntest.c:3:1 (physical line=3) (raw line:col=3:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418c581010" -> "0x7f418bc61178"[label="parameterList" dir=both ];
+"0x7f418c581010" -> "0x7f418c581010__decoratorList__null"[label="decoratorList" dir=none ];
+"0x7f418c581010__decoratorList__null"[label="" shape=diamond ];
+"0x7f418c581010" -> "0x7f418b911010"[label="definition" dir=both ];
+"0x7f418bc617a8"[label="11:12\nSgFunctionParameterList\n isFriend = false \n isExtern = false \n firstNondefiningDeclaration = 0x7f418bc617a8\n definingDeclaration = (nil)\n!isForward\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:0\n0x7f418bc617a8\ntest.c:5:1 (physical line=5) (raw line:col=5:1)\ntest.c:5:10 (physical line=5) (raw line:col=5:10)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b8d2010"[label="16:17\nSgIntVal\nisModified = false\ncontainsTransformation = false\nisTransformation = false\n value = 0\n lvalue = false\nchild_count:0\n0x7f418b8d2010\ntest.c:6:12 (physical line=6) (raw line:col=6:12)\ntest.c:6:12 (physical line=6) (raw line:col=6:12)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b8a3010"[label="15:18\nSgReturnStmt\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:1\n0x7f418b8a3010\ntest.c:6:5 (physical line=6) (raw line:col=6:5)\ntest.c:6:13 (physical line=6) (raw line:col=6:13)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b8a3010" -> "0x7f418b8d2010"[label="expression" dir=both ];
+"0x7f418b9aa168"[label="14:19\nSgBasicBlock\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:1\n0x7f418b9aa168\ntest.c:5:11 (physical line=5) (raw line:col=5:11)\ntest.c:7:1 (physical line=7) (raw line:col=7:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b9aa168" -> "0x7f418b8a3010"[label="*[0]" dir=both ];
+"0x7f418b911148"[label="13:20\nSgFunctionDefinition\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:1\n0x7f418b911148\ntest.c:5:11 (physical line=5) (raw line:col=5:11)\ntest.c:7:1 (physical line=7) (raw line:col=7:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418b911148" -> "0x7f418b9aa168"[label="body" dir=both ];
+"0x7f418c581a90"[label="10:21\nSgFunctionDeclaration\nmain\n isFriend = false \n isExtern = false \n firstNondefiningDeclaration = 0x7f418c581550\n definingDeclaration = 0x7f418c581a90\n!isForward\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:3\n0x7f418c581a90\ntest.c:5:1 (physical line=5) (raw line:col=5:1)\ntest.c:7:1 (physical line=7) (raw line:col=7:1)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418c581a90" -> "0x7f418bc617a8"[label="parameterList" dir=both ];
+"0x7f418c581a90" -> "0x7f418c581a90__decoratorList__null"[label="decoratorList" dir=none ];
+"0x7f418c581a90__decoratorList__null"[label="" shape=diamond ];
+"0x7f418c581a90" -> "0x7f418b911148"[label="definition" dir=both ];
+"0x7f418e086128"[label="1:22\nSgGlobal\nisModified = false\ncontainsTransformation = false\nisTransformation = false\nchild_count:3329\n0x7f418e086128\ntest.c:0:0 (physical line=0) (raw line:col=0:0)\ntest.c:0:0 (physical line=0) (raw line:col=0:0)\ncontainsTransformationToSurroundingWhitespace == false\n" ];
+"0x7f418e086128" -> "0x7f418c581010"[label="*[3327]" dir=both ];
+"0x7f418e086128" -> "0x7f418c581a90"[label="*[3328]" dir=both ];
+"0x7f418dec8010"[label="0:23\nSgSourceFile\nchild_count:4\n0x7f418dec8010\ntest.c:1:1 (physical line=1) (raw line:col=1:1)\n" ];
+"0x7f418dec8010" -> "0x7f418e086128"[label="globalScope" dir=both ];
+"0x7f418dec8010" -> "0x7f418dec8010__package__null"[label="package" dir=none ];
+"0x7f418dec8010__package__null"[label="" shape=diamond ];
+"0x7f418dec8010" -> "0x7f418dec8010__import_list__null"[label="import_list" dir=none ];
+"0x7f418dec8010__import_list__null"[label="" shape=diamond ];
+"0x7f418dec8010" -> "0x7f418dec8010__class_list__null"[label="class_list" dir=none ];
+"0x7f418dec8010__class_list__null"[label="" shape=diamond ];
+}

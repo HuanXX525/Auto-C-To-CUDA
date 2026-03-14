@@ -1,0 +1,7 @@
+{
+    "safe_functions": [
+        "sin", "cos", "tan", "asin", "acos", "atan", 
+        "exp", "log", "log10", "pow", "sqrt", "fabs", 
+        "ceil", "floor", "fmax", "fmin"
+    ]
+}
