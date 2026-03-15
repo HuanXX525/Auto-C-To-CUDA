@@ -13,6 +13,11 @@ __global__ void _auto_kernel_0(int arr[10])
 }
 int arr[10] = {(1), (2), (3), (4), (5), (6), (7), (8), (9), (0)};
 
+int getN()
+{
+  return 4;
+}
+
 int main()
 {
   int i_nom_1;

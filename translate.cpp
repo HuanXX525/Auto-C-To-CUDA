@@ -134,14 +134,14 @@ int main(int argc, char **argv)
 					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
 					if (!call)
 						continue;
-					FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
-					if (fa)
+					FuncAttribute *f_a = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
+					if (f_a)
 						continue;
 					// 1. 函数名
 					SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
 					std::string funcName = symbol->get_name().getString();
-					FuncAttribute fa = new FuncAttribute(
-						std::find(safe_funcs.begin(), safe_funcs.end(), funcName) == safe_funcs.end());
+					FuncAttribute *fa = new FuncAttribute(
+						std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end());
 					SgFunctionDeclaration *decl = symbol->get_declaration();
 					if (!decl)
 					{
@@ -172,12 +172,18 @@ int main(int argc, char **argv)
 					/* 不在白名单有定义且不递归 */
 					if(!fa->isSafe()&&fa->haveDefination()&&!fa->isRecursive()){
 						bool succ = doInline(call);
-						if(succ)
+						if(succ){
+							log_info("inlined");
 							changed = true;
+						}
 					}
 				}
 			}
 		}
+
+		project->unparse();
+		assert(false);
+		forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
 		/* Check if we can convert any imperf nests into perf ones */
 		/* 尝试转化函数定义中所有for循环为完美for循环 */
 		auto for_iter = forLoops.begin();

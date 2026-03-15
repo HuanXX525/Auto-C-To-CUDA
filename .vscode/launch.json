@@ -8,7 +8,7 @@
             // 这里的路径 CMake Tools 会自动帮你处理，或者手动指定 build 里的路径
             "program": "${command:makefile.launchTargetPath}", 
             "args": [
-                "${workspaceFolder}/tests/function_call/main.c"
+                "${workspaceFolder}/tests/inline/main.c"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}", // 建议设置工作目录为项目根目录
