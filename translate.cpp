@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
 	/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
 	bool ecs_fn_flag = false;
-
+	
 	/* Loop through each function definition */
 	/* 对从project中查询到的所有函数定义Node执行以下操作 */
 	while (func_iter != functions.end() && globalScope != nullptr)
@@ -124,6 +124,17 @@ int main(int argc, char **argv)
 			// 查询所有函数调用
 			bool changed = true;
 			std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
+			while(changed){
+				changed = false;
+				Rose_STL_Container<SgNode *> fn_calls = NodeQuery::querySubTree(forstat, V_SgFunctionCallExp);
+				for(auto node = fn_calls.begin(); node != fn_calls.end();node++){
+					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
+					if(!call){
+						continue;
+					}
+					
+				}
+			}
 			while (changed)
 			{
 				changed = false;
