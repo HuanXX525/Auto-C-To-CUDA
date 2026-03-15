@@ -27,25 +27,17 @@ bool affineTest(SgForStatement *loop_nest)
 		SgFunctionCallExp *call = isSgFunctionCallExp(node);
 		if (!call)
 			continue;
-
-		// 1. 获取函数符号
-		SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
-		if (!symbol)
-		{
-			// 如果找不到符号（例如复杂的函数指针调用），为了保守起见，返回 false
-			log_info("> getAssociatedFunctionSymbol flase Skip");
+		FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
+		if(!fa){
+			log_error("Find a function call without FuncAttribute");
 			return false;
 		}
-
-		// 2. 获取函数名称字符串
-		std::string funcName = symbol->get_name().getString();
-
-		// 3. 调用你的单例类进行白名单检查
-		if (std::find(safe_funcs.begin(), safe_funcs.end(), funcName) == safe_funcs.end())
+		else
 		{
-			/* 如果函数不在白名单中，则认为该循环是不安全的，返回 false */
-			log_info("Loop Skip Find a unsafeFunction -> %s", funcName.c_str());
-			return false;
+			if(!fa->isSafe()){
+				log_info("Find a unsafe function call");
+				return false;
+			}
 		}
 	}
 	/* 如果运行到这里，说明所有函数调用都在白名单中 */

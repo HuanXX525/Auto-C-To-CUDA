@@ -1,5 +1,6 @@
 /* Implementation of preprocessinf functions */
 #include "./preprocess.hpp"
+#include "preprocess.hpp"
 
 /* Attempts to convert a while-loop nest into a for-loop nest */
 SgStatement * convertWhileToFor(SgWhileStmt *loop_nest)
@@ -251,4 +252,34 @@ bool isPerfectlyNested(SgForStatement *loop_nest)
 	/* If we get here, none of the loops (aside from the inner-most one) had more than one statement, so the loop is perfectly nested */
 	return true;
 
+}
+#include "../logger.h"
+bool isRecursive(SgFunctionDeclaration *func)
+{
+	std::string name = func->get_name();
+	SgFunctionDefinition *func_def = func->get_definition();
+	Rose_STL_Container<SgNode *> fn_calls = NodeQuery::querySubTree(func_def, V_SgFunctionCallExp);
+	for (SgNode *node : fn_calls)
+	{
+		SgFunctionCallExp *call = isSgFunctionCallExp(node);
+		if (!call)
+			continue;
+
+		// 1. 函数名
+		SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
+		if (!symbol)
+		{
+			// 如果找不到符号（例如复杂的函数指针调用），为了保守起见，返回 false
+			log_info("getAssociatedFunctionSymbol flase Skip");
+			break;
+		}
+		std::string funcName = symbol->get_name().getString();
+		if(funcName.compare(name) == 0)
+			return true;
+	}
+	return false;
+}
+
+bool haveDefination(SgFunctionDeclaration *func){
+	return func->get_definition() != nullptr;
 }
