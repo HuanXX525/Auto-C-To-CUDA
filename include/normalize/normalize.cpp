@@ -19,7 +19,19 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 		if(!normalizeLoop(loop))
 			return false;
 	}
-
+	//// DEBUG__
+	// std::cout << loop_nest->unparseToString() << std::endl;
+	// std::cout << loop_nest->get_parent()->unparseToString() << std::endl;
+	//
+	// std::cout<< loop_nest->unparseToString() << std::endl;
+	// if (loop_nest && loop_nest->get_parent())
+	// {
+	// 	std::cout<< loop_nest->get_parent()->unparseToString() << std::endl;
+	// }
+	// else
+	// {
+	// 	std::cout << "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+	// }
 	/* Perform constant folding on the normalized nest (need to supply the parent node) */
 	SageInterface::constantFolding(loop_nest->get_parent());
 
