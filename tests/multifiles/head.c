@@ -1,11 +1,9 @@
 #include"head.h"
 
-int arr[N] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+int arr[N];
 
-void loop()
+void init()
 {
-    int a =0;
-    for(int j = 0;j < N;++j){
-        arr[j] += j;
-    }
+    for(int i=0;i<N;i++)
+        arr[i]=i;
 }

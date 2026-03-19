@@ -2,9 +2,10 @@
 #include"head.h"
 
 int main(){
-    for (int i = 0; i < N; ++i) {
-        int a = 4;
-        loop();
+    init();
+    for(int i=0;i<10;i++){
+        printf("%d\n", arr[i]);
+        // sleep(1);
     }
 
     return 0;
