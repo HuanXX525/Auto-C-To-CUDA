@@ -3,9 +3,12 @@
 __attribute__((const)) void func(){
 
 }
+int arr[10];
+int main()
+{
+    for (int i = 0; i < 10;i++){
 
-int main(){
-    func();
-    sin(2);
-    return 0;
+            arr[i] += 4;
+
+    }
 }

@@ -3,11 +3,8 @@
 
 int main(){
     for (int i = 0; i < N; ++i) {
+        int a = 4;
         loop();
-    }
-
-    for (int i = 0; i < N; ++i) {
-        arr[i] += 1;
     }
 
     return 0;

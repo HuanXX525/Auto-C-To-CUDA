@@ -39,7 +39,6 @@
 #include "./include/kernel/kernel.hpp"
 #include "./include/preprocess/preprocess.hpp"
 #include <inliner.h>
-#define DEBUG 0
 
 void __printSC(SgNode* node)
 {
@@ -52,14 +51,12 @@ void __printSC(SgNode* node)
 
 int main(int argc, char **argv)
 {
-	Config::getInstance().load();
 	ROSE_INITIALIZE;
+	Config::getInstance().load();
 	SgProject *project = frontend(argc, argv);
 	/* Obtain the global scope */
-	/* 在使用Makefile的项目中将此程序作为编译器时，需要过滤输入不是源文件的情况
-	** 并非问题关键，需要解决多文件依赖问题
-	*/
-	SgGlobal *globalScope = nullptr;
+	SgGlobal *globalScope = nullptr; // Single File: Global Scope
+	// 过滤非源文件，从而可以直接使用make
 	if (project->get_fileList().empty() == false)
 	{
 		globalScope = SageInterface::getFirstGlobalScope(project);
@@ -67,7 +64,7 @@ int main(int argc, char **argv)
 		if (file)
 		{
 			std::string fileName = file->get_sourceFileNameWithoutPath();
-			log_info(">>>> Translating file: %s <<<<", fileName.c_str());
+			log_info("				>>>> Translating File: %s <<<<", fileName.c_str());
 		}
 	}
 	else
@@ -77,8 +74,8 @@ int main(int argc, char **argv)
 
 	/* Get all function definitions */
 	// 所有函数定义的vector容器，因为语句必须依附于函数运行，因此从函数体定义入手
-	Rose_STL_Container<SgNode *> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition);
-	log_info("Get %ld functions, Read to Traverse", functions.size());
+	Rose_STL_Container<SgNode *> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition); // 文件内所有的函函数定义节点
+	log_info("FUNCTIONS: Get %ld functions, Ready to traverse", functions.size());
 	Rose_STL_Container<SgNode *>::const_iterator func_iter = functions.begin();
 
 	/* Will hold each of the loop nests */
@@ -96,17 +93,19 @@ int main(int argc, char **argv)
 	{
 		/* Get the actual definition node */
 		SgFunctionDefinition *defn = isSgFunctionDefinition(*func_iter);
-		log_info("--------------------- Enter func %s ---------------------", defn->get_declaration()->get_name().getString().c_str());
+		log_info("--------------------- Enter func %s ---------------------", 
+			defn->get_declaration()->get_name().getString().c_str());
 
 		/* Query for any while loops and try to convert them into for loops */
 		/* 尝试转化函数定义中存在的while循环为for循环 */
 		Rose_STL_Container<SgNode *> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
-		log_info("Get %ld while loops, Ready to Traverse", whileLoops.size());
+		log_info("WHILE LOOP: Get %ld while loops, Ready to Traverse", whileLoops.size());
 		for (auto while_iter = whileLoops.begin(); while_iter != whileLoops.end(); /* EMPTY -- Increment at end of loop */)
 		{
 			/* Get the outer most while loop */
 			SgWhileStmt *loop_nest = isSgWhileStmt(*while_iter);
-			log_info(">> Enter while Loop: %s", loop_nest->unparseToString().c_str());
+			log_debug(">> Enter while Loop: %s", loop_nest->unparseToString().c_str());
+			
 
 			/* Find loop nest size */
 			Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgWhileStmt);
@@ -125,7 +124,7 @@ int main(int argc, char **argv)
 
 		/* Query for the for loops */
 		Rose_STL_Container<SgNode *> forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
-		log_info("Get %ld for loops, Ready to Mark Safe And Inline", forLoops.size());
+		log_info("FOR LOOP: Get %ld for loops, Ready to Mark Safe Functions And Inline", forLoops.size());
 		/* 标记白名单函数和内联 */
 		for (auto f = forLoops.begin(); f != forLoops.end(); ++f)
 		{
@@ -133,7 +132,7 @@ int main(int argc, char **argv)
 			SgForStatement *forstat = isSgForStatement(*f);
 			if (!forstat)
 				continue;
-			log_info(">> Enter for Loop: %s", forstat->unparseToString().c_str());
+			log_debug(">> Enter for Loop: %s", forstat->unparseToString().c_str());
 			// 查询所有函数调用
 			bool changed = true;
 			std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
@@ -179,14 +178,16 @@ int main(int argc, char **argv)
 				for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
 				{
 					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
-					if(!call) continue;
+					std::string fname = call->getAssociatedFunctionDeclaration()->get_name().getString();
+					if (!call)
+						continue;
 					FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
 					// if(!fa) continue;
 					/* 不在白名单有定义且不递归 */
 					if(!fa->isSafe()&&fa->haveDefination()&&!fa->isRecursive()){
 						bool succ = doInline(call);
 						if(succ){
-							log_info("inlined");
+							log_info("Function Call %s Inlined Successfully", fname.c_str());
 							changed = true;
 						}
 					}
@@ -199,13 +200,13 @@ int main(int argc, char **argv)
 		forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
 		/* Check if we can convert any imperf nests into perf ones */
 		/* 尝试转化函数定义中所有for循环为完美for循环 */
-		log_info("Get %ld for loops, Ready to Convert Imperfectly Nested Loops into Perfect Ones", forLoops.size());
+		log_info("FOR LOOP: Get %ld for loops, Ready to Convert Imperfectly Nested Loops into Perfect Ones", forLoops.size());
 		auto for_iter = forLoops.begin();
 		while (for_iter != forLoops.end())
 		{
 			/* Get the outer most loop */
 			SgForStatement *loop_nest = isSgForStatement(*for_iter);
-			log_info(">> Enter for Loop: %s", loop_nest->unparseToString().c_str());
+			log_debug(">> Enter for Loop: %s", loop_nest->unparseToString().c_str());
 			/* Obtain the size of this nest (so we can properly update for_iter) */
 			Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 			int nest_size = inner_loops.size();
@@ -254,13 +255,13 @@ int main(int argc, char **argv)
 			/* Increment to get to next loop_nest */
 			for_iter += nest_size;
 		}
-		log_info("Get %ld Outer Loops", loop_nest_list.size());
+		log_info("OUTER LOOPS: Get %ld Outer Loops", loop_nest_list.size());
 		/* Iterate through the loop nests */
 		std::list<SgForStatement *>::iterator nest_iter;
 		for (nest_iter = loop_nest_list.begin(); nest_iter != loop_nest_list.end(); nest_iter++)
 		{
 			SgForStatement *loop_nest = *nest_iter;
-			log_info("Processing Loop Nest: %s", loop_nest->unparseToString().c_str());
+			log_debug(">> Processing Loop Nest: %s", loop_nest->unparseToString().c_str());
 			/* Check if loop nest is perfectly nested */
 			bool perf = isPerfectlyNested(loop_nest);
 
