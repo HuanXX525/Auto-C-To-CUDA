@@ -11,6 +11,6 @@ void init()
 
 void inlineTest(){
     for (int j = 0; j < N;j++){
-        arr[j] += j;
+        arr[j] += sqrt(j);
     }
 }

@@ -71,7 +71,8 @@ int main(int argc, char **argv)
 	// {
 	// 	log_info("No source files detected (Skip Translate).");
 	// }
-
+	/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
+	int nest_id = 0; // 防止多文件ID重复
 	for (int fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
 	{
 		/* Obtain the global scope */
@@ -107,9 +108,6 @@ int main(int argc, char **argv)
 
 		/* Will hold each of the loop nests */
 		std::list<SgForStatement *> loopNestList;
-
-		/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
-		int nest_id = 0;
 
 		/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
 		bool ecs_fn_flag = false;
@@ -284,6 +282,7 @@ int main(int argc, char **argv)
 				for_iter += nest_size;
 			}
 			log_info("OUTER LOOPS: Get %ld Outer Loops", loopNestList.size());
+			// nest_id += loopNestList.size(); // 防止多文件下id重复
 			/* Iterate through the loop nests */
 			std::list<SgForStatement *>::iterator nest_iter;
 			for (nest_iter = loopNestList.begin(); nest_iter != loopNestList.end(); nest_iter++)
