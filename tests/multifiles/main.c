@@ -4,8 +4,7 @@
 int main(){
     init();
     for(int i=0;i<10;i++){
-        printf("%d\n", arr[i]);
-        // sleep(1);
+        printf("%f ", arr[i]);
     }
 
     return 0;
