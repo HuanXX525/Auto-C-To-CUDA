@@ -5,7 +5,7 @@ int main(){
     init();
 
     for(int i=0;i<N;i++){
-        inlineTest();
+        inlineTest(i);
     }
 
     for(int i=0;i<10;i++){

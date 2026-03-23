@@ -56,7 +56,7 @@ void TestRoseFunction::readJson(std::string s){
     std::ifstream f(s);
     if (!f.is_open())
     {
-        log_error("Read File %s Error", s);
+        log_error("Read File %s Error", s.c_str());
         return;
     }
 

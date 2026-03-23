@@ -8,10 +8,10 @@ __global__ void _auto_kernel_1(float arr[1000])
 {
   int thread_x_id;thread_x_id = blockIdx.x * blockDim.x + threadIdx.x;
   int thread_y_id;thread_y_id = blockIdx.y * blockDim.y + threadIdx.y;
-  if (thread_x_id && thread_y_id) 
+  if (thread_x_id && thread_y_id)
     if (thread_x_id <= 1000 && thread_y_id <= 1000) {
 // arr[j] += sqrt(j); // 已经验证bug不是因为此处的白名单函数导致
-      arr[1 * thread_y_id + -1] += ((float )(1 * thread_y_id + -1));
+      arr[1 * thread_y_id + -1] += ((float)(1 * thread_y_id + -1)); // <- BUG: 错误的并行化了？
     }
 }
 
@@ -58,7 +58,7 @@ int main()
       int CUDA_GRID_X;
     CUDA_GRID_X = (1000 + CUDA_BLOCK_X - 1)/CUDA_BLOCK_X;
       int CUDA_GRID_Y;
-    CUDA_GRID_Y = (1 + CUDA_BLOCK_Y - 1)/CUDA_BLOCK_Y;
+    CUDA_GRID_Y = (1 + CUDA_BLOCK_Y - 1)/CUDA_BLOCK_Y; // <- BUG: CUDA_GRID_Y计算错误
       int CUDA_GRID_Z;
     CUDA_GRID_Z = (1 + CUDA_BLOCK_Z - 1)/CUDA_BLOCK_Z;
     const dim3 CUDA_blockSize(CUDA_BLOCK_X, CUDA_BLOCK_Y, CUDA_BLOCK_Z);

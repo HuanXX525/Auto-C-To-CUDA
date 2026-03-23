@@ -5,4 +5,4 @@ extern float arr[N];
 #endif
 
 void init();
-void inlineTest();
+void inlineTest(int j);

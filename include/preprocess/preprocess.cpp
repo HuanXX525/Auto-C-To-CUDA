@@ -1,6 +1,6 @@
 /* Implementation of preprocessinf functions */
 #include "./preprocess.hpp"
-#include "preprocess.hpp"
+// #include "preprocess.hpp"
 
 /* Attempts to convert a while-loop nest into a for-loop nest */
 SgStatement * convertWhileToFor(SgWhileStmt *loop_nest)
@@ -282,4 +282,93 @@ bool isRecursive(SgFunctionDeclaration *func)
 
 bool haveDefination(SgFunctionDeclaration *func){
 	return func->get_definition() != nullptr;
+}
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <queue>
+#include <set>
+#include"../logger.h"
+std::map<std::string, int> performTopologicalSort(CallGraphBuilder &CGBuilder)
+{
+	SgIncidenceDirectedGraph *graph = CGBuilder.getGraph(); // [cite: 145]
+	// 获取声明到图节点的映射
+	boost::unordered_map<SgFunctionDeclaration *, SgGraphNode *> &nodeMap = CGBuilder.getGraphNodesMapping();
+
+	std::map<SgGraphNode *, int> inDegree;
+	std::queue<SgGraphNode *> zeroInDegreeQueue;
+	std::vector<SgFunctionDeclaration *> sortedFunctions;
+	std::map<std::string, int> sortedFunc;
+	std::set<SgGraphNode *> userNodes;
+
+	// 1. 初始化入度：只统计用户节点
+	for (auto const &[decl, node] : nodeMap)
+	{
+		userNodes.insert(node);
+	}
+
+	for (SgGraphNode *node : userNodes)
+	{
+		std::set<SgDirectedGraphEdge *> inEdges = graph->computeEdgeSetIn(node);
+		int degree = 0;
+		for (auto *edge : inEdges)
+		{
+			// 只有当调用者也是用户函数，且不是自环时计入入度 [cite: 7]
+			if (edge->get_from() != node && userNodes.count(edge->get_from()))
+			{
+				degree++;
+			}
+		}
+		inDegree[node] = degree;
+		if (degree == 0)
+			zeroInDegreeQueue.push(node);
+	}
+
+	// 2. Kahn 算法逻辑 [cite: 5, 6]
+	std::set<SgGraphNode *> processed;
+	while (!zeroInDegreeQueue.empty())
+	{
+		SgGraphNode *curr = zeroInDegreeQueue.front();
+		zeroInDegreeQueue.pop();
+		processed.insert(curr);
+
+		SgFunctionDeclaration *decl = isSgFunctionDeclaration(curr->get_SgNode());
+		if (decl)
+			sortedFunctions.push_back(decl);
+
+		std::vector<SgGraphNode *> successors;
+		graph->getSuccessors(curr, successors);
+		for (SgGraphNode *next : successors)
+		{
+			if (userNodes.count(next))
+			{
+				inDegree[next]--;
+				if (inDegree[next] == 0)
+					zeroInDegreeQueue.push(next);
+			}
+		}
+	}
+
+	// 3. 输出排序结果
+	// cout << "\n>>> Optimized Function Processing Order (Top-Down):" << endl;
+	// log_info(">>> Optimized Function Processing Order (Top-Down):]n");
+	int order = 0;
+	for (auto *decl : sortedFunctions)
+	{
+		// cout << "  [Order] " << decl->get_name().getString() << endl;
+		sortedFunc.insert(std::pair<std::string, int>(decl->get_name().getString(), order++));
+	}
+
+	// 检查递归（环路）
+	for (SgGraphNode *node : userNodes)
+	{
+		if (processed.find(node) == processed.end())
+		{
+			SgFunctionDeclaration *d = isSgFunctionDeclaration(node->get_SgNode());
+			log_debug("[Warning] Cycle detected involving: %s",d->get_name().getString().c_str());
+		}
+	}
+
+	return sortedFunc;
 }

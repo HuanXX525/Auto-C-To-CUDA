@@ -6,11 +6,11 @@ float arr[N];
 void init()
 {
     for(int i=0;i<N;i++)
-        arr[i] = 0;
+        arr[i] = 1;
 }
 
-void inlineTest(){
-    for (int j = 0; j < N;j++){
-        arr[j] += j;
-    }
+void inlineTest(int j){
+    // for (int j = 0; j < N;j++){
+        arr[j] += sqrt(j);
+    // }
 }

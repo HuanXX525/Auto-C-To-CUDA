@@ -3,12 +3,20 @@
 __attribute__((const)) void func(){
 
 }
-int arr[10];
+void b(){
+
+}
+void a(){
+    b();
+}
+int arr[10][10];
 int main()
 {
-    for (int i = 0; i < 10;i++){
-
-            arr[i] += 4;
-
+    a();
+    for (int i = 0; i < 10; i++)
+    {
+        for (int j = 0; j < 10;j++){
+            arr[i][j] = i + j;
+        }
     }
 }

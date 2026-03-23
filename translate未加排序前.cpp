@@ -54,27 +54,46 @@ int main(int argc, char **argv)
 	Config::getInstance().load();
 	SgProject *project = frontend(argc, argv);
 	SgFilePtrList &fileList = project->get_fileList();
-	if (fileList.empty())
-	{
-		return 0;
-	}
 
-	/* 第一遍while转for、标注函数属性、排序内联 */
-	log_info("第一遍");
+	/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
+	int nest_id = 0; // 防止多文件ID重复
+	for (int fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
 	{
-		// 获取函数的拓扑排序，目前分两遍处理，拓扑排序没什么用，先保留以便后续扩展
-		std::map<std::string, int> funcOrder;
+		/* Obtain the global scope */
+		SgGlobal *fileGlobalScope = nullptr; // 生成代码时需要在本文件的域内生成
+		SgFile *file = fileList[fileIndex];
+
+		SgSourceFile *sourceFile = isSgSourceFile(file);
+		if (sourceFile)
 		{
-			CallGraphBuilder CGBuilder(project);
-			CGBuilder.buildCallGraph(StrictUserOnlyPredicate());
-			funcOrder = performTopologicalSort(CGBuilder);
+			fileGlobalScope = sourceFile->get_globalScope();
+			{ // 重命名文件为xx.cu
+				std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
+				log_info("\n\n			>>>> Translating File: %s <<<<", originalName.c_str());
+				size_t lastDot = originalName.find_last_of(".");
+				std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
+				std::string newName = baseName + ".cu";
+				sourceFile->set_unparse_output_filename(newName);
+			}
+		}else{
+			continue;
 		}
-		std::vector<SgNode *> orderedLoopNestList;
-		Rose_STL_Container<SgNode *> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition);
+
+		/* Get all function definitions */
+		// 所有函数定义的vector容器，因为语句必须依附于函数运行，因此从函数体定义入手
+		Rose_STL_Container<SgNode *> functions = NodeQuery::querySubTree(file, V_SgFunctionDefinition); // 文件内所有的函函数定义节点
 		log_info("FUNCTIONS: Get %ld functions, Ready to traverse", functions.size());
 		Rose_STL_Container<SgNode *>::const_iterator funcIter = functions.begin();
-		// 将块内的while循环转为for循环
-		while (funcIter != functions.end())
+
+		/* Will hold each of the loop nests */
+		std::list<SgForStatement *> loopNestList;
+
+		/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
+		bool ecs_fn_flag = false;
+
+		/* Loop through each function definition */
+		/* 对从project中查询到的所有函数定义Node执行以下操作 */
+		while (funcIter != functions.end() && fileGlobalScope != nullptr)
 		{
 			/* Get the actual definition node */
 			SgFunctionDefinition *defn = isSgFunctionDefinition(*funcIter);
@@ -105,158 +124,85 @@ int main(int argc, char **argv)
 				/* Increment to get to next loop nest */
 				while_iter += nest_size;
 			}
+
+			/* Query for the for loops */
 			Rose_STL_Container<SgNode *> forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
-			// 收集所有的for循环
-			orderedLoopNestList.insert(orderedLoopNestList.end(), forLoops.begin(), forLoops.end());
-			funcIter++;
-		}
-		// 排序for循环,返回 true 表示 a 应该排在 b 前面
-		std::sort(orderedLoopNestList.begin(), orderedLoopNestList.end(), 
-		[&funcOrder](SgNode *an, SgNode *bn){
-			SgForStatement* a = isSgForStatement(an); 
-			SgForStatement* b = isSgForStatement(bn); 
-			
-
-			SgFunctionDefinition *funcA = SageInterface::getEnclosingFunctionDefinition(a);
-			// 2. 找到 b 所在的函数定义
-			SgFunctionDefinition *funcB = SageInterface::getEnclosingFunctionDefinition(b);
-
-			// 3. 获取函数名（注意处理空指针，防止某些 for 不在函数内的极端情况）
-			std::string nameA = funcA ? funcA->get_declaration()->get_name().getString() : "";
-			std::string nameB = funcB ? funcB->get_declaration()->get_name().getString() : "";
-
-			// 4. 从 map 中获取权重，如果找不到（at 会抛异常，可以用 find）
-			int orderA = funcOrder.count(nameA) ? funcOrder.at(nameA) : INT32_MAX;
-			int orderB = funcOrder.count(nameB) ? funcOrder.at(nameB) : INT32_MAX;
-
-			// 5. 排序：小的在前面（升序）
-			return orderA < orderB; 
-		});
-		log_info("Loop Sorted");
-		// 内联和函数标记
-		for (auto forIter = orderedLoopNestList.begin(); forIter != orderedLoopNestList.end(); forIter++)
-		{
-			// 查询所有函数调用
-			SgForStatement *forstat = isSgForStatement(*forIter);
-			if (!forstat)
-				continue;
-			log_debug(">> Enter for Loop: %s", forstat->unparseToString().c_str());
-			// 查询所有函数调用
-			std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
-			// 递归内联如果上一次未改变则中断循环
-			bool changed = true;
-			while (changed)
+			log_info("FOR LOOP: Get %ld for loops, Ready to Mark Safe Functions And Inline", forLoops.size());
+			/* 标记白名单函数和内联 */
+			for (auto f = forLoops.begin(); f != forLoops.end(); ++f)
 			{
-				changed = false;
-				Rose_STL_Container<SgNode *> fn_calls = NodeQuery::querySubTree(forstat, V_SgFunctionCallExp);
-				/* 设置信息 */
-				for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
+				// 查询所有函数调用
+				SgForStatement *forstat = isSgForStatement(*f);
+				if (!forstat)
+					continue;
+				log_debug(">> Enter for Loop: %s", forstat->unparseToString().c_str());
+				// 查询所有函数调用
+				bool changed = true;
+				std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
+				while (changed)
 				{
-					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
-					if (!call)
-						continue;
-					// 有属性说明检查过了
-					FuncAttribute *f_a = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
-					if (f_a)
-						continue;
-					// 1. 获取函数名，检查是否安全
-					SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
-					std::string funcName = symbol->get_name().getString();
-					FuncAttribute *fa = new FuncAttribute(
-						std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end());
-					// 2. 标注是否有定义
-					SgFunctionDeclaration *decl = symbol->get_declaration();
-					if (!decl)
+					changed = false;
+					Rose_STL_Container<SgNode *> fn_calls = NodeQuery::querySubTree(forstat, V_SgFunctionCallExp);
+					/* 设置信息 */
+					for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
 					{
-						log_info("Can't find declaration of function %s", funcName.c_str());
-						break;
-					}
-					SgFunctionDeclaration *definingDecl = isSgFunctionDeclaration(decl->get_definingDeclaration());
-					if (definingDecl && definingDecl->get_definition())
-					{
-						fa->setDefination(true);
-						// 未在拓扑排序中列出的表示存在环，不能内联
-						fa->setRecursive(!funcOrder.count(funcName) || isRecursive(definingDecl));
-					}
-					else
-					{
-						fa->setDefination(false);
-					}
-					call->setAttribute("FuncAttribute", fa);
-				}
-				/* 内联 */
-				for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
-				{
-					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
-					std::string fname = call->getAssociatedFunctionDeclaration()->get_name().getString();
-					if (!call)
-						continue;
-					FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
-					// if(!fa) continue;
-					/* 不在白名单有定义且不递归 */
-					if (!fa->isSafe() && fa->haveDefination() && !fa->isRecursive())
-					{
-						bool succ = doInline(call);
-						if (succ)
+						SgFunctionCallExp *call = isSgFunctionCallExp(*node);
+						if (!call)
+							continue;
+						FuncAttribute *f_a = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
+						if (f_a)
+							continue;
+						// 1. 函数名
+						SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
+						std::string funcName = symbol->get_name().getString();
+						FuncAttribute *fa = new FuncAttribute(
+							std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end());
+						SgFunctionDeclaration *decl = symbol->get_declaration();
+						if (!decl)
 						{
-							log_info("Function Call %s Inlined Successfully", fname.c_str());
-							changed = true;
+							log_info("Can't find declaration of function %s", funcName.c_str());
+							break;
+						}
+						// 获取定义
+						SgFunctionDeclaration *definingDecl = isSgFunctionDeclaration(decl->get_definingDeclaration());
+						if (definingDecl && definingDecl->get_definition())
+						{
+							fa->setDefination(true);
+							fa->setRecursive(isRecursive(definingDecl));
+						}
+						else
+						{
+							fa->setDefination(false);
+							// fa->setRecursive(fa)
+						}
+						call->setAttribute("FuncAttribute", fa);
+					}
+					/* 内联 */
+					for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
+					{
+						SgFunctionCallExp *call = isSgFunctionCallExp(*node);
+						std::string fname = call->getAssociatedFunctionDeclaration()->get_name().getString();
+						if (!call)
+							continue;
+						FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
+						// if(!fa) continue;
+						/* 不在白名单有定义且不递归 */
+						if (!fa->isSafe() && fa->haveDefination() && !fa->isRecursive())
+						{
+							bool succ = doInline(call);
+							if (succ)
+							{
+								log_info("Function Call %s Inlined Successfully", fname.c_str());
+								changed = true;
+							}
 						}
 					}
 				}
 			}
-		}
-	}
 
-	/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
-	/* 第二遍转化 */
-	log_info("第二遍");
-	int nest_id = 0; // 防止多文件ID重复
-	for (size_t fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
-	{
-		/* Obtain the global scope */
-		SgGlobal *fileGlobalScope = nullptr; // 生成代码时需要在本文件的域内生成
-		SgFile *file = fileList[fileIndex];
-		SgSourceFile *sourceFile = isSgSourceFile(file);
-		if (sourceFile)
-		{
-			fileGlobalScope = sourceFile->get_globalScope();
-			{ // 重命名文件为xx.cu
-				std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
-				log_info(">>>> Translating File: %s <<<<\n\n", originalName.c_str());
-				size_t lastDot = originalName.find_last_of(".");
-				std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
-				std::string newName = baseName + ".cu";
-				sourceFile->set_unparse_output_filename(newName);
-			}
-		}
-		else
-		{
-			continue;
-		}
-
-		/* Get all function definitions */
-		// 所有函数定义的vector容器，因为语句必须依附于函数运行，因此从函数体定义入手
-		Rose_STL_Container<SgNode *> functions = NodeQuery::querySubTree(file, V_SgFunctionDefinition); // 文件内所有的函函数定义节点
-		log_info("FUNCTIONS: Get %ld functions, Ready to traverse", functions.size());
-		Rose_STL_Container<SgNode *>::const_iterator funcIter = functions.begin();
-
-		/* Will hold each of the loop nests */
-		std::list<SgForStatement *> loopNestList;
-
-		/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
-		bool ecs_fn_flag = false;
-
-		/* Loop through each function definition */
-		/* 对从单个文件中查询到的所有函数定义Node执行以下操作 */
-		while (funcIter != functions.end() && fileGlobalScope != nullptr)
-		{
-			/* Get the actual definition node */
-			SgFunctionDefinition *defn = isSgFunctionDefinition(*funcIter);
-			log_info("--------------------- Enter func %s ---------------------",
-					 defn->get_declaration()->get_name().getString().c_str());
-
-			Rose_STL_Container<SgNode *> forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
+			// project->unparse();
+			// assert(false);
+			forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
 			/* Check if we can convert any imperf nests into perf ones */
 			/* 尝试转化函数定义中所有for循环为完美for循环 */
 			log_info("FOR LOOP: Get %ld for loops, Ready to Convert Imperfectly Nested Loops into Perfect Ones", forLoops.size());
@@ -417,8 +363,10 @@ int main(int argc, char **argv)
 			// TEST
 			loopNestList.clear();
 			log_info("--------------------- Exit func %s ---------------------\n", defn->get_declaration()->get_name().getString().c_str());
-			funcIter++;
+
 			// log_debug("DEBUG:\n %s",defn->unparseToString().c_str());
+
+			funcIter++;
 		}
 
 		/* #define the CUDA_BLOCKs */
@@ -434,8 +382,35 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Y 1");
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
 		}
+		// log_info("			>>>> Finished Processing File: %s <<<<\n\n", file->get_sourceFileNameWithoutPath().c_str());
 	}
 
+	// /* 对所有文件进行后缀转化 */
+	// for (int i = 0; i < project->numberOfFiles(); ++i)
+	// {
+	// 	SgFile &file = project->get_file(i);
+	// 	SgSourceFile *sourceFile = isSgSourceFile(&file);
+
+	// 	if (sourceFile)
+	// 	{
+	// 		// 1. 获取原始文件名（例如 "main.c"）
+	// 		std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
+
+	// 		// 2. 找到最后一个点号的位置，去掉原后缀
+	// 		size_t lastDot = originalName.find_last_of(".");
+	// 		std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
+
+	// 		// 3. 构造新的输出文件名（例如 "main.cu"）
+	// 		std::string newName = baseName + ".cu";
+
+	// 		// 4. 【关键步骤】设置输出文件名
+	// 		// 设置后，ROSE 将不再使用默认的 rose_ 前缀逻辑
+	// 		sourceFile->set_unparse_output_filename(newName);
+
+	// 		// （可选）如果你想直接控制输出目录，可以设置完整路径
+	// 		// sourceFile->set_output_filename("/path/to/output/" + newName);
+	// 	}
+	// }
 	/* Obtain translation */
 	project->unparse();
 

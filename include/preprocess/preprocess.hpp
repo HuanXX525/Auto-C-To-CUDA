@@ -3,6 +3,7 @@
 #ifndef INPUT_PREPROC
 #define INTUT_PREPROC
 #include "rose.h"
+#include <CallGraph.h>
 #include "../parallel/parallel.hpp"
 
 /* Function to convert while loops into for loops 
@@ -41,4 +42,27 @@ std::vector<SgStatement*> convertImperfToPerf(SgForStatement *imperf_loop_nest);
 bool isPerfectlyNested(SgForStatement *loop_nest);
 bool isRecursive(SgFunctionDeclaration *func);
 bool haveDefination(SgFunctionDeclaration *func);
+
+/* 函数调用图生成过滤器 */
+struct StrictUserOnlyPredicate
+{
+   bool operator()(SgFunctionDeclaration *decl) const
+   {
+      if (!decl)
+         return false;
+      Sg_File_Info *info = decl->get_file_info();
+      if (info->isCompilerGenerated())
+         return false; // [cite: 63]
+
+      std::string filename = info->get_filename();
+      // 核心逻辑：剔除标准库路径 [cite: 103, 105]
+      if (filename.find("/usr/") != std::string::npos ||
+          filename.find("include") != std::string::npos)
+      {
+         return false;
+      }
+      return true;
+   }
+};
+std::map<std::string, int> performTopologicalSort(CallGraphBuilder &CGBuilder); // 获取函数调用的拓扑排序
 #endif
