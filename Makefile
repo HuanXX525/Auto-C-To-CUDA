@@ -7,7 +7,7 @@ ROSE_INSTALL ?= /usr/rose
 ROSE_INCLUDE_DIR = $(ROSE_INSTALL)/include/rose
 
 # Location of Boost include directory, 
-BOOST_PATH = ?= /usr
+BOOST_PATH ?= /usr
 BOOST_CPPFLAGS = -pthread -I$(BOOST_PATH)/include
 BOOST_LD_FLAGS = -L$(BOOST_PATH)/lib
 BOOST_LIBS = -lboost_system
