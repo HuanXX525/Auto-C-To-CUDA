@@ -1,12 +1,16 @@
 default: translate
-# 请根据安装位置填写以下配置↓
+# 请根据安装位置填写以下配置
+# 如果环境变量中没有 ROSE_INSTALL 或 `make ROSE_INSTALL=/path/to/rose/install`，用下面这个是默认的
 ROSE_INSTALL ?= /usr/rose
 # 请根据安装位置填写以上配置↑
 # Location of include directory after "make install"
 ROSE_INCLUDE_DIR = $(ROSE_INSTALL)/include/rose
 
-# Location of Boost include directory
-BOOST_CPPFLAGS = -pthread -I/usr/include
+# Location of Boost include directory, 
+BOOST_PATH ?= /usr
+BOOST_CPPFLAGS = -pthread -I$(BOOST_PATH)/include
+BOOST_LD_FLAGS = -L$(BOOST_PATH)/lib
+BOOST_LIBS = -lboost_system
 
 # Location of lib directory after "make install"
 ROSE_LIB_DIR = $(ROSE_INSTALL)/lib
@@ -26,7 +30,7 @@ debug: translate
 PROJ_DEPS =  $(BUILD_DIR)/normalize.lo $(BUILD_DIR)/affine.lo $(BUILD_DIR)/dependency.lo $(BUILD_DIR)/parallel.lo $(BUILD_DIR)/kernel.lo $(BUILD_DIR)/preprocess.lo $(BUILD_DIR)/io.lo
 
 translate: $(PROJ_DEPS) ./include/loop_attr.hpp
-	libtool --mode=link $(CXX) $(CXXFLAGS) -I$(ROSE_INCLUDE_DIR) $(BOOST_CPPFLAGS) -o translate.out $(PROJ_DEPS) translate.cpp $(ROSE_LIBS)
+	libtool --mode=link $(CXX) $(CXXFLAGS) -I$(ROSE_INCLUDE_DIR) $(BOOST_CPPFLAGS) -o translate.out $(PROJ_DEPS) translate.cpp $(ROSE_LIBS) $(BOOST_LD_FLAGS) $(BOOST_LIBS)
 
 tools_test: $(PROJ_DEPS)
 	libtool --mode=link $(CXX) $(CXXFLAGS) -I$(ROSE_INCLUDE_DIR) $(BOOST_CPPFLAGS) -o tools/playground.out tools/test.cpp tools/playground.cpp $(ROSE_LIBS)
