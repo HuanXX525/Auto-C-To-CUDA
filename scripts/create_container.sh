@@ -62,4 +62,4 @@ docker run -it \
     --security-opt label=disable \
     -v "${WORKSPACE_DIR}:/workspace" \
     --name "$CONTAINER_NAME" \
-    c2cuda-dev
+    c2cuda-dev:v2.0
