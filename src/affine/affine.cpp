@@ -1,8 +1,8 @@
 /* Implementation of affine test functions */
-#include "affine.hpp"
+#include "affine/affine.hpp"
 #include <algorithm>
-#include "../logger.h"
-#include "../fileio/io.h"
+#include "logger.h"
+#include "fileio/io.h"
 
 /* Test whether loop nest is affine */
 bool affineTest(SgForStatement *loop_nest)

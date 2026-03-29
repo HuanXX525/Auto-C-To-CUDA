@@ -1,5 +1,5 @@
 /* Implementation of building kernel functions/calls */
-#include "./kernel.hpp"
+#include "kernel/kernel.hpp"
 
 
 /* Driver function to create kernel defn/call for simple code generation (i.e. NO DEPENDENCIES) */

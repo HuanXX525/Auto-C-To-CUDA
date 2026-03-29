@@ -4,7 +4,7 @@
 #define INTUT_PREPROC
 #include "rose.h"
 #include <CallGraph.h>
-#include "../parallel/parallel.hpp"
+#include "parallel/parallel.hpp"
 
 /* Function to convert while loops into for loops 
  

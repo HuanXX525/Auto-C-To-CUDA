@@ -1,5 +1,5 @@
 /* Implementation of parallelism extraction */
-#include "./parallel.hpp"
+#include "parallel/parallel.hpp"
 
 
 /* Extract any parallelism in the loop */
