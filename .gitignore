@@ -39,3 +39,6 @@ build/*
 ./me-or-ai.sh
 
 .vscode
+
+3rdpart
+compile_commands.json
