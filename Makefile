@@ -25,23 +25,9 @@ BUILD_DIR = build
 # Include paths
 INCLUDES = -I$(INCLUDE_DIR) -I$(ROSE_INCLUDE_DIR) $(BOOST_CPPFLAGS)
 
-# Source modules (each is src/<module>/<file>.cpp)
-MODULES = normalize affine dependency parallel kernel preprocess fileio
-SRC_FILES = $(SRC_DIR)/normalize/normalize.cpp \
-            $(SRC_DIR)/affine/affine.cpp \
-            $(SRC_DIR)/dependency/dependency.cpp \
-            $(SRC_DIR)/parallel/parallel.cpp \
-            $(SRC_DIR)/kernel/kernel.cpp \
-            $(SRC_DIR)/preprocess/preprocess.cpp \
-            $(SRC_DIR)/fileio/io.cpp
-
-PROJ_DEPS = $(BUILD_DIR)/normalize.lo \
-            $(BUILD_DIR)/affine.lo \
-            $(BUILD_DIR)/dependency.lo \
-            $(BUILD_DIR)/parallel.lo \
-            $(BUILD_DIR)/kernel.lo \
-            $(BUILD_DIR)/preprocess.lo \
-            $(BUILD_DIR)/io.lo
+# Auto-discover all .cpp files under src/
+SRC_FILES = $(shell find $(SRC_DIR) -name '*.cpp')
+PROJ_DEPS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.lo,$(SRC_FILES))
 
 # Debug target
 debug: CXXFLAGS += -g -DC2CUDEBUG
@@ -51,40 +37,16 @@ debug: translate
 translate: $(PROJ_DEPS)
 	libtool --mode=link $(CXX) $(CXXFLAGS) $(INCLUDES) -o translate.out $(PROJ_DEPS) translate.cpp $(ROSE_LIBS) $(BOOST_LD_FLAGS) $(BOOST_LIBS)
 
-# Pattern rules for compiling src modules
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/normalize/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/affine/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/dependency/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/parallel/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/kernel/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/preprocess/%.cpp
-	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR)/%.lo: $(SRC_DIR)/fileio/%.cpp
+# Generic pattern rule: src/**/*.cpp -> build/**/*.lo
+$(BUILD_DIR)/%.lo: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
 	libtool --mode=compile $(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
 
 # Tools test
 tools_test: $(PROJ_DEPS)
 	libtool --mode=link $(CXX) $(CXXFLAGS) $(INCLUDES) -o tools/playground.out tools/test.cpp tools/playground.cpp $(ROSE_LIBS)
 
-# Create build directory
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
-# Ensure build dir exists before compiling
-$(PROJ_DEPS): | $(BUILD_DIR)
-
 clean:
-	rm -rf $(BUILD_DIR)/*
+	rm -rf $(BUILD_DIR)
 
 .PHONY: default debug clean tools_test
