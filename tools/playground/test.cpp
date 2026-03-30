@@ -1,7 +1,7 @@
 #include "test.h"
 #include <iostream>
-#include "../include/nlohmann/json.hpp"
-#include "../include/logger.h"
+#include "nlohmann/json.hpp"
+#include "logger.h"
 
 void TestRoseFunction::getFuncDefFromCall(SgProject *project)
 { // 查找所有的函数调用
