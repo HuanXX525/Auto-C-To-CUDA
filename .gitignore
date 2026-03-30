@@ -35,6 +35,7 @@
 *.app
 
 build/*
+bin/*
 
 ./me-or-ai.sh
 
@@ -42,3 +43,4 @@ build/*
 
 3rdpart
 compile_commands.json
+.claude
