@@ -3,7 +3,7 @@
 #ifndef CUDA_KERNEL_GEN
 #define CUDA_KERNEL_GEN
 #include "rose.h"
-#include "../loop_attr.hpp"
+#include "loop_attr.hpp"
 
 
 

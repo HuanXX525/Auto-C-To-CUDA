@@ -4,7 +4,9 @@
 
 ## Docker
 
-docker 用的是 nvidia 提供的 ubuntu 镜像，具体内容是 [Dockerfile](Dockerfile)。
+> 之前用的是 nvidia 的，太大了，nv相关的工具链host上就有，反正生成的是 cu 代码，直接在host上跑就行了
+
+docker 用的 base image ubuntu:20.04 镜像，具体内容是 [Dockerfile](Dockerfile)。
 
 build docker file:
 

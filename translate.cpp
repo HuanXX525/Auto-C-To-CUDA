@@ -29,15 +29,15 @@
  */
 #include "rose.h"
 #include <iostream>
-#include "./include/fileio/io.h"
-#include "./include/logger.h"
-#include "./include/loop_attr.hpp"
-#include "./include/normalize/normalize.hpp"
-#include "./include/affine/affine.hpp"
-#include "./include/dependency/dependency.hpp"
-#include "./include/parallel/parallel.hpp"
-#include "./include/kernel/kernel.hpp"
-#include "./include/preprocess/preprocess.hpp"
+#include "fileio/io.h"
+#include "logger.h"
+#include "loop_attr.hpp"
+#include "normalize/normalize.hpp"
+#include "affine/affine.hpp"
+#include "dependency/dependency.hpp"
+#include "parallel/parallel.hpp"
+#include "kernel/kernel.hpp"
+#include "preprocess/preprocess.hpp"
 #include <inliner.h>
 
 void __printSC(SgNode *node)

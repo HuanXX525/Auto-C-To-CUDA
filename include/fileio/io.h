@@ -1,7 +1,7 @@
 #ifndef __IO__H__
 #define __IO__H__
 #include <filesystem> // C++17 引入
-#include "../nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
 #include <unistd.h>   // readlink 需要
 using json = nlohmann::json;
 namespace fs = std::filesystem;

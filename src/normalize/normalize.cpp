@@ -1,6 +1,6 @@
 /* Loop normalization */
 
-#include "normalize.hpp"
+#include "normalize/normalize.hpp"
 
 /* Normalize the loop nest (this gets called in main() of translate.cpp */
 bool normalizeLoopNest(SgForStatement *loop_nest)

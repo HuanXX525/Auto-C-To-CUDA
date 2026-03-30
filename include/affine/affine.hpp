@@ -3,7 +3,7 @@
 #ifndef AFFINE
 #define AFFINE
 #include "rose.h"
-#include "../loop_attr.hpp"
+#include "loop_attr.hpp"
 
 /* Function to test whether given loop nest is affine
  

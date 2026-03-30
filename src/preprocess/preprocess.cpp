@@ -1,5 +1,5 @@
 /* Implementation of preprocessinf functions */
-#include "./preprocess.hpp"
+#include "preprocess/preprocess.hpp"
 // #include "preprocess.hpp"
 
 /* Attempts to convert a while-loop nest into a for-loop nest */
@@ -253,7 +253,7 @@ bool isPerfectlyNested(SgForStatement *loop_nest)
 	return true;
 
 }
-#include "../logger.h"
+#include "logger.h"
 bool isRecursive(SgFunctionDeclaration *func)
 {
 	std::string name = func->get_name();
@@ -289,7 +289,7 @@ bool haveDefination(SgFunctionDeclaration *func){
 #include <map>
 #include <queue>
 #include <set>
-#include"../logger.h"
+#include "logger.h"
 std::map<std::string, int> performTopologicalSort(CallGraphBuilder &CGBuilder)
 {
 	SgIncidenceDirectedGraph *graph = CGBuilder.getGraph(); // [cite: 145]

@@ -5,9 +5,9 @@
 #include <cmath>
 #include <climits>
 #include "rose.h"
-#include "../loop_attr.hpp"
-#include "../dependency/dependency.hpp"
-#include "../kernel/kernel.hpp"
+#include "loop_attr.hpp"
+#include "dependency/dependency.hpp"
+#include "kernel/kernel.hpp"
 
 /* Class definition to represent dependency graph of a loop nest */
 class Graph

@@ -1,5 +1,5 @@
 /* Implementation of dependency tests */
-#include "dependency.hpp"
+#include "dependency/dependency.hpp"
 /////////
 // void debug_dump_stmts(const std::vector<SgNode *> &stmts, const std::string &label)
 // {

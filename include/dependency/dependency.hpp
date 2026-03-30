@@ -3,7 +3,7 @@
 #ifndef DEP_TESTS
 #define DEP_TESTS
 #include "rose.h"
-#include "../loop_attr.hpp"
+#include "loop_attr.hpp"
 
 /* Function that determines whether dependencies exist within the loop nest
    
