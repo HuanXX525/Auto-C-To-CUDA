@@ -14,6 +14,8 @@ ROSE_LIBS      ?=
 BOOST_LD_FLAGS ?=
 BOOST_LIBS     ?=
 
+LOCAL_DEPS = $(PROJ_DEPS)
+
 # ============================================================
 # 源文件 -> 中间文件（.lo）放在 BUILD_DIR 下
 # ============================================================
@@ -27,7 +29,7 @@ all: $(BIN_DIR)/$(TARGET).out
 # 链接
 $(BIN_DIR)/$(TARGET).out: $(OBJS) | $(BIN_DIR)
 	libtool --mode=link $(CXX) $(CXXFLAGS) $(INCLUDES) \
-		-o $@ $(PROJ_DEPS) $(OBJS) \
+		-o $@ $(LOCAL_DEPS) $(OBJS) \
 		$(ROSE_LIBS) $(BOOST_LD_FLAGS) $(BOOST_LIBS)
 
 # 编译
