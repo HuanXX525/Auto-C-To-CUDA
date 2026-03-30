@@ -45,4 +45,7 @@ me-or-ai.sh
 compile_commands.json
 .claude
 tmp
+<<<<<<< HEAD
 .markdownlint.json
+=======
+>>>>>>> 4b7cc52 (update make file, put all bin files to build/bin)
