@@ -1,5 +1,27 @@
 # DEVLOG
 
+## [2026-03-31]
+
+### Added
+
+- 根据CUDA Math Api v13.2中的`Single Precision Mathematical Functions`,`Double Precision Mathematical Functions`,`Integer Mathematical Functions`与CPP Reference中的`Common mathematical functions`查找了同名函数，更新了safe_functions的内容
+
+### Documented
+
+- [ ] 问题：跨文件内联会导致目的地文件缺失被内联函数的类型定义、宏及头文件依赖，引发编译错误
+  <!-- - 拿到project后宏就已经展开了，因此需要注意的仅有特殊类型的声明，以及函数的声明，外部变量的声明，尝试原文件提取声明与目标文件冲突检测 -->
+
+循环中可能存在的函数调用类型
+
+- 无定义的函数调用
+  - 无定义的math库函数（CUDA设备端存在相同的定义）：手动标记为safe_functions
+  - 无定义的其他库函数：放弃并行
+- 有定义的函数
+  - 手动标记的纯函数：设备化
+  <!-- - 尝试确定为纯函数（相同的输入，永远会得到相同的输出，值传递，无全局变量和静态变量的使用）：设备化 -->
+  - 非纯函数：内联分析
+  - 存在递归的函数：放弃并行
+
 ## [2026-03-23]
 
 ### Changed

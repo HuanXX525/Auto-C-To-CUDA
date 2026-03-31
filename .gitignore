@@ -37,10 +37,11 @@
 build/*
 bin/*
 
-./me-or-ai.sh
+me-or-ai.sh
 
 .vscode
 
 3rdpart
 compile_commands.json
 .claude
+.markdownlint.json
