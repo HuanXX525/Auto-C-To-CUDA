@@ -29,7 +29,6 @@
  */
 #include "rose.h"
 #include <iostream>
-#include "fileio/io.h"
 #include "logger.h"
 #include "loop_attr.hpp"
 #include "normalize/normalize.hpp"
@@ -51,7 +50,6 @@ void __printSC(SgNode *node)
 int main(int argc, char **argv)
 {
 	ROSE_INITIALIZE;
-	Config::getInstance().load();
 	SgProject *project = frontend(argc, argv);
 	SgFilePtrList &fileList = project->get_fileList();
 	if (fileList.empty())
@@ -81,9 +79,9 @@ int main(int argc, char **argv)
 			log_info("--------------------- Enter func %s ---------------------",
 					 defn->get_declaration()->get_name().getString().c_str());
 
-			/* Query for any while loops and try to convert them into for loops */
+			/* Query for any while loops and t r y to convert them int o  fo r loops */
 			/* 尝试转化函数定义中存在的while循环为for循环 */
-			Rose_STL_Container<SgNode *> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
+   		Rose_STL_Container<SgNode *> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
 			log_info("WHILE LOOP: Get %ld while loops, Ready to Traverse", whileLoops.size());
 			for (auto while_iter = whileLoops.begin(); while_iter != whileLoops.end(); /* EMPTY -- Increment at end of loop */)
 			{
@@ -142,7 +140,6 @@ int main(int argc, char **argv)
 				continue;
 			log_debug(">> Enter for Loop: %s", forstat->unparseToString().c_str());
 			// 查询所有函数调用
-			std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
 			// 递归内联如果上一次未改变则中断循环
 			bool changed = true;
 			while (changed)
@@ -159,30 +156,7 @@ int main(int argc, char **argv)
 					FuncAttribute *f_a = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
 					if (f_a)
 						continue;
-					// 1. 获取函数名，检查是否安全
-					SgFunctionSymbol *symbol = call->getAssociatedFunctionSymbol();
-					std::string funcName = symbol->get_name().getString();
-					FuncAttribute *fa = new FuncAttribute(
-						std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end());
-					// 2. 标注是否有定义
-					SgFunctionDeclaration *decl = symbol->get_declaration();
-					if (!decl)
-					{
-						log_info("Can't find declaration of function %s", funcName.c_str());
-						break;
-					}
-					SgFunctionDeclaration *definingDecl = isSgFunctionDeclaration(decl->get_definingDeclaration());
-					if (definingDecl && definingDecl->get_definition())
-					{
-						fa->setDefination(true);
-						// 未在拓扑排序中列出的表示存在环，不能内联
-						fa->setRecursive(!funcOrder.count(funcName) || isRecursive(definingDecl));
-					}
-					else
-					{
-						fa->setDefination(false);
-					}
-					call->setAttribute("FuncAttribute", fa);
+					FuncAttribute::getAttributes(call, funcOrder);
 				}
 				/* 内联 */
 				for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)

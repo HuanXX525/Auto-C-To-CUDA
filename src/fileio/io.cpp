@@ -1,5 +1,6 @@
 #include "fileio/io.h"
 #include "logger.h"
+
 std::string getExeDir()
 {
     char buffer[1024];
@@ -15,6 +16,9 @@ std::string getExeDir()
 Config &Config::getInstance()
 {
     static Config instance; // 局部静态变量，C++11 起线程安全
+    if (instance.data.is_null()){
+        instance.load();
+    }
     return instance;
 }
 
@@ -46,4 +50,9 @@ bool Config::load()
 std::vector<std::string> Config::getSafeFunctions()
 {
     return data.value("safe_functions", std::vector<std::string>());
+}
+
+std::vector<std::string> Config::getPureFunctions()
+{
+    return data.value("pure_functions", std::vector<std::string>());
 }

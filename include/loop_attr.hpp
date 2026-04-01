@@ -37,22 +37,4 @@ class LoopNestAttribute : public AstAttribute {
 
 };
 
-
-class FuncAttribute : public AstAttribute {
-	public:
-		FuncAttribute(bool safe) { this->is_safe = safe;}
-		virtual FuncAttribute * copy() const override {return new FuncAttribute(*this);}
-		virtual std::string attribute_class_name() const override {return "FuncAttribute";}
-		
-		/* Getters */
-		bool isSafe() { return is_safe; }
-		bool isRecursive() { return is_recursive; }
-		bool haveDefination() { return have_defination; }
-		bool setDefination(bool de) { return have_defination = de; }
-		bool setRecursive(bool re) { return is_recursive = re; }
-	private:
-		bool is_safe;
-		bool is_recursive;
-		bool have_defination;
-};
 #endif

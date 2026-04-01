@@ -65,4 +65,36 @@ struct StrictUserOnlyPredicate
    }
 };
 std::map<std::string, int> performTopologicalSort(CallGraphBuilder &CGBuilder); // 获取函数调用的拓扑排序
+
+class FuncAttribute : public AstAttribute {
+	public:
+		FuncAttribute(bool safe) { this->is_safe = safe;}
+		virtual FuncAttribute * copy() const override {return new FuncAttribute(*this);}
+		virtual std::string attribute_class_name() const override {return "FuncAttribute";}
+      static void getAttributes(SgFunctionCallExp *call, std::map<std::string, int>& funcOrder);
+      /* Getters */
+      bool isSafe(){return is_safe;}
+      bool isRecursive() { return is_recursive; }
+		bool haveDefination() { return have_defination; }
+      bool haveStaticVar() { return have_static_var; }
+      bool haveStaticFuncCall() { return have_static_func_call; }
+      bool isPure() { return is_pure; }
+      void setPure(bool p) { is_pure = p; }
+      void setDefination(bool de) { have_defination = de; }
+		void setRecursive(bool re) { is_recursive = re; }
+      void setStaticVar(bool sv) {have_static_var=sv;}
+      void setStaticFuncCall(bool sf){have_static_func_call=sf;}
+
+	private:
+		bool is_safe = false;
+		bool is_recursive = true;
+		bool have_defination = false;
+      bool have_static_var = true;
+      bool have_static_func_call = true;
+      bool is_pure = false;
+      static bool _static_var(SgFunctionDefinition *funDef);
+      static bool _internalStaticFunctionCall(SgFunctionDefinition *funDef);
+      static bool _pure_function(SgFunctionDefinition *funDef);
+};
+
 #endif

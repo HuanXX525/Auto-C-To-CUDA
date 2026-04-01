@@ -35,6 +35,7 @@ public:
 
     // 示例：获取配置项的方法
     std::vector<std::string> getSafeFunctions();
+    std::vector<std::string> getPureFunctions();
 
 
 private:
