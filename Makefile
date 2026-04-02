@@ -40,6 +40,7 @@ debug: translate
 # Main target
 translate: $(PROJ_DEPS)
 	@mkdir -p $(BIN_DIR)
+	@cp config.json $(BIN_DIR)/config.json
 	libtool --mode=link $(CXX) $(CXXFLAGS) $(INCLUDES) -o $(BIN_DIR)/translate.out $(PROJ_DEPS) translate.cpp $(ROSE_LIBS) $(BOOST_LD_FLAGS) $(BOOST_LIBS)
 
 # Generic pattern rule: src/**/*.cpp -> build/**/*.lo
