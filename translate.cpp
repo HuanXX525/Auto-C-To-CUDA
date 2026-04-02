@@ -51,6 +51,7 @@ void __printSC(SgNode *node)
 	std::cout << node->unparseToString() << std::endl;
 }
 
+// the test of pass and pm
 void run_pass(SgProject* project) {
     c2cuda::PassManager pm;
     pm.setVerbose(true);
