@@ -38,7 +38,7 @@
 #include "kernel/kernel.hpp"
 #include "preprocess/preprocess.hpp"
 #include <inliner.h>
-
+#include <chrono>
 void __printSC(SgNode *node)
 {
 	if (node == nullptr)
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
 			/* Query for any while loops and t r y to convert them int o  fo r loops */
 			/* 尝试转化函数定义中存在的while循环为for循环 */
-   		Rose_STL_Container<SgNode *> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
+			Rose_STL_Container<SgNode *> whileLoops = NodeQuery::querySubTree(defn, V_SgWhileStmt);
 			log_info("WHILE LOOP: Get %ld while loops, Ready to Traverse", whileLoops.size());
 			for (auto while_iter = whileLoops.begin(); while_iter != whileLoops.end(); /* EMPTY -- Increment at end of loop */)
 			{
@@ -109,27 +109,27 @@ int main(int argc, char **argv)
 			funcIter++;
 		}
 		// 排序for循环,返回 true 表示 a 应该排在 b 前面
-		std::sort(orderedLoopNestList.begin(), orderedLoopNestList.end(), 
-		[&funcOrder](SgNode *an, SgNode *bn){
-			SgForStatement* a = isSgForStatement(an); 
-			SgForStatement* b = isSgForStatement(bn); 
-			
+		std::sort(orderedLoopNestList.begin(), orderedLoopNestList.end(),
+				  [&funcOrder](SgNode *an, SgNode *bn)
+				  {
+					  SgForStatement *a = isSgForStatement(an);
+					  SgForStatement *b = isSgForStatement(bn);
 
-			SgFunctionDefinition *funcA = SageInterface::getEnclosingFunctionDefinition(a);
-			// 2. 找到 b 所在的函数定义
-			SgFunctionDefinition *funcB = SageInterface::getEnclosingFunctionDefinition(b);
+					  SgFunctionDefinition *funcA = SageInterface::getEnclosingFunctionDefinition(a);
+					  // 2. 找到 b 所在的函数定义
+					  SgFunctionDefinition *funcB = SageInterface::getEnclosingFunctionDefinition(b);
 
-			// 3. 获取函数名（注意处理空指针，防止某些 for 不在函数内的极端情况）
-			std::string nameA = funcA ? funcA->get_declaration()->get_name().getString() : "";
-			std::string nameB = funcB ? funcB->get_declaration()->get_name().getString() : "";
+					  // 3. 获取函数名（注意处理空指针，防止某些 for 不在函数内的极端情况）
+					  std::string nameA = funcA ? funcA->get_declaration()->get_name().getString() : "";
+					  std::string nameB = funcB ? funcB->get_declaration()->get_name().getString() : "";
 
-			// 4. 从 map 中获取权重，如果找不到（at 会抛异常，可以用 find）
-			int orderA = funcOrder.count(nameA) ? funcOrder.at(nameA) : INT32_MAX;
-			int orderB = funcOrder.count(nameB) ? funcOrder.at(nameB) : INT32_MAX;
+					  // 4. 从 map 中获取权重，如果找不到（at 会抛异常，可以用 find）
+					  int orderA = funcOrder.count(nameA) ? funcOrder.at(nameA) : INT32_MAX;
+					  int orderB = funcOrder.count(nameB) ? funcOrder.at(nameB) : INT32_MAX;
 
-			// 5. 排序：小的在前面（升序）
-			return orderA < orderB; 
-		});
+					  // 5. 排序：小的在前面（升序）
+					  return orderA < orderB;
+				  });
 		log_info("Loop Sorted");
 		// 内联和函数标记
 		for (auto forIter = orderedLoopNestList.begin(); forIter != orderedLoopNestList.end(); forIter++)
@@ -167,12 +167,65 @@ int main(int argc, char **argv)
 						continue;
 					FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
 					// if(!fa) continue;
-					/* 不在白名单有定义且不递归 */
-					if (!fa->isSafe() && fa->haveDefination() && !fa->isRecursive())
+					/* 不在CUDA白名单、不是纯函数、有定义、不递归、不使用静态变量以及静态函数调用*/
+					if (fa->canInline())
 					{
+						// TODO:内联前尝试补充声明
+
+						// 内联前做标记
+						SgNullStatement *mark = markStatementForInlining(call);
+						// 执行内联
 						bool succ = doInline(call);
 						if (succ)
 						{
+							// 变量重命名
+							// SgNode *parent = call->get_parent();
+							// log_debug("%s", forstat->unparseToString().c_str());
+							// SgBasicBlock *inlineBlock = isSgBasicBlock(parent);
+							// 1. 获取紧跟在哨兵后面的语句
+							SgStatement *nextStmt = SageInterface::getNextStatement(mark);
+
+							if (nextStmt == nullptr)
+							{
+								// 理论上不应该发生，除非内联失败且原语句被删除
+								log_error("无法捕获内联块");
+							}
+
+							// 2. 将其转换为 SgBasicBlock
+							SgBasicBlock *inlineBlock = isSgBasicBlock(nextStmt);
+							if (inlineBlock)
+							{
+								log_info("》》》》》ready to change var");
+								// 2. 收集该块内所有的变量定义
+								Rose_STL_Container<SgNode *> varDecls = NodeQuery::querySubTree(inlineBlock, V_SgVariableDeclaration);
+
+								for (auto declNode : varDecls)
+								{
+									SgVariableDeclaration *varDecl = isSgVariableDeclaration(declNode);
+									SgInitializedNamePtrList &variables = varDecl->get_variables();
+
+									for (auto initName : variables)
+									{
+										// 3. 生成新名字
+										std::string oldName = initName->get_name().getString();
+										auto now = std::chrono::system_clock::now();
+
+										// 转换为自 epoch 以来的时长
+										auto duration = now.time_since_epoch();
+
+										// 转换为秒数 (使用 long long 接收数字)
+										long long seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+										std::string newName = oldName + "_inline_" + std::to_string(seconds);
+
+										// 4. 使用 SageInterface 提供的工具进行重命名
+										// 这个函数会自动更新该作用域内所有引用此变量的地方
+										SageInterface::set_name(initName, newName);
+
+										log_info("Renamed variable %s to %s", oldName.c_str(), newName.c_str());
+									}
+								}
+							}
+							changed = true;
 							log_info("Function Call %s Inlined Successfully", fname.c_str());
 							changed = true;
 						}

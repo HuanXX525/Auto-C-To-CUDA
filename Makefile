@@ -34,7 +34,7 @@ SRC_FILES = $(shell find $(SRC_DIR) -name '*.cpp')
 PROJ_DEPS = $(patsubst $(SRC_DIR)/%.cpp,$(CURDIR)/$(BUILD_DIR)/%.lo,$(SRC_FILES))
 
 # Debug target
-debug: CXXFLAGS += -g -DC2CUDEBUG
+debug: CXXFLAGS = -g -DC2CUDEBUG -O0 -Wall -std=c++17
 debug: translate
 
 # Main target

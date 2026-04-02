@@ -408,6 +408,9 @@ bool FuncAttribute::_internalStaticFunctionCall(SgFunctionDefinition *funDef)
 	return false;
 }
 
+// 检测函数定义中是否使用了静态变量
+// 参数：funDef - 函数定义节点
+// 返回值：如果函数中使用了静态变量返回true，否则返回false
 bool FuncAttribute::_static_var(SgFunctionDefinition *funDef)
 {
 	if (!funDef)
@@ -462,8 +465,90 @@ bool FuncAttribute::_static_var(SgFunctionDefinition *funDef)
 	return false;
 }
 
-bool FuncAttribute::_pure_function(SgFunctionDefinition *funDef){
-	return false;
+#include "rose.h"
+
+
+/**
+ * 判断函数是否为纯函数（无副作用函数）
+ *
+ * 纯函数满足以下条件：
+ * 1. 所有参数均为值传递（非指针或引用）
+ * 2. 不使用静态变量或全局变量
+ * 3. 仅调用已知的安全数学函数或纯函数
+ *
+ * @param funDef 函数定义节点指针
+ * @return 如果是纯函数返回true，否则返回false
+ */
+bool FuncAttribute::_pure_function(SgFunctionDefinition *funDef)
+{
+	static std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
+	static std::vector<std::string> pure_funcs = Config::getInstance().getPureFunctions();
+	if (!funDef)
+		return false;
+
+	SgFunctionDeclaration *funcDecl = funDef->get_declaration();
+
+	// --- 维度 1: 参数检测 (必须全部为值传递) ---
+	SgInitializedNamePtrList &args = funcDecl->get_args();
+	for (SgInitializedName *arg : args)
+	{
+		SgType *type = arg->get_type();
+		// 如果参数是指针或引用，则不是纯函数（因为可能通过指针修改外部值）
+		if (isSgPointerType(type) || isSgReferenceType(type))
+		{
+			return false;
+		}
+	}
+
+	// --- 维度 2: 遍历函数体内的所有表达式 ---
+	Rose_STL_Container<SgNode *> nodeList = NodeQuery::querySubTree(funDef, V_SgNode);
+	for (SgNode *node : nodeList)
+	{
+
+		// 2.1 检测变量引用 (VarRef)
+		if (SgVarRefExp *varRef = isSgVarRefExp(node))
+		{
+			SgVariableSymbol *sym = varRef->get_symbol();
+			SgInitializedName *initName = sym->get_declaration();
+
+			// 获取变量声明语句
+			SgVariableDeclaration *varDecl = isSgVariableDeclaration(initName->get_parent());
+			if (varDecl)
+			{
+				// A. 检测是否是静态变量 (无论局部还是全局)
+				if (varDecl->get_declarationModifier().get_storageModifier().isStatic())
+				{
+					return false;
+				}
+
+				// B. 检测是否是全局变量 (非局部变量且非参数)
+				SgScopeStatement *varScope = varDecl->get_scope();
+				if (isSgGlobal(varScope))
+				{
+					return false;
+				}
+			}
+		}
+
+		// 2.2 检测函数调用 (Function Call)
+		if (SgFunctionCallExp *callExp = isSgFunctionCallExp(node))
+		{
+			SgFunctionSymbol *callee = callExp->getAssociatedFunctionSymbol();
+			if (callee)
+			{
+				std::string funcName = callee->get_name().getString();
+				// 只有白名单里的数学函数（纯计算）才允许
+				// 你可以维护一个 std::set<string> safe_math_funcs
+				if (std::find(safe_funcs.begin(), safe_funcs.end(), funcName) == safe_funcs.end() ||
+					std::find(pure_funcs.begin(), pure_funcs.end(), funcName) == pure_funcs.end())
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string, int> &funcOrder)
@@ -505,4 +590,27 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 		fa->setDefination(false);
 	}
 	call->setAttribute("FuncAttribute", fa);
+}
+
+SgNullStatement * markStatementForInlining(SgFunctionCallExp *call)
+{
+	// 1. 找到包含 call 的语句 (通常是 SgExprStatement)
+	SgStatement *targetStmt = SageInterface::getEnclosingStatement(call);
+	if (!targetStmt)
+		return NULL;
+
+	// 2. 创建一个空语句 (SgNullStatement，即一个单独的分号 ';')
+	SgNullStatement *sentinel = SageBuilder::buildNullStatement();
+
+	// 3. 给这个分号加上注释，这样生成的代码中你能肉眼看到它
+	// 注意：即使这个注释丢了，分号 ';' 本身作为 AST 节点也一定会留下
+	SageInterface::addTextForUnparser(sentinel, "\n/* --- AUTO_CUDA_INLINE_SENTINEL --- */\n", AstUnparseAttribute::e_before);
+
+	// 4. 将哨兵插入到包含 call 的语句之前
+	SageInterface::insertStatementBefore(targetStmt, sentinel);
+
+	// 此时 AST 结构变为:
+	// [SgNullStatement(sentinel)]
+	// [SgExprStatement(targetStmt)] <- 包含你的 call
+	return sentinel;
 }

@@ -1,5 +1,0 @@
-{
-    "pure_functions": [],
-    "safe_functions": ["abs","acos","acosf","acosh","acoshf","asin","asinf","asinh","asinhf","atan","atan2","atan2f","atanf","atanh","atanhf","cbrt","cbrtf","ceil","copysign","copysignf","cos","cosf","cosh","coshf","erf","erfc","erfcf","exp","exp10","exp10f","exp2","exp2f","expf","expm1","expm1f","fabs","fabsf","fdim","fdimf","floor","floorf","fma","fmaf","fmax","fmaxf","fmin","fminf","fmod","fmodf","frexp","frexpf","hypot","hypotf","ilogb","ilogbf","isfinite","isinf","isnan","j0","j0f","j1","j1f","jn","jnf","labs","ldexp","ldexpf","lgamma","lgammaf","llabs","llrint","llrintf","llround","llroundf","log","log10","log10f","log1p","log1pf","log2","log2f","logb","logbf","logf","lrint","lrintf","lround","lroundf","modf","nan","nanf","nearbyint","nearbyintf","nextafter","nextafterf","pow","powf","remainder","remainderf","remquo","remquof","rint","rintf","round","roundf","scalbln","scalblnf","scalbn","scalbnf","signbit","sin","sinf","sinh","sinhf","sqrt","sqrtf","tan","tanf","tanh","tanhf","tgamma","tgammaf","trunc","truncf","y0","y0f","y1","y1f","yn","ynf"
-    ]
-}

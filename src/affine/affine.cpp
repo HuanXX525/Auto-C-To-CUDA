@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "logger.h"
 #include "fileio/io.h"
+#include "preprocess/preprocess.hpp"
 
 /* Test whether loop nest is affine */
 bool affineTest(SgForStatement *loop_nest)

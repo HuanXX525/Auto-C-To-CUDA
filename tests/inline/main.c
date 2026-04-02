@@ -3,8 +3,12 @@
 void func();
 int arr[5] = {0, 0, 0, 0, 0};
 
+// zhushi 
+
 int main()
 {
+    /* 注释 */
+
     for (int i = 0; i < 5; i++)
     {
         func();
@@ -17,5 +21,6 @@ int main()
 
 void func()
 {
+    int i = 5;
     arr[0] = 0;
 }

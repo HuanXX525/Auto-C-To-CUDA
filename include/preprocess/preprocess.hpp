@@ -40,9 +40,9 @@ std::vector<SgStatement*> convertImperfToPerf(SgForStatement *imperf_loop_nest);
    Output: true if perfectly nested, false otherwise
 */
 bool isPerfectlyNested(SgForStatement *loop_nest);
-bool isRecursive(SgFunctionDeclaration *func);
+// bool isRecursive(SgFunctionDeclaration *func);
 bool haveDefination(SgFunctionDeclaration *func);
-
+SgNullStatement * markStatementForInlining(SgFunctionCallExp* call);
 /* 函数调用图生成过滤器 */
 struct StrictUserOnlyPredicate
 {
@@ -84,6 +84,7 @@ class FuncAttribute : public AstAttribute {
 		void setRecursive(bool re) { is_recursive = re; }
       void setStaticVar(bool sv) {have_static_var=sv;}
       void setStaticFuncCall(bool sf){have_static_func_call=sf;}
+      bool canInline() { return !is_safe && !is_recursive && have_defination && !have_static_var && !have_static_func_call; }
 
 	private:
 		bool is_safe = false;

@@ -30,6 +30,7 @@ bool Config::load()
     {
         // std::cerr << "错误: 无法在路径 " << path << " 找到配置文件。" << std::endl;
         log_info("Can't find config file in path %s", path.c_str());
+        exit(1);
         return false;
     }
 
