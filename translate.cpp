@@ -27,6 +27,7 @@
  * Forked from Automatic Transcompiler of Affine C Programs to CUDA By Leart Krasniqi
  * Tend to add feature multifiles and function analysis.
  */
+#include "include/transforms/AnnotateLoop.hpp"
 #include "transforms/FuncCollection.hpp"
 #include "transforms/LoopCollection.hpp"
 #include "pass/PassManager.hpp"
@@ -58,8 +59,13 @@ void run_pass(SgProject* project) {
 
     pm.add<transforms::FuncsCollectPass>();
     pm.add<transforms::CollectForLoopsPass>();
+    pm.add<transforms::AnnotateLoopPass>();
 
     bool modified = pm.run(project);
+
+    if(modified) {
+        backend(project);
+    }
 }
 
 int main(int argc, char **argv)

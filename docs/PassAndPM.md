@@ -11,9 +11,8 @@
 3. `AnalysisPass`分析pass的基类，在AST上做分析，不修改
 
 4. `TransformPass`变换pass的基类，用于修改AST
-- TODO：目前仅测试了 `AnalysisPass` 的功能
 
-- pass的具体用法参考`transforms`路径下的代码
+- pass的具体用法参考`transforms`路径下的代码（include里放`hpp`，src里放`cpp`）
 
 ## PassManager
 
