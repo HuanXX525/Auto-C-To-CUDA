@@ -13,6 +13,7 @@ jobs:
     runs-on: self-hosted
     container:
       image: hulintian/c2cuda-dev:v3.0
+      options: --pull=never
 
     steps:
         - name: Checkout code
