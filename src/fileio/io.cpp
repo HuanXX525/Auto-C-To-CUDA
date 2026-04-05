@@ -24,12 +24,30 @@ Config &Config::getInstance()
 
 bool Config::load()
 {
-    std::string path = getExeDir() + "/config.json";
-    std::ifstream f(path);
+    std::vector<std::string> candidate_paths = {
+        getExeDir() + "/config.json",
+        getExeDir() + "/../config.json",
+        getExeDir() + "/../../config.json",
+        "config.json"
+    };
+
+    std::ifstream f;
+    std::string path;
+    for (const auto &candidate : candidate_paths)
+    {
+        f.open(candidate);
+        if (f.is_open())
+        {
+            path = candidate;
+            break;
+        }
+        f.clear();
+    }
+
     if (!f.is_open())
     {
         // std::cerr << "错误: 无法在路径 " << path << " 找到配置文件。" << std::endl;
-        log_info("Can't find config file in path %s", path.c_str());
+        log_info("Can't find config file");
         exit(1);
         return false;
     }

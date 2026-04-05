@@ -105,15 +105,18 @@ bool normalizeLoop(SgForStatement *loop)
 		
 		/* The LHS should be the variable reference */
 		SgVarRefExp *test_var = isSgVarRefExp(test->get_lhs_operand());
+		SgVarRefExp *index_ref = isSgVarRefExp(index);
+		if(!test_var || !index_ref)
+			return false;
 
 		/* The RHS should be the upper bound */
 		U = test->get_rhs_operand();
 
 		/* If the test_var matches the index_var, then we perform the transformation */
-		std::string test_var_name = test_var->get_symbol()->get_name().getString();
-		std::string index_var_name = isSgVarRefExp(index)->get_symbol()->get_name().getString();
+		SgInitializedName *test_decl = test_var->get_symbol()->get_declaration();
+		SgInitializedName *index_decl = index_ref->get_symbol()->get_declaration();
 		
-		if(test_var_name.compare(index_var_name) == 0)
+		if(test_decl == index_decl)
 		{
 			/* Obtain the step */
 			SgBinaryOp *step = isSgBinaryOp(loop->get_increment());
@@ -198,18 +201,23 @@ bool normalizeLoop(SgForStatement *loop)
 	for(Rose_STL_Container<SgNode*>::iterator it = var_refs.begin(); it != var_refs.end(); it++)
 	{
 		/* Check for any reference to the index variable */
-		std::string var_name = isSgVarRefExp(*it)->get_symbol()->get_name().getString();
-		std::string index_var_name = isSgVarRefExp(index)->get_symbol()->get_name().getString();
+		SgVarRefExp *curr_ref = isSgVarRefExp(*it);
+		SgVarRefExp *index_ref = isSgVarRefExp(index);
+		if(!curr_ref || !index_ref)
+			continue;
+
+		SgInitializedName *curr_decl = curr_ref->get_symbol()->get_declaration();
+		SgInitializedName *index_decl = index_ref->get_symbol()->get_declaration();
 
 		/* Make the change from index to (S*index)-S+L */
-		if(var_name.compare(index_var_name) == 0)
+		if(curr_decl == index_decl)
 		{
 						
 			/* Make it (S*index) + (L-S) to help with constant folding */
-			SgExpression *mul = SageBuilder::buildMultiplyOp(S, index);
+			SgExpression *mul = SageBuilder::buildMultiplyOp(SageInterface::copyExpression(S), SageInterface::copyExpression(index));
 			//SgExpression *new_var = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(mul, S) , L);
-			SgExpression *new_var = SageBuilder::buildAddOp(mul, SageBuilder::buildSubtractOp(L, S) );				
-			SageInterface::replaceExpression(isSgVarRefExp(*it), new_var); 
+			SgExpression *new_var = SageBuilder::buildAddOp(mul, SageBuilder::buildSubtractOp(SageInterface::copyExpression(L), SageInterface::copyExpression(S) ) );				
+			SageInterface::replaceExpression(curr_ref, new_var); 
 		}
 	
 	}
@@ -218,5 +226,4 @@ bool normalizeLoop(SgForStatement *loop)
 	/* If we get here, all steps were successful and loop is normalized */
 	return true;
 }
-
 
