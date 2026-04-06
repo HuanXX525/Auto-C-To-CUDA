@@ -41,6 +41,11 @@ bool PredicationTransformPass::transform(SgProject* project, PassContext& ctx) {
         SageInterface::replaceStatement(pred.info->node, newStmt);
         count++;
     }
+    //
+    // 关键：转换完成后修复整棵 AST
+    if (count > 0) {
+        AstPostProcessing(project);
+    }
 
     log("Predicated " + std::to_string(count) + " if statements.");
     return count > 0;
