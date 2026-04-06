@@ -11,12 +11,12 @@ on:
 jobs:
   build:
     runs-on: self-hosted
-    container:
-      image: hulintian/c2cuda-dev:v3.0
-
     steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: Build
-          run: make all -j$(nproc)
+      - uses: actions/checkout@v4
+      - name: Build in container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hulintian/c2cuda-dev:v3.0 \
+            bash -c "make all"

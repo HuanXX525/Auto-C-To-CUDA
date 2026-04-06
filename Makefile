@@ -3,7 +3,7 @@ default: translate
 all: translate tools
 
 # ROSE install path (override with env var or `make ROSE_INSTALL=/path/to/rose`)
-ROSE_INSTALL ?= /usr/rose
+ROSE_INSTALL ?= /workspace/3rdpart/rose_build
 ROSE_INCLUDE_DIR = $(ROSE_INSTALL)/include/rose
 ROSE_LIB_DIR = $(ROSE_INSTALL)/lib
 ROSE_LIBS = $(ROSE_LIB_DIR)/librose.la
@@ -65,4 +65,10 @@ tools: $(PROJ_DEPS)
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: default debug clean tools
+# Run deubg
+run_debug:
+	make debug -j$(shell nproc)
+	cd tmp && \
+	gdb -x ../scripts/gdb_script/common.gdb ../$(BIN_DIR)/translate.out
+
+.PHONY: default debug clean tools run_debug
