@@ -477,6 +477,7 @@ int main(int argc, char **argv)
 	project->unparse();
 
 
+    // summary the consumed time
     auto end = std::chrono::high_resolution_clock::now();
 
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
