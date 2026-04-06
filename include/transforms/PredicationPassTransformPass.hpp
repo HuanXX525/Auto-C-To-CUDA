@@ -5,9 +5,9 @@
 
 namespace c2cuda::transforms {
 
-class AnnotateLoopPass : public c2cuda::TransformPass {
+class PredicationTransformPass : public TransformPass {
 public:
-    AnnotateLoopPass() : TransformPass("AnnotateLoops") {}
+    PredicationTransformPass() : TransformPass("PredicationTransform") {}
 
     bool transform(SgProject* project, c2cuda::PassContext& ctx) override;
 };

@@ -1,15 +1,17 @@
+
 #pragma once
 
 #include "pass/Pass.hpp"
 #include "pass/AnalysisPass.hpp"
 
-namespace transforms {
+namespace c2cuda::analysis {
 
-class FuncsCollectPass : public c2cuda::AnalysisPass {
+class CollectForLoopsPass : public c2cuda::AnalysisPass {
 public:
-    FuncsCollectPass() : c2cuda::AnalysisPass("FuncsCollectPass") {}
+    CollectForLoopsPass() : c2cuda::AnalysisPass("CollectForLoops") {}
 
     void analyze(SgProject* project, c2cuda::PassContext& ctx) override;
 };
 
 } // namespace transforms
+

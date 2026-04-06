@@ -31,6 +31,16 @@ public:
         }
         return std::any_cast<T>(it->second);
     }
+
+    // 取出数据 ref
+    template <typename T>
+    const T& getRef(const std::string& key) const {
+        auto it = data_.find(key);
+        if (it == data_.end()) {
+            throw std::runtime_error("PassContext: key not found: " + key);
+        }
+        return std::any_cast<const T&>(it->second);
+    }
  
     // 安全取出（带默认值）
     template <typename T>
@@ -100,5 +110,7 @@ private:
     bool verbose_ = false;
 };
  
+// The Pass runner
+void run_pass( SgProject* project, bool isVerbose=false );
 
 } // namespace Pass

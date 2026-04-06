@@ -1,12 +1,13 @@
 #include <rose.h>
 #include "sage3basic.h"
-#include "transforms/FuncCollection.hpp"
+#include "analysis/FuncCollection.hpp"
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace transforms {
+namespace c2cuda::analysis {
 
+// Collect all functions and count.
 void FuncsCollectPass::analyze(SgProject* project, c2cuda::PassContext& ctx) {
     std::vector<SgFunctionDeclaration*> funcs;
 

@@ -44,6 +44,8 @@ public:
                 auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
                 std::cout << "  -> " << (changed ? "AST modified" : "no change")
                                           << " (" << ms << " ms)" << std::endl;
+
+                std::cerr <<  "=================== Running pass: " << p->getName() << "====================\n";
             }
         }
         return astModified;

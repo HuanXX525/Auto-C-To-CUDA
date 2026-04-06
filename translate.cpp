@@ -27,9 +27,7 @@
  * Forked from Automatic Transcompiler of Affine C Programs to CUDA By Leart Krasniqi
  * Tend to add feature multifiles and function analysis.
  */
-#include "include/transforms/AnnotateLoop.hpp"
-#include "transforms/FuncCollection.hpp"
-#include "transforms/LoopCollection.hpp"
+
 #include "pass/PassManager.hpp"
 #include "rose.h"
 #include <iostream>
@@ -52,30 +50,16 @@ void __printSC(SgNode *node)
 	std::cout << node->unparseToString() << std::endl;
 }
 
-// the test of pass and pm
-void run_pass(SgProject* project) {
-    c2cuda::PassManager pm;
-    pm.setVerbose(true);
-
-    pm.add<transforms::FuncsCollectPass>();
-    pm.add<transforms::CollectForLoopsPass>();
-    pm.add<transforms::AnnotateLoopPass>();
-
-    bool modified = pm.run(project);
-
-    if(modified) {
-        backend(project);
-    }
-}
-
 int main(int argc, char **argv)
 {
+
+    auto start = std::chrono::high_resolution_clock::now();
 	ROSE_INITIALIZE;
 	SgProject *project = frontend(argc, argv);
 
-    // test c2cuda pass
+    // run c2cuda pass
 	log_info("passes manager test");
-    run_pass(project);
+    c2cuda::run_pass(project, true);
 
 	SgFilePtrList &fileList = project->get_fileList();
 	if (fileList.empty())
@@ -491,6 +475,14 @@ int main(int argc, char **argv)
 
 	/* Obtain translation */
 	project->unparse();
+
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    log_info("This transform consumed %lld ms", (long long)ms);
+
 
 	return 0;
 }

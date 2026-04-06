@@ -1,7 +1,7 @@
 #include <rose.h>
-#include <transforms/LoopCollection.hpp>
+#include <analysis/LoopCollection.hpp>
 
-namespace transforms {
+namespace c2cuda::analysis {
 
 void CollectForLoopsPass::analyze(SgProject* project, c2cuda::PassContext& ctx) {
     std::vector<SgForStatement*> loops;

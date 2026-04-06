@@ -5,7 +5,7 @@
 #include <rose.h>
 #include <vector>
 
-namespace transforms {
+namespace c2cuda::transforms {
 
 bool AnnotateLoopPass::transform(SgProject* projet, c2cuda::PassContext& ctx) {
     // from previous loop collection pass get loops
