@@ -46,3 +46,5 @@ compile_commands.json
 .claude
 tmp
 .markdownlint.json
+
+*.gdb

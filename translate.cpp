@@ -27,6 +27,8 @@
  * Forked from Automatic Transcompiler of Affine C Programs to CUDA By Leart Krasniqi
  * Tend to add feature multifiles and function analysis.
  */
+
+#include "pass/PassManager.hpp"
 #include "rose.h"
 #include <iostream>
 #include "logger.h"
@@ -39,6 +41,7 @@
 #include "preprocess/preprocess.hpp"
 #include <inliner.h>
 #include <chrono>
+
 void __printSC(SgNode *node)
 {
 	if (node == nullptr)
@@ -49,8 +52,15 @@ void __printSC(SgNode *node)
 
 int main(int argc, char **argv)
 {
+
+    auto start = std::chrono::high_resolution_clock::now();
 	ROSE_INITIALIZE;
 	SgProject *project = frontend(argc, argv);
+
+    // run c2cuda pass
+	log_info("passes manager test");
+    c2cuda::run_pass(project, true);
+
 	SgFilePtrList &fileList = project->get_fileList();
 	if (fileList.empty())
 	{
@@ -465,6 +475,15 @@ int main(int argc, char **argv)
 
 	/* Obtain translation */
 	project->unparse();
+
+
+    // summary the consumed time
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    log_info("This transform consumed %lld ms", (long long)ms);
+
 
 	return 0;
 }

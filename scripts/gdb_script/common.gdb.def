@@ -1,0 +1,2 @@
+# write the translate args here
+set args /workspace/tmp/test_if_branch.c -rose:o /workspace/tmp/test.cu
