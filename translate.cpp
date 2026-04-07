@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 
 				/* Obtain the iteration, bound, and symbolic_constant vectors for the loop nest */
 				/* 获取迭代变量、边界和符号常量 */
-				std::list<std::string> iter_vec, symb_vec;
+				std::vector<SgInitializedName *> iter_vec, symb_vec;
 				std::list<SgExpression *> bound_vec;
 				Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 				Rose_STL_Container<SgNode *>::iterator inner_it;
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 
 					/* Iteration variables */
 					/* 迭代变量获取 */
-					iter_vec.push_back(SageInterface::getLoopIndexVariable(l)->get_name().getString());
+					iter_vec.push_back(SageInterface::getLoopIndexVariable(l));
 
 					/* Bounds Expressions */
 					/* 获得边界，由于标准化了一定是上界 */
@@ -404,13 +404,13 @@ int main(int argc, char **argv)
 					Rose_STL_Container<SgNode *> v = NodeQuery::querySubTree(bound, V_SgVarRefExp); // 边界表达式的变量集合
 					for (Rose_STL_Container<SgNode *>::iterator v_it = v.begin(); v_it != v.end(); v_it++)
 					{
-						std::string var_name = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString(); // 变量的字符串
+						SgInitializedName *var_decl = isSgVarRefExp(*v_it)->get_symbol()->get_declaration();
 
 						/* Keep only unique vars */
-						if (std::find(symb_vec.begin(), symb_vec.end(), var_name) != symb_vec.end())
+						if (std::find(symb_vec.begin(), symb_vec.end(), var_decl) != symb_vec.end())
 							continue;
 						else
-							symb_vec.push_back(var_name);
+							symb_vec.push_back(var_decl);
 					}
 				}
 

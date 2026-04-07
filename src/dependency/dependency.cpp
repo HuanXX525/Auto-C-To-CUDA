@@ -20,9 +20,6 @@ int dependencyExists(SgForStatement *loop_nest)
 {
 	/* Obtain attributes of loop nest */
 	LoopNestAttribute *attr = dynamic_cast<LoopNestAttribute*>(loop_nest->getAttribute("LoopNestInfo"));
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
 	int loop_nest_size = attr->get_nest_size();
 
 	/* Obtain body of loop nest (assuming it is perfectly nested) */
@@ -47,7 +44,7 @@ int dependencyExists(SgForStatement *loop_nest)
 		/* If there is a write to a non-array and its scope is not the body, need to return -2 because the loop cannot be parallelized */
 		else
 			if((*it)->get_scope() != isSgScopeStatement(body))
-				return -2;
+				return 2;
 
 
 
@@ -306,9 +303,7 @@ int GCDTest(std::vector<SgExpression*> ref1, std::vector<SgExpression*> ref2, Lo
 
 	
 	/* Obtain attributes */
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
-	int vec_size = loop_iter_vec.size() + loop_symb_vec.size();
+	int vec_size = attr->get_iter_vec().size() + attr->get_symb_vec().size();
 
 	
 	/* Perform the test for each of the subscripts */
@@ -392,10 +387,6 @@ int GCDTest(std::vector<SgExpression*> ref1, std::vector<SgExpression*> ref2, Lo
 /* Extract the coefficients from the expressions */
 bool extractCoeff(SgExpression *expr, std::vector<int> &coeff_vec, int &res, LoopNestAttribute *attr)
 {
-	/* Get iter and symb vecs */
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
-
 	/* Handle the following:
 		A
 	      	A*i		
@@ -431,29 +422,11 @@ bool extractCoeff(SgExpression *expr, std::vector<int> &coeff_vec, int &res, Loo
 			if(isSgVarRefExp(rhs))
 			{
 				/* Extract info */
-				std::string var = isSgVarRefExp(rhs)->get_symbol()->get_name().getString();
-			
-				/* Find the iter var (if not successful, check for symb var) */
-				std::list<std::string>::iterator var_it = std::find(loop_iter_vec.begin(), loop_iter_vec.end(), var);
-				if(var_it == loop_iter_vec.end())
-				{
-					var_it = std::find(loop_symb_vec.begin(), loop_symb_vec.end(), var);
-				
-					/* If neither an iter_var or symb_var, we cannot reduce this expression so return false */
-					if(var_it == loop_symb_vec.end())
-						return false;
-
-					/* If we get here, then the rhs was a symb_var and we append to proper spot */
-					int symb_index = loop_iter_vec.size() + std::distance(loop_symb_vec.begin(), var_it);
-					coeff_vec[symb_index] += coeff; 
-
-				}
-				else
-				{
-					/* If we get here, then rhs is an iter_var */
-					int iter_index = std::distance(loop_iter_vec.begin(), var_it);
-					coeff_vec[iter_index] += coeff;
-				}
+				SgInitializedName *var_decl = isSgVarRefExp(rhs)->get_symbol()->get_declaration();
+				int coeff_index = attr->get_coeff_index(var_decl);
+				if(coeff_index < 0)
+					return false;
+				coeff_vec[coeff_index] += coeff;
 			}
 			/* Handles C*(A*i +/- B) case */
 			else if(isSgAddOp(rhs) || isSgSubtractOp(rhs))
@@ -525,29 +498,11 @@ bool extractCoeff(SgExpression *expr, std::vector<int> &coeff_vec, int &res, Loo
 	else if(isSgVarRefExp(expr))
 	{
 		/* Extract info */
-		std::string var = isSgVarRefExp(expr)->get_symbol()->get_name().getString();
-			
-		/* Find the iter var (if not successful, check for symb var) */
-		std::list<std::string>::iterator var_it = std::find(loop_iter_vec.begin(), loop_iter_vec.end(), var);
-		if(var_it == loop_iter_vec.end())
-		{
-			var_it = std::find(loop_symb_vec.begin(), loop_symb_vec.end(), var);
-				
-			/* If neither an iter_var or symb_var, we cannot reduce this expression so return false */
-			if(var_it == loop_symb_vec.end())
-				return false;
-
-			/* If we get here, then the expr is a symb_var and we append to proper spot */
-			int symb_index = loop_iter_vec.size() + std::distance(loop_symb_vec.begin(), var_it);
-			coeff_vec[symb_index] += 1; 
-
-		}
-		else
-		{
-			/* If we get here, then the expr is an iter_var */
-			int iter_index = std::distance(loop_iter_vec.begin(), var_it);
-			coeff_vec[iter_index] += 1;
-		}
+		SgInitializedName *var_decl = isSgVarRefExp(expr)->get_symbol()->get_declaration();
+		int coeff_index = attr->get_coeff_index(var_decl);
+		if(coeff_index < 0)
+			return false;
+		coeff_vec[coeff_index] += 1;
 
 	}
 	else
@@ -581,9 +536,7 @@ int banerjeeTest(std::vector<SgExpression*> ref1, std::vector<SgExpression*> ref
 
 	
 	/* Obtain attributes */
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
-	int vec_size = loop_iter_vec.size() + loop_symb_vec.size();
+	int vec_size = attr->get_iter_vec().size() + attr->get_symb_vec().size();
 	
 	/* Extract coefficients from bound expressions (slightly different from extractCoeff() function) */
 	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
@@ -602,10 +555,10 @@ int banerjeeTest(std::vector<SgExpression*> ref1, std::vector<SgExpression*> ref
 			Rose_STL_Container<SgNode*> var_refs = NodeQuery::querySubTree(bound, V_SgVarRefExp);
 			for(auto v_it = var_refs.begin(); v_it != var_refs.end(); v_it++)
 			{
-				std::string var = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString();
+				SgInitializedName *var_decl = isSgVarRefExp(*v_it)->get_symbol()->get_declaration();
 				
 				/* If we find a reference to it, make most conservative assumption for the bound (i.e. INT_MAX) */
-				if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), var) != loop_symb_vec.end() )
+				if(attr->contains_symb_var(var_decl))
 				{
 					bound_vec.push_back(INT_MAX);
 					break;

@@ -44,6 +44,7 @@ me-or-ai.sh
 3rdpart
 compile_commands.json
 .claude
+.codex
 tmp
 .markdownlint.json
 

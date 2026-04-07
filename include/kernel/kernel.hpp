@@ -36,7 +36,7 @@ SgStatement * kernelCodeGenECS(SgForStatement *serial_loop, std::vector<SgForSta
 
    This function uses nest_id to determine the name of the kernel function: _auto_kernel_{nest_id} 
 */
-void kernelFnDef(SgForStatement *loop_nest, std::vector<std::string> iter_vec, std::vector<SgExpression*> bound_vec, std::set<SgInitializedName*> param_vars, SgBasicBlock *body, int nest_id, SgGlobal *globalScope);
+void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*> &iter_vec, std::vector<SgExpression*> bound_vec, std::set<SgInitializedName*> param_vars, SgBasicBlock *body, int nest_id, SgGlobal *globalScope);
 
 
 /* Function to make calls to cudaMalloc() and cudaMemcpy() 
@@ -69,7 +69,7 @@ std::vector<SgStatement*> kernelFnCall(SgForStatement *loop_nest, std::set<SgIni
    In the simple kernel gen case, loop_body = loop_nest.  In the ECS case, loop_body = parallel_loop_bbs[i].
    iter_vec, bound_vec, symb_vec, and param_vars are all passed by reference so that we can extract the relevant info with one function call. 
 */
-bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<std::string> &iter_vec, std::vector<SgExpression*> &bound_vec, std::vector<SgInitializedName*> &symb_vec, std::set<SgInitializedName*> &param_vars);
+bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<SgInitializedName*> &iter_vec, std::vector<SgExpression*> &bound_vec, std::vector<SgInitializedName*> &symb_vec, std::set<SgInitializedName*> &param_vars);
 
 
 #endif

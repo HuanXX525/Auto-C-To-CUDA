@@ -7,9 +7,6 @@ bool extractParallelism(SgForStatement *loop_nest, SgGlobal *globalScope, int &n
 {
 	/* Obtain attributes of loop nest */
 	LoopNestAttribute *attr = dynamic_cast<LoopNestAttribute*>(loop_nest->getAttribute("LoopNestInfo"));
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
 	int loop_nest_size = attr->get_nest_size();
 	
 	/* Obtain body of loop */
@@ -248,7 +245,7 @@ bool extendedCycleShrink(SgForStatement *loop_nest, std::list<std::list<int>> sc
 {
 	/* Obtain attributes from the loop nest */
 	LoopNestAttribute *attr = dynamic_cast<LoopNestAttribute*>(loop_nest->getAttribute("LoopNestInfo"));
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
+	std::vector<SgInitializedName*> loop_iter_vec = attr->get_iter_vec();
 	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
 	int loop_nest_size = attr->get_nest_size();
 	
@@ -526,11 +523,11 @@ bool extendedCycleShrink(SgForStatement *loop_nest, std::list<std::list<int>> sc
 			if(loop_ddv[i] == 0)
 				return false;
 
-			/* Do some iterator arith since loop_iter_vec is a std::list */
+			/* Do some iterator arith since loop_iter_vec is a std::vector */
 			auto loop_iter_it = loop_iter_vec.begin();
 			std::advance(loop_iter_it, i);
 
-			SgVarRefExp *curr_iter_var = SageBuilder::buildVarRefExp(*loop_iter_it);
+			SgVarRefExp *curr_iter_var = SageBuilder::buildVarRefExp((*loop_iter_it)->get_name().getString(), body);
 			SgExprStatement *curr_init = SageBuilder::buildExprStatement(
 										SageBuilder::buildAssignOp(
 													curr_iter_var,
@@ -628,7 +625,7 @@ bool extendedCycleShrink(SgForStatement *loop_nest, std::list<std::list<int>> sc
 				auto inner_loop_iter_it = loop_iter_vec.begin();
 				std::advance(inner_loop_iter_it, j);
 
-				SgVarRefExp *inner_iter_var = SageBuilder::buildVarRefExp(*inner_loop_iter_it);
+				SgVarRefExp *inner_iter_var = SageBuilder::buildVarRefExp((*inner_loop_iter_it)->get_name().getString(), body);
 				SgExprStatement *inner_init, *inner_test; 
 				SgExpression *inner_stride = SageBuilder::buildPlusPlusOp(inner_iter_var);
 				SgBasicBlock *inner_body = SageBuilder::buildBasicBlock();
@@ -727,9 +724,8 @@ bool extendedCycleShrink(SgForStatement *loop_nest, std::list<std::list<int>> sc
 bool computeDDV(SgPntrArrRefExp *w_arr_ref, SgPntrArrRefExp *r_arr_ref, std::vector<int> *ddv_arr, LoopNestAttribute *attr)
 {
 	/* Obtain attributes */
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
-	int vec_size = loop_iter_vec.size() + loop_symb_vec.size();
+	std::vector<SgInitializedName*> loop_iter_vec = attr->get_iter_vec();
+	int vec_size = loop_iter_vec.size() + attr->get_symb_vec().size();
 	
 	/* Obtain the dimension info */
 	std::vector<SgExpression*> *w_dim = new std::vector<SgExpression*>;
@@ -769,8 +765,8 @@ bool computeDDV(SgPntrArrRefExp *w_arr_ref, SgPntrArrRefExp *r_arr_ref, std::vec
 		/* If both only contain one reference, make sure the same variable is being referenced */
 		if( (w_var_refs.size() == 1) && (r_var_refs.size() == 1) )
 		{
-			std::string w_var = isSgVarRefExp(w_var_refs[0])->get_symbol()->get_name().getString();
-			std::string r_var = isSgVarRefExp(r_var_refs[0])->get_symbol()->get_name().getString();
+			SgInitializedName *w_var = isSgVarRefExp(w_var_refs[0])->get_symbol()->get_declaration();
+			SgInitializedName *r_var = isSgVarRefExp(r_var_refs[0])->get_symbol()->get_declaration();
 
 			if(w_var != r_var)
 				return false;

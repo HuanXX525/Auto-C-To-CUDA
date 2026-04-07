@@ -10,7 +10,7 @@ void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &
 	bb_new->set_parent(loop_nest->get_parent());
 
 	/* Obtain relevant info from the loop nest */
-	std::vector<std::string> iter_vec;
+	std::vector<SgInitializedName*> iter_vec;
 	std::vector<SgExpression*> bound_vec;
 	std::vector<SgInitializedName*> symb_vec;
 	std::set<SgInitializedName*> param_vars;
@@ -86,7 +86,7 @@ SgStatement * kernelCodeGenECS(SgForStatement *serial_loop, std::vector<SgForSta
 		int bb_idx = std::distance(parallel_loops.begin(), pl_it);	
 			
 		/* Get relevant info for the loop nest -- Handle this a bit differently than simple case, due to weird thing with findReadWriteVariables() */
-		std::vector<std::string> iter_vec;
+		std::vector<SgInitializedName*> iter_vec;
 		std::vector<SgExpression*> bound_vec;
 		std::vector<SgInitializedName*> symb_vec;	
 		std::set<SgInitializedName*> param_vars;
@@ -154,7 +154,7 @@ SgStatement * kernelCodeGenECS(SgForStatement *serial_loop, std::vector<SgForSta
 }
 
 /* Function to obtain parameter variables */
-bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<std::string> &iter_vec, std::vector<SgExpression*> &bound_vec, std::vector<SgInitializedName*> &symb_vec, std::set<SgInitializedName*> &param_vars)
+bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<SgInitializedName*> &iter_vec, std::vector<SgExpression*> &bound_vec, std::vector<SgInitializedName*> &symb_vec, std::set<SgInitializedName*> &param_vars)
 {
 	/* Obtain the iter_vars and bound_exprs for the loop nest -- Cannot just use loop attr because we have made transformations */
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
@@ -163,7 +163,7 @@ bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<
 		SgForStatement *l = isSgForStatement(*inner_it);
 
 		/* Iteration variables */
-		iter_vec.push_back( SageInterface::getLoopIndexVariable(l)->get_name().getString() );
+		iter_vec.push_back(SageInterface::getLoopIndexVariable(l));
 														
 		/* Bounds Expressions */
 		SgExpression *bound = isSgBinaryOp(l->get_test_expr())->get_rhs_operand();
@@ -206,12 +206,12 @@ bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<
 
 	/* Append to the set that will only include relevant variables and removes duplicates */
 	for(auto r_it = reads.begin(); r_it != reads.end(); r_it++)
-		if( std::find(iter_vec.begin(), iter_vec.end(), (*r_it)->get_name().getString()) == iter_vec.end() )
+		if( std::find(iter_vec.begin(), iter_vec.end(), *r_it) == iter_vec.end() )
 			if( (*r_it)->get_scope() != inner_scope )
 				param_vars.insert(*r_it);
 
 	for(auto w_it = writes.begin(); w_it != writes.end(); w_it++)
-		if( std::find(iter_vec.begin(), iter_vec.end(), (*w_it)->get_name().getString()) == iter_vec.end() )
+		if( std::find(iter_vec.begin(), iter_vec.end(), *w_it) == iter_vec.end() )
 			if( (*w_it)->get_scope() != inner_scope )
 				param_vars.insert(*w_it);
 
@@ -334,7 +334,7 @@ SgExpression * kernelCUDAMalloc(SgBasicBlock *bb_new, SgInitializedName *arr_nam
 
 
 /* Create the kernel function definition at the top of global scope */
-void kernelFnDef(SgForStatement *loop_nest, std::vector<std::string> iter_vec, std::vector<SgExpression*> bound_vec, std::set<SgInitializedName*> param_vars, SgBasicBlock *body, int nest_id, SgGlobal *globalScope)
+void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*> &iter_vec, std::vector<SgExpression*> bound_vec, std::set<SgInitializedName*> param_vars, SgBasicBlock *body, int nest_id, SgGlobal *globalScope)
 {
 	std::string kernel_name = "_auto_kernel_" + std::to_string(nest_id);
 	
@@ -453,10 +453,13 @@ void kernelFnDef(SgForStatement *loop_nest, std::vector<std::string> iter_vec, s
 	Rose_STL_Container<SgNode*> iter_var_refs = NodeQuery::querySubTree(bound_if_body, V_SgVarRefExp);
 	for(auto ref_it = iter_var_refs.begin(); ref_it != iter_var_refs.end(); ref_it++)
 	{
-		std::string ref_name = isSgVarRefExp(*ref_it)->get_symbol()->get_name().getString();
+		SgVarRefExp *ref = isSgVarRefExp(*ref_it);
+		if(!ref)
+			continue;
+		SgInitializedName *ref_decl = ref->get_symbol()->get_declaration();
 		
 		/* Find if the var ref is an iter_var */
-		auto iter_it = std::find(iter_vec.begin(), iter_vec.end(), ref_name); 
+		auto iter_it = std::find(iter_vec.begin(), iter_vec.end(), ref_decl); 
 		if(iter_it != iter_vec.end())
 		{
 			/* If so, find index of the iter var */
@@ -464,7 +467,7 @@ void kernelFnDef(SgForStatement *loop_nest, std::vector<std::string> iter_vec, s
 			
 			/* If the index is <= 2, then we have made that index a thread, so replace the proper expression */
 			if(iter_index <= 2)
-				SageInterface::replaceExpression(isSgVarRefExp(*ref_it), thread_refs[iter_index]);
+				SageInterface::replaceExpression(ref, thread_refs[iter_index]);
 
 		}
 	}
@@ -490,4 +493,3 @@ void kernelFnDef(SgForStatement *loop_nest, std::vector<std::string> iter_vec, s
 		SageInterface::prependStatement(kernel_fn, globalScope);
 
 }
-

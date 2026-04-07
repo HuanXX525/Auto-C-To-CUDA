@@ -10,9 +10,7 @@ bool affineTest(SgForStatement *loop_nest)
 {
 	/* Obtain the attributes of the loop */
 	LoopNestAttribute *attr = dynamic_cast<LoopNestAttribute*>(loop_nest->getAttribute("LoopNestInfo"));
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
 	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();
 	int loop_nest_size = attr->get_nest_size();	
 	
 	// /* Check to see if there are any function calls in the loop. If so, return false to remain conservative */
@@ -68,8 +66,8 @@ bool affineTest(SgForStatement *loop_nest)
 		/* Check to see if these references are to any of the iter vals */
 		for(Rose_STL_Container<SgNode*>::iterator v_it = var_refs.begin(); v_it != var_refs.end(); v_it++)
 		{
-			std::string var = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString();
-			if( std::find(loop_iter_vec.begin(), loop_iter_vec.end(), var) != loop_iter_vec.end() )
+			SgInitializedName *var_decl = isSgVarRefExp(*v_it)->get_symbol()->get_declaration();
+			if(attr->contains_iter_var(var_decl))
 				return false;
 		}
 	}
@@ -79,7 +77,7 @@ bool affineTest(SgForStatement *loop_nest)
 	std::set<SgInitializedName*> read_vars, write_vars;
 	SageInterface::collectReadWriteVariables(body, read_vars, write_vars); 
 	for(std::set<SgInitializedName*>::iterator w_it = write_vars.begin(); w_it != write_vars.end(); w_it++)	
-		if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), (*w_it)->get_name().getString()) != loop_symb_vec.end() )
+		if(attr->contains_symb_var(*w_it))
 		      	return false;	
 
 	/* Check if loop bounds are affine */
@@ -284,9 +282,7 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 	
 	/* Obtain attributes of loop */
 	LoopNestAttribute *attr = dynamic_cast<LoopNestAttribute*>(loop_nest->getAttribute("LoopNestInfo"));
-	std::list<std::string> loop_iter_vec = attr->get_iter_vec();
 	std::list<SgExpression*> loop_bound_vec = attr->get_bound_vec();
-	std::list<std::string> loop_symb_vec = attr->get_symb_vec();	
 
 	/* If exp is a constant, return true */
 	if(isSgValueExp(expr))
@@ -312,10 +308,10 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 
 				/* Check to see if this is an iter_var or symb_var */
 				bool isIterSymbVal = false;
-				std::string lhs_string = isSgVarRefExp(lhs)->get_symbol()->get_name().getString();
-				if( std::find(loop_iter_vec.begin(), loop_iter_vec.end(), lhs_string) != loop_iter_vec.end() )
+				SgInitializedName *lhs_decl = isSgVarRefExp(lhs)->get_symbol()->get_declaration();
+				if(attr->contains_iter_var(lhs_decl))
 					isIterSymbVal = true;
-				else if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), lhs_string) != loop_symb_vec.end() )
+				else if(attr->contains_symb_var(lhs_decl))
 					isIterSymbVal = true;
 
 
@@ -323,15 +319,15 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 				Rose_STL_Container<SgNode*> v_ref = NodeQuery::querySubTree(rhs, V_SgVarRefExp);
 				for(Rose_STL_Container<SgNode*>::iterator v_it = v_ref.begin(); v_it != v_ref.end(); v_it++)
 				{
-					std::string v_string = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString();
+					SgInitializedName *v_decl = isSgVarRefExp(*v_it)->get_symbol()->get_declaration();
 					
 					/* Check the iter_vec vals */
-					if( std::find(loop_iter_vec.begin(), loop_iter_vec.end(), v_string) != loop_iter_vec.end() )
+					if(attr->contains_iter_var(v_decl))
 						if(isIterSymbVal)
 							return false;
 
 					/* Check the symb_vec vals */
-					if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), v_string) != loop_symb_vec.end() )
+					if(attr->contains_symb_var(v_decl))
 						if(isIterSymbVal)
 							return false;
 
@@ -350,10 +346,10 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 
 				/* Check to see if this is an iter_var or symb_var */
 				bool isIterSymbVal = false;
-				std::string rhs_string = isSgVarRefExp(rhs)->get_symbol()->get_name().getString();
-				if( std::find(loop_iter_vec.begin(), loop_iter_vec.end(), rhs_string) != loop_iter_vec.end() )
+				SgInitializedName *rhs_decl = isSgVarRefExp(rhs)->get_symbol()->get_declaration();
+				if(attr->contains_iter_var(rhs_decl))
 					isIterSymbVal = true;
-				else if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), rhs_string) != loop_symb_vec.end() )
+				else if(attr->contains_symb_var(rhs_decl))
 					isIterSymbVal = true;
 
 
@@ -361,15 +357,15 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 				Rose_STL_Container<SgNode*> v_ref = NodeQuery::querySubTree(lhs, V_SgVarRefExp);
 				for(Rose_STL_Container<SgNode*>::iterator v_it = v_ref.begin(); v_it != v_ref.end(); v_it++)
 				{
-					std::string v_string = isSgVarRefExp(*v_it)->get_symbol()->get_name().getString();
+					SgInitializedName *v_decl = isSgVarRefExp(*v_it)->get_symbol()->get_declaration();
 					
 					/* Check the iter_vec vals */
-					if( std::find(loop_iter_vec.begin(), loop_iter_vec.end(), v_string) != loop_iter_vec.end() )
+					if(attr->contains_iter_var(v_decl))
 						if(isIterSymbVal)
 							return false;
 
 					/* Check the symb_vec vals */
-					if( std::find(loop_symb_vec.begin(), loop_symb_vec.end(), v_string) != loop_symb_vec.end() )
+					if(attr->contains_symb_var(v_decl))
 						if(isIterSymbVal)
 							return false;
 
@@ -397,4 +393,3 @@ bool affineTestExpr(SgExpression *expr, SgForStatement *loop_nest)
 	/* If we get here, the expression did not match any of our accepted affine forms */
 	return false;
 }
-
