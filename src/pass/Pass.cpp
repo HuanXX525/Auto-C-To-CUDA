@@ -20,9 +20,6 @@ void run_pass( SgProject* project, bool isVerbose ) {
     pm.add<transforms::PredicationTransformPass>();
     bool modified = pm.run(project);
 
-    // if(modified) {
-    //     backend(project);
-    // }
 }
 
 } // namespace c2cuda
