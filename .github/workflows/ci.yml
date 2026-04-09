@@ -19,4 +19,4 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             hulintian/c2cuda-dev:v3.0 \
-            bash -c "make all"
+            bash -c "make all ROSE_INSTALL=/workspace/3rdpart/rose_build"
