@@ -49,4 +49,5 @@ tmp
 .markdownlint.json
 
 *.gdb
+build_report
 *.bin
