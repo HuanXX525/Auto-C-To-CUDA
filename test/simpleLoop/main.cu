@@ -1,3 +1,4 @@
+/* 简单的整数向量加法测试 */
 #include "../tool.h"
 // 定义规模
 #define N 1024
@@ -86,7 +87,7 @@ int main()
   }
 // 4. 保存结果用于二进制对比
 #ifdef AUTOC2CUDATEST
-  save_binary("bin/1.cu.bin",c,1024 * sizeof(int ));
+  save_binary("bin/cuda_out.bin",c,1024 * sizeof(int ));
 #else
 #endif
   return 0;

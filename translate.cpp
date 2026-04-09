@@ -41,6 +41,7 @@
 #include "preprocess/preprocess.hpp"
 #include <inliner.h>
 #include <chrono>
+#include "fileio/io.h"
 
 void __printSC(SgNode *node)
 {
@@ -211,15 +212,8 @@ int main(int argc, char **argv)
 		if (sourceFile)
 		{
 			fileGlobalScope = sourceFile->get_globalScope();
-			{ // 重命名文件为xx.cu
-				std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
-				log_info(">>>> Translating File: %s <<<<\n\n", originalName.c_str());
-				size_t lastDot = originalName.find_last_of(".");
-				std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
-				std::string newName = baseName + ".cu";
-				sourceFile->set_unparse_output_filename(newName);
-			}
-		}
+            renameToCU(sourceFile);
+        }
 		else
 		{
 			continue;

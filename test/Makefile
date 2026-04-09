@@ -1,5 +1,7 @@
-# 1. 获取目录并强制去空格
-DIRS := $(strip $(patsubst %/, %, $(wildcard */)))
+WORKSPACE_DIR = ../
+TRANSLATE := $(WORKSPACE_DIR)/build/bin/translate.out
+# 1. 获取子目录
+DIRS := $(wildcard */)
 
 # 2. 定义前缀目标
 TEST_DIRS := $(addprefix test-, $(DIRS))
@@ -9,23 +11,47 @@ C2CUDA_DIRS := $(addprefix c2cuda-, $(DIRS))
 
 # --- C2CUDA 入口 ---
 c2cuda: $(C2CUDA_DIRS)
-	@echo "所有目录的 c2cuda 任务处理完毕。"
+	@echo "All .c files in test are translated successfully"
 
 $(C2CUDA_DIRS):
-	$(eval TARGET_DIR := $(strip $(patsubst c2cuda-%, %, $@)))
-	@echo "正在尝试进入目录: [$(TARGET_DIR)]"
-	@if [ -f "$(TARGET_DIR)/Makefile" ]; then \
-		$(MAKE) -C $(TARGET_DIR) c2cuda; \
+	$(eval TARGET_DIR := $(patsubst c2cuda-%, %, $@))
+	@C_FILES=$$(find $(TARGET_DIR) -name "*.c"); \
+	echo "Found files: $$C_FILES"; \
+	if [ -n "$$C_FILES" ]; then \
+		$(TRANSLATE) -DAUTOC2CUDATEST $$C_FILES; \
 	else \
-		echo "跳过: $(TARGET_DIR) (找不到 Makefile)"; \
+		echo "No .c files found in $(TARGET_DIR)"; \
 	fi
+
 
 # --- TEST 入口 ---
 test: $(TEST_DIRS)
-	@echo "所有目录的测试任务处理完毕。"
+	@echo "All Test Passed"
+	@echo "------------------------------------------------"
 
 $(TEST_DIRS):
-	$(eval TARGET_DIR := $(strip $(patsubst test-%, %, $@)))
-	@if [ -f "$(TARGET_DIR)/Makefile" ]; then \
-		$(MAKE) -C $(TARGET_DIR) test; \
+	$(eval TARGET_DIR := $(patsubst test-%, %, $@))
+	@echo "------------------------------------------------"
+	@echo "正在测试目录: $(TARGET_DIR)"
+	@mkdir -p $(TARGET_DIR)/bin
+	
+	@C_FILES=$$(find $(TARGET_DIR) -maxdepth 1 -name "*.c"); \
+	if [ -n "$$C_FILES" ]; then \
+		echo "编译 C 程序: $$C_FILES"; \
+		g++ $$C_FILES tool.cpp -o $(TARGET_DIR)/bin/C.out && \
+		(cd $(TARGET_DIR) && ./bin/C.out); \
+	else \
+		echo "跳过 C 编译: 未找到 .c 文件"; \
 	fi
+	
+	@CU_FILES=$$(find $(TARGET_DIR) -maxdepth 1 -name "*.cu"); \
+	if [ -n "$$CU_FILES" ]; then \
+		echo "编译 CUDA 程序: $$CU_FILES"; \
+		nvcc $$CU_FILES tool.cpp -o $(TARGET_DIR)/bin/CU.out && \
+		(cd $(TARGET_DIR) && ./bin/CU.out); \
+	else \
+		echo "跳过 CUDA 编译: 未找到 .cu 文件"; \
+	fi
+
+	@(cd $(TARGET_DIR) && cmp bin/c_out.bin bin/cuda_out.bin)
+

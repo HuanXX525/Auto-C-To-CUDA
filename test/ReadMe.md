@@ -4,5 +4,11 @@
 
 测试逻辑：将测试目标数组保存为二进制文件，对比两个版本输出的二进制文件是否相同
 
-测试使用方法:在workspace运行 `make_translate && make_run`
-测试编写方法:在`test`文件夹下任意新建文件夹编写Makefile实现目标`c2cuda`（使用转换器将c转cu）和`run`（执行对比逻辑）
+- 测试使用方法:在workspace运行 `make test_translate && make test_run`，若CUDA不在容器中可以先在容器运行`make test_translate`，然后在宿主机运行`make test_run`
+- 测试编写方法:在`test`文件夹下任意新建文件夹，放入待测试的项目程序，一个文件夹只能放一个主文件。务必将待比较的数据文件按下列方式输出，第一个参数(待比对的文件名)在Makefile里写死了，不要改第一个参数：
+    ```c
+    #ifdef AUTOC2CUDATEST
+        save_binary("bin/cuda_out.bin", c, size);
+    #else
+        save_binary("bin/c_out.bin", c, size);
+    ```
