@@ -16,7 +16,8 @@ std::string getExeDir()
 Config &Config::getInstance()
 {
     static Config instance; // 局部静态变量，C++11 起线程安全
-    if (instance.data.is_null()){
+    if (instance.data.is_null())
+    {
         instance.load();
     }
     return instance;
@@ -28,8 +29,7 @@ bool Config::load()
         getExeDir() + "/config.json",
         getExeDir() + "/../config.json",
         getExeDir() + "/../../config.json",
-        "config.json"
-    };
+        "config.json"};
 
     std::ifstream f;
     std::string path;
@@ -74,4 +74,25 @@ std::vector<std::string> Config::getSafeFunctions()
 std::vector<std::string> Config::getPureFunctions()
 {
     return data.value("pure_functions", std::vector<std::string>());
+}
+
+void renameToCU(SgSourceFile *sourceFile)
+{
+    std::string fullName = sourceFile->get_sourceFileNameWithPath();
+    log_info(">>>> Translating File: %s <<<<\n\n", fullName.c_str());
+
+    // 2. 查找最后一个点来替换后缀
+    size_t lastDot = fullName.find_last_of(".");
+    std::string newName;
+    if (lastDot != std::string::npos)
+    {
+        newName = fullName.substr(0, lastDot) + ".cu";
+    }
+    else
+    {
+        newName = fullName + ".cu";
+    }
+
+    // 3. 设置输出文件名，此时包含了原始路径
+    sourceFile->set_unparse_output_filename(newName);
 }

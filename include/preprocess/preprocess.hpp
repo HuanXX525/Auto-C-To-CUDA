@@ -97,5 +97,5 @@ class FuncAttribute : public AstAttribute {
       static bool _internalStaticFunctionCall(SgFunctionDefinition *funDef);
       static bool _pure_function(SgFunctionDefinition *funDef);
 };
-
+void renameAfterInline(SgNullStatement *mark);
 #endif

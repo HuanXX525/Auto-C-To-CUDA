@@ -71,4 +71,17 @@ run_debug:
 	cd tmp && \
 	gdb -x ../scripts/gdb_script/common.gdb ../$(BIN_DIR)/translate.out
 
+TEST_DIR = test
+test_translate:
+	make -C ${TEST_DIR} c2cuda
+
+test_run:
+	make -C ${TEST_DIR} test
+
+
+
+
+
 .PHONY: default debug clean tools run_debug
+
+

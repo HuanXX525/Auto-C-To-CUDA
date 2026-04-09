@@ -41,6 +41,7 @@
 #include "preprocess/preprocess.hpp"
 #include <inliner.h>
 #include <chrono>
+#include "fileio/io.h"
 
 void __printSC(SgNode *node)
 {
@@ -182,60 +183,13 @@ int main(int argc, char **argv)
 					{
 						// TODO:内联前尝试补充声明
 
-						// 内联前做标记
+						// 内联前做标记，用于寻找内联后的块
 						SgNullStatement *mark = markStatementForInlining(call);
 						// 执行内联
 						bool succ = doInline(call);
-						if (succ)
-						{
-							// 变量重命名
-							// SgNode *parent = call->get_parent();
-							// log_debug("%s", forstat->unparseToString().c_str());
-							// SgBasicBlock *inlineBlock = isSgBasicBlock(parent);
-							// 1. 获取紧跟在哨兵后面的语句
-							SgStatement *nextStmt = SageInterface::getNextStatement(mark);
-
-							if (nextStmt == nullptr)
-							{
-								// 理论上不应该发生，除非内联失败且原语句被删除
-								log_error("无法捕获内联块");
-							}
-
-							// 2. 将其转换为 SgBasicBlock
-							SgBasicBlock *inlineBlock = isSgBasicBlock(nextStmt);
-							if (inlineBlock)
-							{
-								log_info("》》》》》ready to change var");
-								// 2. 收集该块内所有的变量定义
-								Rose_STL_Container<SgNode *> varDecls = NodeQuery::querySubTree(inlineBlock, V_SgVariableDeclaration);
-
-								for (auto declNode : varDecls)
-								{
-									SgVariableDeclaration *varDecl = isSgVariableDeclaration(declNode);
-									SgInitializedNamePtrList &variables = varDecl->get_variables();
-
-									for (auto initName : variables)
-									{
-										// 3. 生成新名字
-										std::string oldName = initName->get_name().getString();
-										auto now = std::chrono::system_clock::now();
-
-										// 转换为自 epoch 以来的时长
-										auto duration = now.time_since_epoch();
-
-										// 转换为秒数 (使用 long long 接收数字)
-										long long seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-										std::string newName = oldName + "_inline_" + std::to_string(seconds);
-
-										// 4. 使用 SageInterface 提供的工具进行重命名
-										// 这个函数会自动更新该作用域内所有引用此变量的地方
-										SageInterface::set_name(initName, newName);
-
-										log_info("Renamed variable %s to %s", oldName.c_str(), newName.c_str());
-									}
-								}
-							}
-							changed = true;
+						if(succ){
+							/* 改变了变量识别方式，无需再次重命名 */
+							// renameAfterInline(mark);
 							log_info("Function Call %s Inlined Successfully", fname.c_str());
 							changed = true;
 						}
@@ -258,15 +212,8 @@ int main(int argc, char **argv)
 		if (sourceFile)
 		{
 			fileGlobalScope = sourceFile->get_globalScope();
-			{ // 重命名文件为xx.cu
-				std::string originalName = sourceFile->get_sourceFileNameWithoutPath();
-				log_info(">>>> Translating File: %s <<<<\n\n", originalName.c_str());
-				size_t lastDot = originalName.find_last_of(".");
-				std::string baseName = (lastDot == std::string::npos) ? originalName : originalName.substr(0, lastDot);
-				std::string newName = baseName + ".cu";
-				sourceFile->set_unparse_output_filename(newName);
-			}
-		}
+            renameToCU(sourceFile);
+        }
 		else
 		{
 			continue;
@@ -470,6 +417,8 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_X 128");
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Y 1");
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
+			// 添加宏用于测试，区分是否已经转化
+			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define AUTOC2CUDATEST");
 		}
 	}
 

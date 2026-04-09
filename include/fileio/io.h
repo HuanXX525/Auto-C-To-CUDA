@@ -45,4 +45,8 @@ private:
     json data;
 };
 
+#include "rose.h"
+
+void renameToCU(SgSourceFile *sourceFile);
+
 #endif
