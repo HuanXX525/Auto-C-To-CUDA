@@ -212,6 +212,7 @@ int main(int argc, char **argv)
 		if (sourceFile)
 		{
 			fileGlobalScope = sourceFile->get_globalScope();
+			
             renameToCU(sourceFile);
         }
 		else

@@ -87,8 +87,8 @@ int main()
   }
 // 4. 保存结果用于二进制对比
 #ifdef AUTOC2CUDATEST
-  save_binary("bin/cuda_out.bin",c,1024 * sizeof(int ));
 #else
+  save_binary("bin/c_out.bin",c,1024 * sizeof(int ));
 #endif
   return 0;
 }

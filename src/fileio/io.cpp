@@ -78,6 +78,9 @@ std::vector<std::string> Config::getPureFunctions()
 
 void renameToCU(SgSourceFile *sourceFile)
 {
+    std::string currentOutput = sourceFile->get_unparse_output_filename();
+    if(!currentOutput.empty())
+        return;
     std::string fullName = sourceFile->get_sourceFileNameWithPath();
     log_info(">>>> Translating File: %s <<<<\n\n", fullName.c_str());
 
