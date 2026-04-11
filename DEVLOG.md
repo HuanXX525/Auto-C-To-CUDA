@@ -1,5 +1,15 @@
 # DEVLOG
 
+## [2026-04-11]
+
+### Added
+
+- 在test加了内联声明复制测试代码
+
+### Fixed
+
+- 修复了CUDA线程ID与1-based loop canonical form不一致的问题
+
 ## [2026-04-09]
 
 ### Added

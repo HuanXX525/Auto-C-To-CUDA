@@ -1,0 +1,1 @@
+int funcpack(int value);

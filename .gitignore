@@ -51,3 +51,4 @@ tmp
 *.gdb
 build_report
 *.bin
+*.cu

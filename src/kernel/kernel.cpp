@@ -366,7 +366,8 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 		{		
 			/* Make z thread and fall through */	
 			SgVariableDeclaration *thread_z = SageBuilder::buildVariableDeclaration("thread_z_id", SageBuilder::buildIntType(), NULL, kernel_body);
-			SageInterface::addTextForUnparser(thread_z, "thread_z_id = blockIdx.z * blockDim.z + threadIdx.z;\n", AstUnparseAttribute::e_after);
+			// SageInterface::addTextForUnparser(thread_z, "thread_z_id = blockIdx.z * blockDim.z + threadIdx.z;\n", AstUnparseAttribute::e_after);
+			SageInterface::addTextForUnparser(thread_z, "thread_z_id = blockIdx.z * blockDim.z + threadIdx.z + 1;\n", AstUnparseAttribute::e_after);
 			SageInterface::prependStatement(thread_z, kernel_body);
 		}
 
@@ -374,7 +375,8 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 		{	
 			/* Make y thread and fall through */
 			SgVariableDeclaration *thread_y = SageBuilder::buildVariableDeclaration("thread_y_id", SageBuilder::buildIntType(), NULL, kernel_body);
-			SageInterface::addTextForUnparser(thread_y, "thread_y_id = blockIdx.y * blockDim.y + threadIdx.y;\n", AstUnparseAttribute::e_after);
+			// SageInterface::addTextForUnparser(thread_y, "thread_y_id = blockIdx.y * blockDim.y + threadIdx.y;\n", AstUnparseAttribute::e_after);
+			SageInterface::addTextForUnparser(thread_y, "thread_y_id = blockIdx.y * blockDim.y + threadIdx.y + 1;\n", AstUnparseAttribute::e_after);
 			SageInterface::prependStatement(thread_y, kernel_body);
 		}
 
@@ -382,7 +384,8 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 		{
 			/* Make x thread and break */
 			SgVariableDeclaration *thread_x = SageBuilder::buildVariableDeclaration("thread_x_id", SageBuilder::buildIntType(), NULL, kernel_body);
-			SageInterface::addTextForUnparser(thread_x, "thread_x_id = blockIdx.x * blockDim.x + threadIdx.x;\n", AstUnparseAttribute::e_after);
+			// SageInterface::addTextForUnparser(thread_x, "thread_x_id = blockIdx.x * blockDim.x + threadIdx.x;\n", AstUnparseAttribute::e_after);
+			SageInterface::addTextForUnparser(thread_x, "thread_x_id = blockIdx.x * blockDim.x + threadIdx.x + 1;\n", AstUnparseAttribute::e_after);
 			SageInterface::prependStatement(thread_x, kernel_body);
 			break;
 		}

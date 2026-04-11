@@ -54,4 +54,5 @@ $(TEST_DIRS):
 	fi
 
 	@(cd $(TARGET_DIR) && cmp bin/c_out.bin bin/cuda_out.bin)
+	@echo ${TARGET_DIR} PASSED
 
