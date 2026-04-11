@@ -2,8 +2,21 @@ default: translate
 
 all: translate tools
 
-# ROSE install path (override with env var or `make ROSE_INSTALL=/path/to/rose`)
-ROSE_INSTALL ?= /workspace/3rdpart/rose_build
+# ROSE install path:
+# 1) honor explicit override: `make ROSE_INSTALL=/path/to/rose`
+# 2) auto-detect CI path
+# 3) auto-detect common local path
+ROSE_INSTALL ?=
+ifeq ($(strip $(ROSE_INSTALL)),)
+ifneq ("$(wildcard /workspace/3rdpart/rose_build/include/rose/rose.h)","")
+ROSE_INSTALL := /workspace/3rdpart/rose_build
+else ifneq ("$(wildcard /usr/rose/include/rose/rose.h)","")
+ROSE_INSTALL := /usr/rose
+else
+$(error ROSE not found. Please set ROSE_INSTALL, e.g. make ROSE_INSTALL=/usr/rose)
+endif
+endif
+
 ROSE_INCLUDE_DIR = $(ROSE_INSTALL)/include/rose
 ROSE_LIB_DIR = $(ROSE_INSTALL)/lib
 ROSE_LIBS = $(ROSE_LIB_DIR)/librose.la

@@ -42,6 +42,9 @@
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
+#include <atomic>
+
+static std::atomic<unsigned long long> g_inline_uid{0};
 
 void __printSC(SgNode *node)
 {
@@ -187,9 +190,52 @@ int main(int argc, char **argv)
 						SgNullStatement *mark = markStatementForInlining(call);
 						// 执行内联
 						bool succ = doInline(call);
-						if(succ){
-							/* 改变了变量识别方式，无需再次重命名 */
-							// renameAfterInline(mark);
+
+						if (succ)
+						{
+							// 变量重命名
+							// SgNode *parent = call->get_parent();
+							// log_debug("%s", forstat->unparseToString().c_str());
+							// SgBasicBlock *inlineBlock = isSgBasicBlock(parent);
+							// 1. 获取紧跟在哨兵后面的语句
+							SgStatement *nextStmt = SageInterface::getNextStatement(mark);
+
+							if (nextStmt == nullptr)
+							{
+								// 理论上不应该发生，除非内联失败且原语句被删除
+								log_error("无法捕获内联块");
+							}
+
+							// 2. 将其转换为 SgBasicBlock
+							SgBasicBlock *inlineBlock = isSgBasicBlock(nextStmt);
+							if (inlineBlock)
+							{
+								log_info("》》》》》ready to change var");
+								// 2. 收集该块内所有的变量定义
+								Rose_STL_Container<SgNode *> varDecls = NodeQuery::querySubTree(inlineBlock, V_SgVariableDeclaration);
+
+								for (auto declNode : varDecls)
+								{
+									SgVariableDeclaration *varDecl = isSgVariableDeclaration(declNode);
+									SgInitializedNamePtrList &variables = varDecl->get_variables();
+
+									for (auto initName : variables)
+									{
+										// 3. 生成新名字
+										std::string oldName = initName->get_name().getString();
+										unsigned long long inline_id = ++g_inline_uid;
+										std::string newName = oldName + "_inline_" + std::to_string(inline_id);
+
+										// 4. 使用 SageInterface 提供的工具进行重命名
+										// 这个函数会自动更新该作用域内所有引用此变量的地方
+										SageInterface::set_name(initName, newName);
+
+										log_info("Renamed variable %s to %s", oldName.c_str(), newName.c_str());
+									}
+								}
+							}
+							changed = true;
+
 							log_info("Function Call %s Inlined Successfully", fname.c_str());
 							changed = true;
 						}
