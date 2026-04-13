@@ -161,7 +161,8 @@ static void addFunctionDecl(std::vector<DeclarationInfo> &out,
     info.signature = getFunctionSignature(fdecl);
     info.scope = getScopeName(fdecl);
     info.hFile = getFilenameOfNode(fdecl);
-    info.needDefinition = false; // 这里只记录声明层面；是否要函数定义你后续可单独判
+    info.needDefinition = false;
+    info.declNode = fdecl; // ⭐
 
     addDeclInfo(out, seen, info);
 }
@@ -185,6 +186,7 @@ static void addVariableDecl(std::vector<DeclarationInfo> &out,
         info.scope = getScopeName(vdecl);
         info.hFile = getFilenameOfNode(vdecl);
         info.needDefinition = false;
+        info.declNode = vdecl; // ⭐
 
         addDeclInfo(out, seen, info);
     }
@@ -203,6 +205,7 @@ static void addTypedefDecl(std::vector<DeclarationInfo> &out,
     info.scope = getScopeName(tdecl);
     info.hFile = getFilenameOfNode(tdecl);
     info.needDefinition = false;
+    info.declNode = tdecl; // ⭐
 
     addDeclInfo(out, seen, info);
 }
@@ -221,6 +224,7 @@ static void addClassDecl(std::vector<DeclarationInfo> &out,
     info.scope = getScopeName(cdecl);
     info.hFile = getFilenameOfNode(cdecl);
     info.needDefinition = needDefinition;
+    info.declNode = cdecl; // ⭐
 
     addDeclInfo(out, seen, info);
 }
@@ -237,7 +241,8 @@ static void addEnumDecl(std::vector<DeclarationInfo> &out,
     info.name = edecl->get_name().getString();
     info.scope = getScopeName(edecl);
     info.hFile = getFilenameOfNode(edecl);
-    info.needDefinition = true; // enum 一般要完整定义才能用枚举值
+    info.needDefinition = true;
+    info.declNode = edecl; // ⭐
 
     addDeclInfo(out, seen, info);
 }
@@ -263,30 +268,35 @@ static void collectFromType(SgType *ty,
         return;
 
     ty = ty->stripType(SgType::STRIP_MODIFIER_TYPE |
-                       SgType::STRIP_REFERENCE_TYPE |
-                       SgType::STRIP_TYPEDEF_TYPE);
+                       SgType::STRIP_REFERENCE_TYPE);
 
     if (!ty)
         return;
 
     if (auto tdef = isSgTypedefType(ty))
     {
-        SgTypedefDeclaration *decl = isSgTypedefDeclaration(tdef->get_declaration());
-        addTypedefDecl(out, seen, decl);
+        SgTypedefDeclaration *decl =
+            isSgTypedefDeclaration(tdef->get_declaration());
+        if (decl)
+            addTypedefDecl(out, seen, decl);
         return;
     }
 
     if (auto cty = isSgClassType(ty))
     {
-        SgClassDeclaration *decl = isSgClassDeclaration(cty->get_declaration());
-        addClassDecl(out, seen, decl, true);
+        SgClassDeclaration *decl =
+            isSgClassDeclaration(cty->get_declaration());
+        if (decl)
+            addClassDecl(out, seen, decl, true);
         return;
     }
 
     if (auto ety = isSgEnumType(ty))
     {
-        SgEnumDeclaration *decl = isSgEnumDeclaration(ety->get_declaration());
-        addEnumDecl(out, seen, decl);
+        SgEnumDeclaration *decl =
+            isSgEnumDeclaration(ety->get_declaration());
+        if (decl)
+            addEnumDecl(out, seen, decl);
         return;
     }
 
@@ -311,6 +321,7 @@ static void collectFromType(SgType *ty,
     if (auto fty = isSgFunctionType(ty))
     {
         collectFromType(fty->get_return_type(), out, seen);
+
         SgTypePtrList &args = fty->get_argument_list()->get_arguments();
         for (SgType *argTy : args)
             collectFromType(argTy, out, seen);
@@ -344,7 +355,8 @@ public:
                 {
                     SgVariableDeclaration *vdecl =
                         isSgVariableDeclaration(initName->get_declaration());
-                    addVariableDecl(result, seen, vdecl);
+                    if (vdecl)
+                        addVariableDecl(result, seen, vdecl);
 
                     // 变量类型也可能引入 typedef / struct / enum
                     collectFromInitializedName(initName, result, seen);
@@ -360,10 +372,10 @@ public:
             if (sym)
             {
                 SgFunctionDeclaration *fdecl = sym->get_declaration();
-                addFunctionDecl(result, seen, fdecl);
-
                 if (fdecl)
                 {
+                    addFunctionDecl(result, seen, fdecl);
+
                     // 参数和返回类型依赖
                     if (auto ftype = fdecl->get_type())
                         collectFromType(ftype, result, seen);
@@ -379,10 +391,10 @@ public:
             if (sym)
             {
                 SgMemberFunctionDeclaration *fdecl = sym->get_declaration();
-                addFunctionDecl(result, seen, fdecl);
-
                 if (fdecl)
                 {
+                    addFunctionDecl(result, seen, fdecl);
+
                     if (auto ftype = fdecl->get_type())
                         collectFromType(ftype, result, seen);
 
@@ -391,44 +403,53 @@ public:
                     if (clsDef)
                     {
                         SgClassDeclaration *clsDecl = clsDef->get_declaration();
-                        addClassDecl(result, seen, clsDecl, true);
+                        if (clsDecl)
+                            addClassDecl(result, seen, clsDecl, true);
                     }
                 }
             }
             return;
         }
 
-        // 4. 显式使用到某种类型
+        // 4. 显式出现的变量声明，其类型也可能带来依赖
         if (auto varDecl = isSgVariableDeclaration(node))
         {
             const SgInitializedNamePtrList &vars = varDecl->get_variables();
             for (SgInitializedName *v : vars)
-                collectFromInitializedName(v, result, seen);
+            {
+                if (v)
+                    collectFromInitializedName(v, result, seen);
+            }
             return;
         }
 
+        // 5. cast
         if (auto castExp = isSgCastExp(node))
         {
             collectFromType(castExp->get_type(), result, seen);
             return;
         }
 
+        // 6. sizeof(type) / sizeof(expr)
         if (auto sizeofOp = isSgSizeOfOp(node))
         {
             collectFromType(sizeofOp->get_operand_type(), result, seen);
             return;
         }
 
-        // 5. 点/箭头访问，补一下所属类型
+        // 7. 点访问，补 lhs 类型
         if (auto dotExp = isSgDotExp(node))
         {
-            collectFromType(dotExp->get_lhs_operand()->get_type(), result, seen);
+            if (dotExp->get_lhs_operand())
+                collectFromType(dotExp->get_lhs_operand()->get_type(), result, seen);
             return;
         }
 
+        // 8. 箭头访问，补 lhs 类型
         if (auto arrowExp = isSgArrowExp(node))
         {
-            collectFromType(arrowExp->get_lhs_operand()->get_type(), result, seen);
+            if (arrowExp->get_lhs_operand())
+                collectFromType(arrowExp->get_lhs_operand()->get_type(), result, seen);
             return;
         }
     }
@@ -445,8 +466,152 @@ std::vector<DeclarationInfo> collectDeclarationsForFunction(SgFunctionDefinition
 
     DeclCollector collector(def);
     collector.traverse(def->get_body(), preorder);
-    for(auto r : collector.result){
-        log_debug("%s", makeUniqueKey(r).c_str());
-    }
+    // for(auto r : collector.result){
+    //     log_debug("%s", makeUniqueKey(r).c_str());
+    // }
     return collector.result;
+}
+
+static bool isDeclarationVisibleAtPoint(SgStatement *callSite, const DeclarationInfo &need)
+{
+    if (!callSite)
+        return false;
+
+    SgScopeStatement *scope = callSite->get_scope();
+    if (!scope)
+        return false;
+
+    
+    for (SgScopeStatement *cur = scope; cur != nullptr; cur = cur->get_scope())
+    {
+        SgSymbolTable *table = cur->get_symbol_table();
+        if (!table)
+            continue;
+
+        SgName name(need.name);
+
+        switch (need.kind)
+        {
+        case DeclKind::Function:
+        {
+            SgFunctionSymbol *fsym =
+                isSgFunctionSymbol(table->find_function(name));
+
+            if (fsym)
+            {
+                SgFunctionDeclaration *decl = fsym->get_declaration();
+                if (decl && getFunctionSignature(decl) == need.signature)
+                    return true;
+            }
+            break;
+        }
+
+        case DeclKind::Variable:
+        {
+            SgVariableSymbol *vsym =
+                isSgVariableSymbol(table->find_variable(name));
+
+            if (vsym)
+                return true;
+
+            break;
+        }
+
+        case DeclKind::Typedef:
+        {
+            SgTypedefSymbol *tsym =
+                isSgTypedefSymbol(table->find_typedef(name));
+
+            if (tsym)
+                return true;
+
+            break;
+        }
+
+        case DeclKind::Record:
+        {
+            SgClassSymbol *csym =
+                isSgClassSymbol(table->find_class(name));
+
+            if (csym)
+            {
+                SgClassDeclaration *decl = csym->get_declaration();
+                if (!decl)
+                    break;
+
+                // 只需要前向声明
+                if (!need.needDefinition)
+                    return true;
+
+                // 需要完整定义
+                if (decl->get_definition() != nullptr ||
+                    decl->get_definingDeclaration() != nullptr)
+                    return true;
+            }
+            break;
+        }
+
+        case DeclKind::Enum:
+        {
+            SgEnumSymbol *esym =
+                isSgEnumSymbol(table->find_enum(name));
+
+            if (esym)
+            {
+                SgEnumDeclaration *decl = esym->get_declaration();
+                if (!decl)
+                    break;
+
+                // enum 必须是定义
+                if (decl->get_definingDeclaration() != nullptr)
+                    return true;
+            }
+            break;
+        }
+
+        default:
+            break;
+        }
+        log_debug("cur = %p, class = %s", cur, cur->class_name().c_str());
+        if(cur->get_scope() == cur)break;
+    }
+
+    return false;
+}
+
+void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite)
+{
+    if (!callSite)
+        return;
+
+    // 找插入位置
+    SgStatement *anchorStmt = SageInterface::getEnclosingStatement(callSite);
+    if (!anchorStmt)
+        return;
+
+    if (isDeclarationVisibleAtPoint(anchorStmt, decl))
+        return;
+
+    log_debug("Decl %s > [invisible]", makeUniqueKey(decl).c_str());
+
+    if (!decl.declNode)
+    {
+        log_error("No declNode for %s", decl.name.c_str());
+        return;
+    }
+
+    // ⭐复制声明节点
+    SgDeclarationStatement *newDecl =
+        isSgDeclarationStatement(SageInterface::copyStatement(decl.declNode));
+
+    if (!newDecl)
+    {
+        log_error("Failed to copy decl %s", decl.name.c_str());
+        return;
+    }
+
+    // ⭐插入到当前语句前
+    SageInterface::insertStatementBefore(anchorStmt, newDecl);
+
+    log_debug("Inserted decl: %s", decl.name.c_str());
 }

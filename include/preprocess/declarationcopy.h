@@ -19,7 +19,8 @@ public:
     std::string scope;
     bool needDefinition = false; // For Record
     std::string hFile;           // 声明所在文件（不一定真是 .h，也可能是源文件）
-
+    SgDeclarationStatement *declNode = nullptr; // ⭐关键
 };
 
 std::vector<DeclarationInfo> collectDeclarationsForFunction(SgFunctionDefinition *def);
+void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite);

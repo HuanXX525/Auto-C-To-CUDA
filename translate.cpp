@@ -185,23 +185,28 @@ int main(int argc, char **argv)
 					/* 不在CUDA白名单、不是纯函数、有定义、不递归、不使用静态变量以及静态函数调用*/
 					if (fa->canInline())
 					{
-						// 获取所需声明
-						{
-							SgFunctionDefinition *def = isSgFunctionDeclaration(call->getAssociatedFunctionSymbol()->get_declaration()->get_definingDeclaration())->get_definition();
-							collectDeclarationsForFunction(def);
-						}
+						/* 获取声明阶段获取的是函数定义外所依赖的声明，而重命名获取的是函数定义内所依赖的刚好互不冲突 */
+						
+						SgFunctionDefinition *def = isSgFunctionDeclaration(call->getAssociatedFunctionSymbol()->get_declaration()->get_definingDeclaration())->get_definition();
+						std::vector<DeclarationInfo> requiredDeclList =	collectDeclarationsForFunction(def);
+						
 						// UNUSED:内联前做标记，用于寻找内联后的块
 						SgNullStatement *mark = markStatementForInlining(call);
 						// 执行内联
+						
+						// bool succ = true;
 						bool succ = doInline(call);
-
 						if (succ)
 						{
 							// 变量重命名
 							renameAfterInline(mark);
-
+							for (auto decl : requiredDeclList)
+							{
+								addDeclaration(decl, mark);
+							}
 							log_info("Function Call %s Inlined Successfully", fname.c_str());
 							changed = true;
+							// changed = false;
 						}
 					}
 				}

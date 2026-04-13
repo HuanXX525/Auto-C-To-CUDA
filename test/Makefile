@@ -26,8 +26,8 @@ $(C2CUDA_DIRS):
 
 # --- TEST 入口 ---
 test: $(TEST_DIRS)
-	@echo "All Test Passed"
 	@echo "------------------------------------------------"
+	@echo "\033[32mAll Test Passed\033[0m"
 
 $(TEST_DIRS):
 	$(eval TARGET_DIR := $(patsubst test-%, %, $@))
@@ -35,7 +35,7 @@ $(TEST_DIRS):
 	@echo "正在测试目录: $(TARGET_DIR)"
 	@mkdir -p $(TARGET_DIR)/bin
 	
-	@C_FILES=$$(find $(TARGET_DIR) -maxdepth 1 -name "*.c"); \
+	@C_FILES=$$(find $(TARGET_DIR) -name "*.c"); \
 	if [ -n "$$C_FILES" ]; then \
 		echo "编译 C 程序: $$C_FILES"; \
 		g++ $$C_FILES tool.cpp -o $(TARGET_DIR)/bin/C.out && \
@@ -44,7 +44,7 @@ $(TEST_DIRS):
 		echo "跳过 C 编译: 未找到 .c 文件"; \
 	fi
 	
-	@CU_FILES=$$(find $(TARGET_DIR) -maxdepth 1 -name "*.cu"); \
+	@CU_FILES=$$(find $(TARGET_DIR) -name "*.cu"); \
 	if [ -n "$$CU_FILES" ]; then \
 		echo "编译 CUDA 程序: $$CU_FILES"; \
 		nvcc $$CU_FILES tool.cpp -o $(TARGET_DIR)/bin/CU.out && \
