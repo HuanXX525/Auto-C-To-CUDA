@@ -467,7 +467,6 @@ bool FuncAttribute::_static_var(SgFunctionDefinition *funDef)
 
 #include "rose.h"
 
-
 /**
  * 判断函数是否为纯函数（无副作用函数）
  *
@@ -574,7 +573,8 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 		// 未在拓扑排序中列出的表示存在环，不能内联
 		bool r = !funcOrder.count(funcName);
 		fa->setRecursive(r);
-		if(!r){
+		if (!r)
+		{
 			// 3. 标注是否存在静态变量的使用
 			SgFunctionDefinition *funDef = definingDecl->get_definition();
 			fa->setStaticVar(_static_var(funDef));
@@ -592,7 +592,7 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 	call->setAttribute("FuncAttribute", fa);
 }
 
-SgNullStatement * markStatementForInlining(SgFunctionCallExp *call)
+SgNullStatement *markStatementForInlining(SgFunctionCallExp *call)
 {
 	// 1. 找到包含 call 的语句 (通常是 SgExprStatement)
 	SgStatement *targetStmt = SageInterface::getEnclosingStatement(call);
@@ -615,13 +615,10 @@ SgNullStatement * markStatementForInlining(SgFunctionCallExp *call)
 	return sentinel;
 }
 
-/* 重命名策略按秒随机尚不完整，若后续使用需要修复此问题 */
+/* 块内局部变量重命名 */
 void renameAfterInline(SgNullStatement *mark)
 {
-	// 变量重命名
-	// SgNode *parent = call->get_parent();
-	// log_debug("%s", forstat->unparseToString().c_str());
-	// SgBasicBlock *inlineBlock = isSgBasicBlock(parent);
+	static unsigned g_inline_uid = 0;
 	// 1. 获取紧跟在哨兵后面的语句
 	SgStatement *nextStmt = SageInterface::getNextStatement(mark);
 
@@ -635,7 +632,7 @@ void renameAfterInline(SgNullStatement *mark)
 	SgBasicBlock *inlineBlock = isSgBasicBlock(nextStmt);
 	if (inlineBlock)
 	{
-		log_info("》》》》》ready to change var");
+		log_info("ready to change var");
 		// 2. 收集该块内所有的变量定义
 		Rose_STL_Container<SgNode *> varDecls = NodeQuery::querySubTree(inlineBlock, V_SgVariableDeclaration);
 
@@ -648,14 +645,8 @@ void renameAfterInline(SgNullStatement *mark)
 			{
 				// 3. 生成新名字
 				std::string oldName = initName->get_name().getString();
-				auto now = std::chrono::system_clock::now();
-
-				// 转换为自 epoch 以来的时长
-				auto duration = now.time_since_epoch();
-
-				// 转换为秒数 (使用 long long 接收数字)
-				long long seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-				std::string newName = oldName + "_inline_" + std::to_string(seconds);
+				unsigned long long inline_id = ++g_inline_uid;
+				std::string newName = oldName + "_inline_" + std::to_string(inline_id);
 
 				// 4. 使用 SageInterface 提供的工具进行重命名
 				// 这个函数会自动更新该作用域内所有引用此变量的地方
