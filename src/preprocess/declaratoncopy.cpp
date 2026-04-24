@@ -260,6 +260,7 @@ static void collectFromInitializedName(SgInitializedName *initName,
     collectFromType(initName->get_type(), out, seen);
 }
 
+// 除了引用本身依赖声明，引用语句的所需类型可能也需要
 static void collectFromType(SgType *ty,
                             std::vector<DeclarationInfo> &out,
                             std::set<std::string> &seen)
@@ -337,13 +338,16 @@ public:
     {
     }
 
+    // 声明依赖集
     std::vector<DeclarationInfo> result;
 
     void visit(SgNode *node) override
     {
         if (!node)
             return;
-
+        /**
+         * 遍历时分析不同引用，并将检测到的引用加入到需求列表
+         */
         // 1. 变量引用
         if (auto varRef = isSgVarRefExp(node))
         {
@@ -456,6 +460,7 @@ public:
 
 private:
     SgFunctionDefinition *m_funcDef = nullptr;
+    // 已经添加的所需依赖
     std::set<std::string> seen;
 };
 

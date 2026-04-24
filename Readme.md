@@ -4,6 +4,14 @@
 >
 > Forked from Automatic Transcompiler of Affine C Programs to CUDA By Leart Krasniqi
 
+## 使用
+
+转化为CUDA
+
+```bash
+./build/bin/translate.out file1.c [file2.c ...]
+```
+
 ## 安装
 
 [安装流程](./scripts/README.md)
