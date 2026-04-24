@@ -543,6 +543,8 @@ bool FuncAttribute::_pure_function(SgFunctionDefinition *funDef)
 				{
 					return false;
 				}
+
+				// 是纯函数则可以
 			}
 		}
 	}
@@ -582,6 +584,8 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 			fa->setStaticFuncCall(_internalStaticFunctionCall(funDef));
 			// 5. 标注是否是纯函数
 			fa->setPure(std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end() || _pure_function(funDef));
+			// 6. TODO:检测是否可以设备化
+			// 可以设备化则在转为核函数后将一条链上的都设备化
 		}
 		// fa->setRecursive(!funcOrder.count(funcName) || isRecursive(definingDecl));
 	}
