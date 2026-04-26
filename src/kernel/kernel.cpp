@@ -332,7 +332,60 @@ SgExpression * kernelCUDAMalloc(SgBasicBlock *bb_new, SgInitializedName *arr_nam
 
 }
 
+static SgFunctionDeclaration *findMainFunctionDecl(SgGlobal *globalScope)
+{
+	if (!globalScope)
+		return nullptr;
 
+	const SgDeclarationStatementPtrList &decls = globalScope->get_declarations();
+
+	for (SgDeclarationStatement *decl : decls)
+	{
+		if (auto fnDecl = isSgFunctionDeclaration(decl))
+		{
+			if (fnDecl->get_name().getString() == "main")
+				return fnDecl;
+		}
+	}
+
+	return nullptr;
+}
+
+static SgStatement *findInsertAfterDecls(SgGlobal *globalScope)
+{
+	if (!globalScope)
+		return nullptr;
+
+	const SgDeclarationStatementPtrList &decls = globalScope->get_declarations();
+
+	SgStatement *lastDecl = nullptr;
+
+	for (SgDeclarationStatement *d : decls)
+	{
+		if (!d)
+			continue;
+
+		// 跳过编译器生成的
+		if (d->get_file_info() && d->get_file_info()->isCompilerGenerated())
+			continue;
+
+		// 只认“声明类”
+		if (isSgVariableDeclaration(d) ||
+			isSgFunctionDeclaration(d) ||
+			isSgTypedefDeclaration(d) ||
+			isSgClassDeclaration(d) ||
+			isSgEnumDeclaration(d))
+		{
+			lastDecl = d;
+			continue;
+		}
+
+		// 一旦遇到非声明（比如函数定义），停止
+		break;
+	}
+
+	return lastDecl;
+}
 /* Create the kernel function definition at the top of global scope */
 void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*> &iter_vec, std::vector<SgExpression*> bound_vec, std::set<SgInitializedName*> param_vars, SgBasicBlock *body, int nest_id, SgGlobal *globalScope)
 {
@@ -489,10 +542,26 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 	
 	/* Prepend function to global scope */
 	//SageInterface::prependStatement(kernel_fn, globalScope);
-	SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
-	if(first_stmt)
-		SageInterface::insertStatementBefore(first_stmt, kernel_fn);
-	else
-		SageInterface::prependStatement(kernel_fn, globalScope);
+	// SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
+	// if(first_stmt)
+	// 	SageInterface::insertStatementBefore(first_stmt, kernel_fn);
+	// else
+	// 	SageInterface::prependStatement(kernel_fn, globalScope);
+	SgFunctionDeclaration *mainDecl = findMainFunctionDecl(globalScope);
 
+	if (mainDecl)
+	{
+		// 有 main → 插在 main 前
+		SageInterface::insertStatementBefore(mainDecl, kernel_fn);
+	}
+	else
+	{
+		// 没有 main → 插在声明之后
+		SgStatement *pos = findInsertAfterDecls(globalScope);
+
+		if (pos)
+			SageInterface::insertStatementAfter(pos, kernel_fn);
+		else
+			SageInterface::prependStatement(kernel_fn, globalScope);
+	}
 }

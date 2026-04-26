@@ -572,6 +572,8 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 	if (definingDecl && definingDecl->get_definition())
 	{
 		fa->setDefination(true);
+		// 有定义优先使用定义
+		fa->setSafe(false);
 		// 未在拓扑排序中列出的表示存在环，不能内联
 		bool r = !funcOrder.count(funcName);
 		fa->setRecursive(r);
@@ -583,7 +585,8 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 			// 4. 标注是否存在静态函数的调用
 			fa->setStaticFuncCall(_internalStaticFunctionCall(funDef));
 			// 5. 标注是否是纯函数
-			fa->setPure(std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end() || _pure_function(funDef));
+			// fa->setPure(std::find(safe_funcs.begin(), safe_funcs.end(), funcName) != safe_funcs.end() || _pure_function(funDef));
+			fa->setPure(0);
 			// 6. TODO:检测是否可以设备化
 			// 可以设备化则在转为核函数后将一条链上的都设备化
 		}

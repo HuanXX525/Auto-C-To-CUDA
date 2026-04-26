@@ -40,11 +40,13 @@
 #include "kernel/kernel.hpp"
 #include "transforms/InductionVarExposePass.hpp"
 #include "preprocess/preprocess.hpp"
+#include "preprocess/exposeInductionVar.h"
 #include "preprocess/declarationcopy.h"
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
 #include <atomic>
+
 
 static std::atomic<unsigned long long> g_inline_uid{0};
 
@@ -147,6 +149,9 @@ int main(int argc, char **argv)
 					  return orderA < orderB;
 				  });
 		log_info("Loop Sorted");
+
+		// TODO：收集循环计算量信息
+		
 		// 内联和函数标记
 		for (auto forIter = orderedLoopNestList.begin(); forIter != orderedLoopNestList.end(); forIter++)
 		{
@@ -178,9 +183,9 @@ int main(int argc, char **argv)
 				for (auto node = fn_calls.begin(); node != fn_calls.end(); node++)
 				{
 					SgFunctionCallExp *call = isSgFunctionCallExp(*node);
-					std::string fname = call->getAssociatedFunctionDeclaration()->get_name().getString();
 					if (!call)
-						continue;
+					continue;
+					std::string fname = call->getAssociatedFunctionDeclaration()->get_name().getString();
 					FuncAttribute *fa = dynamic_cast<FuncAttribute *>(call->getAttribute("FuncAttribute"));
 					// if(!fa) continue;
 					/* 不在CUDA白名单、不是纯函数、有定义、不递归、不使用静态变量以及静态函数调用*/
@@ -214,6 +219,12 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+
+	
+	// TODO：归纳变量暴露
+	ForIVExposureTraversal t;
+	t.traverse(project, preorder);
+	// TODO：归纳变量暴露
 
 	/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
 	/* 第二遍转化 */
@@ -300,9 +311,13 @@ int main(int argc, char **argv)
 				/* Get the outer most loop */
 				SgForStatement *loop_nest = isSgForStatement(*for_iter);
 
+
 				/* Find loop nest size */
 				Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 				int nest_size = inner_loops.size();
+
+
+
 
 				/* Set attributes (applied to outermost loop) */
 				loop_nest->setAttribute("LoopNestInfo", new LoopNestAttribute(nest_size, true));

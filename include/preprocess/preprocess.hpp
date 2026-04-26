@@ -79,6 +79,7 @@ class FuncAttribute : public AstAttribute {
       bool haveStaticVar() { return have_static_var; }
       bool haveStaticFuncCall() { return have_static_func_call; }
       bool isPure() { return is_pure; }
+      void setSafe(bool s) { is_safe = s; }
       void setPure(bool p) { is_pure = p; }
       void setDefination(bool de) { have_defination = de; }
 		void setRecursive(bool re) { is_recursive = re; }

@@ -589,23 +589,31 @@ void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite)
     if (!callSite)
         return;
 
-    // 找插入位置
-    SgStatement *anchorStmt = SageInterface::getEnclosingStatement(callSite);
-    if (!anchorStmt)
-        return;
-
-    if (isDeclarationVisibleAtPoint(anchorStmt, decl))
-        return;
-
-    log_debug("Decl %s > [invisible]", makeUniqueKey(decl).c_str());
-
     if (!decl.declNode)
     {
         log_error("No declNode for %s", decl.name.c_str());
         return;
     }
 
-    // ⭐复制声明节点
+    SgStatement *anchorStmt = SageInterface::getEnclosingStatement(callSite);
+    if (!anchorStmt)
+        return;
+
+    // 获取当前文件的 global scope
+    SgSourceFile *srcFile = SageInterface::getEnclosingSourceFile(anchorStmt);
+    if (!srcFile)
+        return;
+
+    SgGlobal *globalScope = srcFile->get_globalScope();
+    if (!globalScope)
+        return;
+
+    // 如果全局已经可见就不插入
+    if (isDeclarationVisibleAtPoint(globalScope, decl))
+        return;
+
+    log_debug("Decl %s > [insert to global]", makeUniqueKey(decl).c_str());
+
     SgDeclarationStatement *newDecl =
         isSgDeclarationStatement(SageInterface::copyStatement(decl.declNode));
 
@@ -615,8 +623,30 @@ void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite)
         return;
     }
 
-    // ⭐插入到当前语句前
-    SageInterface::insertStatementBefore(anchorStmt, newDecl);
+    newDecl->set_scope(globalScope);
 
-    log_debug("Inserted decl: %s", decl.name.c_str());
+    // 插入到文件开头（第一个用户声明前）
+    SgDeclarationStatementPtrList &decls = globalScope->get_declarations();
+
+    SgStatement *insertBefore = nullptr;
+
+    for (SgDeclarationStatement *d : decls)
+    {
+        if (!d)
+            continue;
+
+        // 跳过编译器生成的
+        if (d->get_file_info() && d->get_file_info()->isCompilerGenerated())
+            continue;
+
+        insertBefore = d;
+        break;
+    }
+
+    if (insertBefore)
+        SageInterface::insertStatementBefore(insertBefore, newDecl);
+    else
+        SageInterface::appendStatement(newDecl, globalScope);
+
+    log_debug("Inserted decl at file head: %s", decl.name.c_str());
 }

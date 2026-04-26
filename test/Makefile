@@ -23,11 +23,14 @@ $(C2CUDA_DIRS):
 		echo "No .c files found in $(TARGET_DIR)"; \
 	fi
 
-
+clean_bin:
+	find . -type f -name "*.bin" -delete
 # --- TEST 入口 ---
-test: $(TEST_DIRS)
+test: $(TEST_DIRS) clean_bin
 	@echo "------------------------------------------------"
 	@echo "\033[32mAll Test Passed\033[0m"
+# 	clean_bin
+	
 
 $(TEST_DIRS):
 	$(eval TARGET_DIR := $(patsubst test-%, %, $@))
