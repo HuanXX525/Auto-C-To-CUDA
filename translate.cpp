@@ -28,6 +28,7 @@
  * Tend to add feature multifiles and function analysis.
  */
 
+#include "include/utils/translate_job.h"
 #include "pass/PassManager.hpp"
 #include "rose.h"
 #include <iostream>
@@ -62,8 +63,42 @@ int main(int argc, char **argv)
 {
 
     auto start = std::chrono::high_resolution_clock::now();
+
+    auto build_result = c2cuda::TranslateJobBuilder::build(argc, argv);
+    if (build_result.should_exit)
+    {
+        return build_result.exit_code;
+    }
+
+    auto all_args = build_result.args;
+
+    std::vector<std::string> rose_args_storage;
+    if (build_result.job.mode == c2cuda::TranslateMode::SingleFile)
+    {
+        rose_args_storage = build_result.args.remaining;
+    }
+    else
+    {
+        const std::string program_name = argc > 0 ? argv[0] : "translate.out";
+        rose_args_storage = build_result.job.buildRoseArgv(program_name);
+    }
+
+    auto rose_argv = c2cuda::CmdLineParser::toArgv(rose_args_storage);
+    
+    if(all_args.hasFlag("verbose")) {
+        std::cerr << "The translate command is : ";
+        for(auto a : rose_argv) {
+            std::cerr << a << " ";
+        }
+        std::cerr << "\n";
+    }
+    
+
+    int rose_argc = static_cast<int>(rose_argv.size());
+
+
 	ROSE_INITIALIZE;
-	SgProject *project = frontend(argc, argv);
+	SgProject *project = frontend(rose_argc, rose_argv.data());
 
     // run c2cuda pass
 	log_info("passes manager test");
