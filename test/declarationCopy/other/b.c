@@ -1,3 +1,4 @@
-int pow(int a, int b){
-    return a * b;
+int mypow(int a){
+    return a * 2;
 }
+

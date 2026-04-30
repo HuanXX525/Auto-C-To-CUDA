@@ -40,7 +40,6 @@
 #include "kernel/kernel.hpp"
 #include "transforms/InductionVarExposePass.hpp"
 #include "preprocess/preprocess.hpp"
-#include "preprocess/exposeInductionVar.h"
 #include "preprocess/declarationcopy.h"
 #include <inliner.h>
 #include <chrono>
@@ -219,12 +218,6 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-
-	
-	// TODO：归纳变量暴露
-	ForIVExposureTraversal t;
-	t.traverse(project, preorder);
-	// TODO：归纳变量暴露
 
 	/* Will hold the id number of nests that will be parallelized (to be used to name kernel function) */
 	/* 第二遍转化 */
