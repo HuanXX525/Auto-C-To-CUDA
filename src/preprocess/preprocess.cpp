@@ -306,7 +306,8 @@ std::map<std::string, int> performTopologicalSort(CallGraphBuilder &CGBuilder)
 		for (auto *edge : inEdges)
 		{
 			// 只有当调用者也是用户函数，且不是自环时计入入度 [cite: 7]
-			if (edge->get_from() != node && userNodes.count(edge->get_from()))
+			// if (edge->get_from() != node && userNodes.count(edge->get_from()))
+			if (userNodes.count(edge->get_from()))
 			{
 				degree++;
 			}
@@ -574,6 +575,7 @@ void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string,
 		fa->setDefination(true);
 		// 有定义优先使用定义
 		fa->setSafe(false);
+		
 		// 未在拓扑排序中列出的表示存在环，不能内联
 		bool r = !funcOrder.count(funcName);
 		fa->setRecursive(r);
