@@ -40,6 +40,7 @@
 #include "parallel/parallel.hpp"
 #include "kernel/kernel.hpp"
 #include "transforms/InductionVarExposePass.hpp"
+#include "preprocess/InductionVariableExposure.h"
 #include "preprocess/preprocess.hpp"
 #include "preprocess/declarationcopy.h"
 #include <inliner.h>
@@ -427,7 +428,8 @@ int main(int argc, char **argv)
 				attr->set_symb_vec(symb_vec);
 
 				/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-				runInductionVarPass(loop_nest);
+				// runInductionVarPass(loop_nest);
+				inductionVariableExposure(loop_nest);
 
 				/* Affine test */
 				if (!affineTest(loop_nest))

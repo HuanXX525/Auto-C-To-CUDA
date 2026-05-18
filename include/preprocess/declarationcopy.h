@@ -1,3 +1,6 @@
+#ifndef DECLARATIONCOPY_H
+#define DECLARATIONCOPY_H
+
 #include <string>
 
 enum class DeclKind
@@ -24,3 +27,4 @@ public:
 
 std::vector<DeclarationInfo> collectDeclarationsForFunction(SgFunctionDefinition *def);
 void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite);
+#endif
