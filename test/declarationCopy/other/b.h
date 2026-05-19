@@ -1,1 +1,0 @@
-int mypow(int a);
