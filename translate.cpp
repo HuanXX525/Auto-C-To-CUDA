@@ -41,6 +41,7 @@
 #include "kernel/kernel.hpp"
 #include "transforms/InductionVarExposePass.hpp"
 #include "preprocess/InductionVariableExposure.h"
+#include "preprocess/deadCodeElim.h"
 #include "preprocess/preprocess.hpp"
 #include "preprocess/declarationcopy.h"
 #include <inliner.h>
@@ -430,6 +431,7 @@ int main(int argc, char **argv)
 				/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
 				// runInductionVarPass(loop_nest);
 				inductionVariableExposure(loop_nest);
+				eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
 
 				/* Affine test */
 				if (!affineTest(loop_nest))
