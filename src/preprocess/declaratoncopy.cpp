@@ -360,7 +360,13 @@ public:
                     SgVariableDeclaration *vdecl =
                         isSgVariableDeclaration(initName->get_declaration());
                     if (vdecl)
-                        addVariableDecl(result, seen, vdecl);
+                    {
+                        // 跳过当前函数内部的局部变量（内联后会被 renameAfterInline 处理）
+                        SgFunctionDefinition *enclosingFunc =
+                            SageInterface::getEnclosingFunctionDefinition(vdecl);
+                        if (enclosingFunc != m_funcDef)
+                            addVariableDecl(result, seen, vdecl);
+                    }
 
                     // 变量类型也可能引入 typedef / struct / enum
                     collectFromInitializedName(initName, result, seen);
