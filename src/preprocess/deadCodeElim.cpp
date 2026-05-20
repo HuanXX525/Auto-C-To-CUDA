@@ -106,7 +106,6 @@ SgInitializedName* getDefinedVar(SgStatement* stmt) {
     if (vd) {
         SgInitializedNamePtrList& vars = vd->get_variables();
         if (vars.size() != 1) return nullptr;
-        if (!isSgAssignInitializer(vars[0]->get_initializer())) return nullptr;
         return vars[0];
     }
     return nullptr;
