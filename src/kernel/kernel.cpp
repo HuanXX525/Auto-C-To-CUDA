@@ -241,10 +241,9 @@ std::vector<SgStatement*> kernelFnCall(SgForStatement *loop_nest, std::set<SgIni
 		/* If the dimension is an INT, then find the biggest x_dim, y_dim, and z_dim to be used to calculate the gridSize */
 		for(size_t i = 1; (i < arr_dim_list.size()) && (i < 4); i++)
 		{
-			SgIntVal *dim_size = isSgIntVal(arr_dim_list[i]);
-			if(dim_size)
-				if(dim_size->get_value() > data_sizes[i-1])
-					data_sizes[i-1] = dim_size->get_value();
+			SageInterface::const_int_expr_t eval = SageInterface::evaluateConstIntegerExpression(arr_dim_list[i]);
+			if(eval.hasValue_ && eval.value_ > data_sizes[i-1])
+				data_sizes[i-1] = eval.value_;
 		}
 	}
 
