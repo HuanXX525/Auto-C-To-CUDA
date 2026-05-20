@@ -1,7 +1,11 @@
 WORKSPACE_DIR = ../
 TRANSLATE := $(WORKSPACE_DIR)/build/bin/translate.out
-# 1. 获取子目录
-DIRS := $(wildcard */)
+# 指定 DIR=xxx 测试单个目录，默认全测试
+ifeq ($(DIR),)
+  DIRS := $(wildcard */)
+else
+  DIRS := $(DIR)/
+endif
 
 # 2. 定义前缀目标
 TEST_DIRS := $(addprefix test-, $(DIRS))

@@ -86,10 +86,10 @@ run_debug:
 
 TEST_DIR = test
 test_translate:
-	make -C ${TEST_DIR} c2cuda
+	make -C ${TEST_DIR} c2cuda DIR=$(DIR)
 
 test_run:
-	make -C ${TEST_DIR} test
+	make -C ${TEST_DIR} test DIR=$(DIR)
 
 
 
