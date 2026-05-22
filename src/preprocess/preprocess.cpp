@@ -137,8 +137,34 @@ std::vector<SgStatement *> convertImperfToPerf(SgForStatement *imperf_loop_nest)
 			arr_stmts.push_back(arr_stmt);
 	}
 
-	/* Create a pseudo-bb in order to perform some analysis */
-	SgBasicBlock *pseudo_bb = SageBuilder::buildBasicBlock_nfi(arr_stmts);
+	/* Obtain each of the for loops BEFORE any AST modification.
+	   buildBasicBlock_nfi below moves arr_stmts out of the AST; if we
+	   fail the nested-imperfect check after that, the AST is left corrupted. */
+	Rose_STL_Container<SgNode *> for_loops = NodeQuery::querySubTree(imperf_loop_nest, V_SgForStatement);
+
+	/* For each of the loops, obtain the index variable so that we can associate the arr_stmts with the proper loops */
+	std::vector<SgInitializedName *> index_vars;
+	for (auto f_it = for_loops.begin(); f_it != for_loops.end(); f_it++)
+		index_vars.push_back(SageInterface::getLoopIndexVariable(*f_it));
+
+	/* Check for nested imperfect loops BEFORE modifying the AST.
+	   If any inner loop body has more than one statement, the conversion
+	   would create parent-child AST inconsistencies that cause
+	   cfgFindChildIndex assertion failures in later SSA passes. */
+	for (size_t i = 1; i < for_loops.size(); i++)
+	{
+		SgBasicBlock *body = isSgBasicBlock(isSgForStatement(for_loops[i])->get_loop_body());
+		if (body && body->get_statements().size() > 1)
+			return std::vector<SgStatement *>();
+	}
+
+	/* Create a pseudo-bb using COPIES of arr_stmts for dependency analysis.
+	   Using copies means the original statements stay in the AST; if the
+	   SCC check or later checks fail, the AST is not corrupted. */
+	std::vector<SgStatement *> arr_stmt_copies;
+	for (auto s : arr_stmts)
+		arr_stmt_copies.push_back(SageInterface::copyStatement(s));
+	SgBasicBlock *pseudo_bb = SageBuilder::buildBasicBlock_nfi(arr_stmt_copies);
 	pseudo_bb->set_parent(imperf_loop_nest->get_parent());
 
 	/* Obtain a graph and the SCCs for the FLOW dependencies */
@@ -151,14 +177,6 @@ std::vector<SgStatement *> convertImperfToPerf(SgForStatement *imperf_loop_nest)
 			return std::vector<SgStatement *>(); /* Return empty vector to indicate failure */
 
 	/* If we get here, we can perform the transformation for each statement in the SCC list */
-
-	/* Obtain each of the for loops */
-	Rose_STL_Container<SgNode *> for_loops = NodeQuery::querySubTree(imperf_loop_nest, V_SgForStatement);
-
-	/* For each of the loops, obtain the index variable so that we can associate the arr_stmts with the proper loops */
-	std::vector<SgInitializedName *> index_vars;
-	for (auto f_it = for_loops.begin(); f_it != for_loops.end(); f_it++)
-		index_vars.push_back(SageInterface::getLoopIndexVariable(*f_it));
 
 	/* If there are any writes to a non-array/non-index variable, return an empty list to be conservative */
 	std::set<SgInitializedName *> read_vars, write_vars;
