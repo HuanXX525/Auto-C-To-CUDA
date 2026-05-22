@@ -6,7 +6,6 @@
 
    This project accepts an affine C program as input and generates CUDA code.
    The steps involved are:
-	   1) Preprocessing
 		   a) Loop Nest Conversion
 	   b) Normalization
 	   c) Affinity Testing
@@ -441,6 +440,63 @@ int main(int argc, char **argv)
 					log_debug("[BEFORE IND VAR EXP]");
 					checkParents(project);
 					AstTests::runAllTests(project);
+					checkVarRefs(project);
+					Rose_STL_Container<SgNode *> refs =
+						NodeQuery::querySubTree(project, V_SgVarRefExp);
+
+					for (auto n : refs)
+					{
+						auto vr = isSgVarRefExp(n);
+						if (!vr)
+							continue;
+
+						auto sym = vr->get_symbol();
+						if (!sym)
+							continue;
+
+						auto decl = sym->get_declaration();
+						if (!decl)
+							continue;
+
+						auto scope = decl->get_scope();
+
+						if (!scope)
+						{
+							std::cout << "[NULL SCOPE] "
+									  << decl->get_name()
+									  << std::endl;
+							continue;
+						}
+
+						if (!isSgGlobal(scope) &&
+							!isSgBasicBlock(scope) &&
+							!isSgFunctionDefinition(scope) &&
+							!isSgForStatement(scope) &&
+							!isSgNamespaceDefinitionStatement(scope) &&
+							!isSgClassDefinition(scope))
+						{
+							std::cout
+								<< "[BAD SCOPE]\n"
+								<< "VAR   : " << decl->get_name() << "\n"
+								<< "SCOPE : " << scope->class_name() << "\n"
+								<< "CODE  : " << vr->unparseToString()
+								<< std::endl;
+						}
+						auto func1 =
+							SageInterface::getEnclosingFunctionDefinition(vr);
+
+						auto func2 =
+							SageInterface::getEnclosingFunctionDefinition(decl);
+
+						if (func1 != func2)
+						{
+							std::cout
+								<< "[CROSS FUNCTION REF]\n"
+								<< "VAR : " << decl->get_name() << "\n"
+								<< "REF FUNC  : " << func1 << "\n"
+								<< "DECL FUNC : " << func2 << "\n";
+						}
+					}
 				}
 
 				inductionVariableExposure(loop_nest);

@@ -227,6 +227,7 @@ std::vector<SgStatement *> convertImperfToPerf(SgForStatement *imperf_loop_nest)
 	for (auto loop : perf_loop_nests)
 	{
 		resetParentPointers(loop);
+		SageInterface::fixVariableReferences(loop);
 	}
 
 	/* If we get here, we have successfully converted the imperfectly-nested loop into a series of perfectly-nested ones, so return that series */

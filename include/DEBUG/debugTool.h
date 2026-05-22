@@ -4,5 +4,6 @@
 
 void checkParents(SgNode *root);
 void checkParentConsistency(SgNode *root);
+void checkVarRefs(SgNode *root);
 #endif
 

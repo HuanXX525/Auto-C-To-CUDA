@@ -114,3 +114,59 @@ static bool isRealProjectNode(SgNode* n)
 
     return true;
 }
+
+
+void checkVarRefs(SgNode *root)
+{
+    Rose_STL_Container<SgNode*> vars =
+        NodeQuery::querySubTree(root, V_SgVarRefExp);
+
+    for (auto n : vars)
+    {
+        SgVarRefExp *v = isSgVarRefExp(n);
+        if (!v) continue;
+
+        auto sym = v->get_symbol();
+
+        if (!sym)
+        {
+            std::cout << "[NULL SYMBOL] "
+                      << v->unparseToString()
+                      << " @ " << v
+                      << std::endl;
+            continue;
+        }
+
+        auto decl = sym->get_declaration();
+
+        if (!decl)
+        {
+            std::cout << "[NULL DECL] "
+                      << v->unparseToString()
+                      << std::endl;
+            continue;
+        }
+
+        auto scope = decl->get_scope();
+
+        if (!scope)
+        {
+            std::cout << "[NULL SCOPE] "
+                      << decl->get_name()
+                      << std::endl;
+            continue;
+        }
+
+        if (!isSgGlobal(scope) &&
+            !isSgBasicBlock(scope) &&
+            !isSgFunctionDefinition(scope) &&
+            !isSgForStatement(scope))
+        {
+            std::cout << "[WEIRD SCOPE] "
+                      << decl->get_name()
+                      << " : "
+                      << scope->class_name()
+                      << std::endl;
+        }
+    }
+}
