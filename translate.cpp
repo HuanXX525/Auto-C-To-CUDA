@@ -298,6 +298,12 @@ int main(int argc, char **argv)
 			log_info("--------------------- Enter func %s ---------------------",
 					 defn->get_declaration()->get_name().getString().c_str());
 
+			/* Limit to 1 imperfect-to-perfect conversion per function.
+			   Multiple conversions can create AST parent-child inconsistencies
+			   that cause cfgFindChildIndex assertion failures in subsequent
+			   SSA/CFG analysis passes. */
+			int impConvCount = 0;
+
 			Rose_STL_Container<SgNode *> forLoops = NodeQuery::querySubTree(defn, V_SgForStatement);
 			/* Check if we can convert any imperf nests into perf ones */
 			/* 尝试转化函数定义中所有for循环为完美for循环 */
@@ -312,16 +318,19 @@ int main(int argc, char **argv)
 				Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 				int nest_size = inner_loops.size();
 
-				/* Check if loop is perfectly nested */
-				if (isPerfectlyNested(loop_nest) == false)
+		/* Check if loop is perfectly nested */
+			if (isPerfectlyNested(loop_nest) == false)
+			{
+				/* Only convert the first imperfect nest per function */
+				if (impConvCount > 0)
+				{
+					log_debug("[IMP]Skipping extra imperfect nest (limit 1 per function)");
+				}
+				else
 				{
 					/* Try to convert the nest into a perfect one */
 					log_debug("[IMP]Trying to convert imperfectly nested loop into perfectly nested one");
-					// checkParents(loop_nest);
-					// checkParentConsistency(loop_nest);
 					std::vector<SgStatement *>perf_loop_nests = convertImperfToPerf(loop_nest);
-					// checkParentConsistency(loop_nest);
-					// checkParents(loop_nest);
 					log_debug("[IMP]Converted Imperfectly Nested Loop into Perfectly Nested Loops");
 
 					/* If the size is non-zero, the conversion succeeded, so replace the loop_nest with the series of perfectly nested loops */
@@ -331,7 +340,9 @@ int main(int argc, char **argv)
 						bb_new->set_parent(loop_nest->get_parent());
 						isSgStatement(loop_nest->get_parent())->replace_statement(loop_nest, bb_new);
 					}
+					impConvCount++;
 				}
+			}
 
 				/* Move onto the next loop nest */
 				for_iter += nest_size;
