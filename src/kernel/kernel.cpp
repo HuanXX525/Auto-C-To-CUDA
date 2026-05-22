@@ -539,6 +539,14 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 	/* Fix any var refs in kernel_body */
 	SageInterface::fixVariableReferences(kernel_body);
 	
+	/* Mark the kernel function declaration as compiler-generated so that
+	   subsequent SSA runs (for other loop nests) will skip this function.
+	   Without this, StaticSingleAssignment::insertDefsForExternalVariables
+	   asserts because it encounters variable declarations (e.g. thread IDs,
+	   function parameters) whose scope is neither SgGlobal, SgClassDefinition,
+	   nor SgNamespaceDefinitionStatement. */
+	kernel_fn->get_file_info()->setCompilerGenerated();
+	
 	/* Prepend function to global scope */
 	//SageInterface::prependStatement(kernel_fn, globalScope);
 	// SgStatement *first_stmt = SageInterface::getFirstStatement(globalScope);
