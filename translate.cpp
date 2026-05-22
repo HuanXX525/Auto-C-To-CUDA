@@ -44,6 +44,7 @@
 #include "preprocess/deadCodeElim.h"
 #include "preprocess/preprocess.hpp"
 #include "preprocess/declarationcopy.h"
+#include "DEBUG/debugTool.h"
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
@@ -62,8 +63,8 @@ void __printSC(SgNode *node)
 
 int main(int argc, char **argv)
 {
-
-    auto start = std::chrono::high_resolution_clock::now();
+	// SgProject::set_verbose(2); // 启用ROSE调试输出
+	auto start = std::chrono::high_resolution_clock::now();
 
     auto build_result = c2cuda::TranslateJobBuilder::build(argc, argv);
     if (build_result.should_exit)
@@ -316,7 +317,13 @@ int main(int argc, char **argv)
 				if (isPerfectlyNested(loop_nest) == false)
 				{
 					/* Try to convert the nest into a perfect one */
-					std::vector<SgStatement *> perf_loop_nests = convertImperfToPerf(loop_nest);
+					log_debug("[IMP]Trying to convert imperfectly nested loop into perfectly nested one");
+					// checkParents(loop_nest);
+					// checkParentConsistency(loop_nest);
+					std::vector<SgStatement *>perf_loop_nests = convertImperfToPerf(loop_nest);
+					// checkParentConsistency(loop_nest);
+					// checkParents(loop_nest);
+					log_debug("[IMP]Converted Imperfectly Nested Loop into Perfectly Nested Loops");
 
 					/* If the size is non-zero, the conversion succeeded, so replace the loop_nest with the series of perfectly nested loops */
 					if (perf_loop_nests.size() > 0)
@@ -430,6 +437,12 @@ int main(int argc, char **argv)
 
 				/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
 				// runInductionVarPass(loop_nest);
+				{
+					log_debug("[BEFORE IND VAR EXP]");
+					checkParents(project);
+					AstTests::runAllTests(project);
+				}
+
 				inductionVariableExposure(loop_nest);
 				eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
 

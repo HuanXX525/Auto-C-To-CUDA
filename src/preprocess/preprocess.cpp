@@ -191,25 +191,42 @@ std::vector<SgStatement *> convertImperfToPerf(SgForStatement *imperf_loop_nest)
 			return std::vector<SgStatement *>(); /* Returning an empty vector to show conversion failed */
 
 		/* Go thru index_pos to construct the loop nests */
-		SgForStatement *new_loop_nest;
+		SgForStatement *new_loop_nest = nullptr; /* Initialize to nullptr */
 		for (auto idx_rit = index_pos.rbegin(); idx_rit != index_pos.rend(); idx_rit++)
 		{
 			/* Copy over new_loop_nest into a temp var */
 			SgForStatement *temp = new_loop_nest;
 
 			/* Set new_loop_nest to the loop we are copying */
-			new_loop_nest = isSgForStatement(SageInterface::copyStatement(isSgStatement(for_loops[*idx_rit])));
+			SgForStatement *original_loop = isSgForStatement(for_loops[*idx_rit]);
+			new_loop_nest = isSgForStatement(SageInterface::copyStatement(original_loop));
 
 			/* If we are dealing with the inner-most loop, set the body to the statement */
 			if (idx_rit == index_pos.rbegin())
+			{
 				new_loop_nest->set_loop_body(s);
+				s->set_parent(new_loop_nest);
+			}
 			/* Otherwise, set it equal to temp */
 			else
+			{
 				new_loop_nest->set_loop_body(temp);
+				temp->set_parent(new_loop_nest);
+			}
 		}
+
+		/* Set the parent of the outermost loop to the original loop's parent */
+		if (new_loop_nest != nullptr)
+			new_loop_nest->set_parent(imperf_loop_nest->get_parent());
 
 		/* Add the newly created loop nest to the vector of perfectly nested loops */
 		perf_loop_nests.push_back(new_loop_nest);
+	}
+
+	/* Fix parent pointers for all newly created loop nests */
+	for (auto loop : perf_loop_nests)
+	{
+		resetParentPointers(loop);
 	}
 
 	/* If we get here, we have successfully converted the imperfectly-nested loop into a series of perfectly-nested ones, so return that series */
