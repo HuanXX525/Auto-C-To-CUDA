@@ -10,7 +10,7 @@ int tmp[1900];
 int main()
 {
   int i, j;
-  int fn;
+  int fn = 2100;
 
   /* Initialize arrays */
   for (i = 0; i < 2100; i++)

@@ -12,7 +12,7 @@ int main()
 {
   int i, j, k;
 int eps = 0.1;
-  int float_n;
+  int float_n = 1400;
 
   /* Initialize arrays */
   for (i = 0; i < 1400; i++)

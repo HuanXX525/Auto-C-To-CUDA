@@ -8,7 +8,7 @@ int B[1000][1200];
 int main()
 {
   int i, j, k;
-  int alpha;
+  int alpha = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1000; i++) {

@@ -16,8 +16,8 @@ int main()
 {
   int i, j;
   int fn = (int)2000;
-  int alpha;
-  int beta;
+  int alpha = 1;
+  int beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 2000; i++)

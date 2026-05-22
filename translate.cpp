@@ -260,6 +260,14 @@ int main(int argc, char **argv)
 	/* 第二遍转化 */
 	log_info("第二遍");
 	int nest_id = 0; // 防止多文件ID重复
+
+	/* Track parallelized loops for summary output */
+	struct ParallelizedLoop {
+		std::string func_name;
+		int nest_size;
+		std::string loop_info;
+	};
+	std::vector<ParallelizedLoop> parallelized_loops;
 	for (size_t fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
 	{
 		/* Obtain the global scope */
@@ -462,15 +470,24 @@ int main(int argc, char **argv)
 				/* Dependency Tests */
 				switch (dependencyExists(loop_nest))
 				{
-				case 0: /* Code Generation */
-					log_info("No Dependency Exists");
-					kernelCodeGenSimple(loop_nest, fileGlobalScope, nest_id);
-					break;
+			case 0: /* Code Generation */
+				log_info("No Dependency Exists");
+				kernelCodeGenSimple(loop_nest, fileGlobalScope, nest_id);
+				parallelized_loops.push_back({
+					defn->get_declaration()->get_name().getString(),
+					attr->get_nest_size(),
+					loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')) });
+				break;
 
-				case 1: /* Parallelism Extraction */
-					log_info("Dependency Exists");
-					if (!extractParallelism(loop_nest, fileGlobalScope, nest_id, ecs_fn_flag))
-						log_info("Loop Nest Skipped (Could Not Extract Parallelism");
+			case 1: /* Parallelism Extraction */
+				log_info("Dependency Exists");
+				if (!extractParallelism(loop_nest, fileGlobalScope, nest_id, ecs_fn_flag))
+					log_info("Loop Nest Skipped (Could Not Extract Parallelism");
+				else
+					parallelized_loops.push_back({
+						defn->get_declaration()->get_name().getString(),
+						attr->get_nest_size(),
+						loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')) });
 
 					break;
 
@@ -517,6 +534,17 @@ int main(int argc, char **argv)
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     log_info("This transform consumed %lld ms", (long long)ms);
+
+	/* Print parallelization summary */
+	log_info("==================== Parallelization Summary ====================");
+	log_info("Total parallelized loop nests: %zu", parallelized_loops.size());
+	for (size_t i = 0; i < parallelized_loops.size(); i++)
+	{
+		auto &pl = parallelized_loops[i];
+		log_info("  [%zu] Function: %s | Nest depth: %d",
+				 i + 1, pl.func_name.c_str(), pl.nest_size);
+	}
+	log_info("=================================================================");
 
 
 	return 0;

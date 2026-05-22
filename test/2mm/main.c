@@ -11,8 +11,8 @@ int D[800][1200];
 int main()
 {
   int i, j, k;
-  int alpha;
-  int beta;
+  int alpha = 1;
+  int beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 800; i++)

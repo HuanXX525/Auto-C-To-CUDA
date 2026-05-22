@@ -8,8 +8,8 @@ int A[1200][1000];
 int main()
 {
   int i, j, k;
-  int alpha;
-  int beta;
+  int alpha = 1;
+  int beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1200; i++)

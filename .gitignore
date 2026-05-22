@@ -52,5 +52,5 @@ tmp
 build_report
 *.bin
 *.cu
-
+*.log
 HuanXX525/*

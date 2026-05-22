@@ -9,9 +9,9 @@ int B[1000][1200];
 int main()
 {
   int i, j, k;
-int temp2;
-  int alpha;
-  int beta;
+int temp2 = 0;
+  int alpha = 1;
+  int beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1000; i++)
