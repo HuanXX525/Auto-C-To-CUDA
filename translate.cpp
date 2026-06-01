@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	/* 第一遍while转for、标注函数属性、排序内联 */
 	log_info("第一遍");
 	{
-		// 获取函数的拓扑排序，目前分两遍处理，拓扑排序没什么用，先保留以便后续扩展
+		// 获取函数的拓扑排序，用于对循环进行排序
 		std::map<std::string, int> funcOrder;
 		{
 			CallGraphBuilder CGBuilder(project);
