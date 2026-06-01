@@ -54,3 +54,7 @@ build_report
 *.cu
 *.log
 HuanXX525/*
+
+# **/skills/**
+
+demos
