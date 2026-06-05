@@ -207,6 +207,17 @@ bool forwardSub(SgStatement* stmt, SgForStatement* loop,
         }
     }
 
+    // Check for self-recurrence: if defVar appears on RHS and its reaching
+    // definition is from inside the loop, this is a loop-carried dependency
+    // that needs IV substitution, not forward substitution.
+    if (usedVars.count(defVar)) {
+        StaticSingleAssignment::ReachingDefPtr def =
+            getReachingDefAtStmt(ssa, stmt, defVar);
+        if (def && defIsInLoop(def, loop)) {
+            return true; // self-recurrence → fallback to IVSub
+        }
+    }
+
     // ---------- Step 2: forward substitute ----------
     // Walk all statements in the loop body and replace refs to defVar
     SgBasicBlock* body = isSgBasicBlock(loop->get_loop_body());
@@ -345,17 +356,26 @@ void ivSub(SgStatement* stmt, SgForStatement* loop,
     SgExpression* beforeReplace = nullptr;
     SgExpression* afterReplace = nullptr;
 
+    SgExpression* iVRef = SageBuilder::buildVarRefExp(iV);
+
     if (cexpr == 1) {
-        beforeReplace = iMinus1;
-        afterReplace = SageInterface::copyExpression(iterRef);
+        beforeReplace = SageBuilder::buildAddOp(
+            SageInterface::copyExpression(iVRef), iMinus1);
+        afterReplace = SageBuilder::buildAddOp(
+            SageInterface::copyExpression(iVRef),
+            SageInterface::copyExpression(iterRef));
     } else {
         SgExpression* cexprNode = SageBuilder::buildIntVal(cexpr);
-        beforeReplace = SageBuilder::buildMultiplyOp(
-            SageInterface::copyExpression(cexprNode),
-            iMinus1);
-        afterReplace = SageBuilder::buildMultiplyOp(
-            cexprNode,
-            SageInterface::copyExpression(iterRef));
+        beforeReplace = SageBuilder::buildAddOp(
+            SageInterface::copyExpression(iVRef),
+            SageBuilder::buildMultiplyOp(
+                SageInterface::copyExpression(cexprNode),
+                iMinus1));
+        afterReplace = SageBuilder::buildAddOp(
+            SageInterface::copyExpression(iVRef),
+            SageBuilder::buildMultiplyOp(
+                cexprNode,
+                SageInterface::copyExpression(iterRef)));
     }
 
     // Locate the phi node for iV (used to distinguish before/after uses)
