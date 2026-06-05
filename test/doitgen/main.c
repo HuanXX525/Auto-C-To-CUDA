@@ -13,25 +13,27 @@ int main()
 
   /* Initialize arrays */
   for (i = 0; i < 150; i++)
-  for (j = 0; j < 140; j++)
-  for (k = 0; k < 160; k++)
-  A[i][j][k] = (int) ((i*j + k)%160) / 160;
+    for (j = 0; j < 140; j++)
+      for (k = 0; k < 160; k++)
+        A[i][j][k] = (int)((i * j + k) % 160) / 160;
   for (i = 0; i < 160; i++)
-  for (j = 0; j < 160; j++)
-  C4[i][j] = (int) (i*j % 160) / 160;
+    for (j = 0; j < 160; j++)
+      C4[i][j] = (int)(i * j % 160) / 160;
 
   /* Computation */
   double t0 = now_ms();
-    for (r = 0; r < 150; r++)
-      for (q = 0; q < 140; q++)  {
-        for (p = 0; p < 160; p++)  {
-  	sum[p] = 0.0;
-  	for (s = 0; s < 160; s++)
-  	  sum[p] += A[r][q][s] * C4[s][p];
-        }
-        for (p = 0; p < 160; p++)
-  	A[r][q][p] = sum[p];
+  for (r = 0; r < 150; r++)
+    for (q = 0; q < 140; q++)
+    {
+      for (p = 0; p < 160; p++)
+      {
+        sum[p] = 0.0;
+        for (s = 0; s < 160; s++)
+          sum[p] += A[r][q][s] * C4[s][p];
       }
+      for (p = 0; p < 160; p++)
+        A[r][q][p] = sum[p];
+    }
   double t1 = now_ms();
 
 #ifdef AUTOC2CUDATEST

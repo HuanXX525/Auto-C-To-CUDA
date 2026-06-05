@@ -22,36 +22,36 @@ int main()
   /* Initialize arrays */
   for (i = 0; i < 2000; i++)
   {
-  u1[i] = i;
-  u2[i] = ((i+1)/fn)/2.0;
-  v1[i] = ((i+1)/fn)/4.0;
-  v2[i] = ((i+1)/fn)/6.0;
-  y[i] = ((i+1)/fn)/8.0;
-  z[i] = ((i+1)/fn)/9.0;
-  x[i] = 0.0;
-  w[i] = 0.0;
-  for (j = 0; j < 2000; j++)
-  A[i][j] = (int) (i*j % 2000) / 2000;
+    u1[i] = i;
+    u2[i] = ((i + 1) / fn) / 2.0;
+    v1[i] = ((i + 1) / fn) / 4.0;
+    v2[i] = ((i + 1) / fn) / 6.0;
+    y[i] = ((i + 1) / fn) / 8.0;
+    z[i] = ((i + 1) / fn) / 9.0;
+    x[i] = 0.0;
+    w[i] = 0.0;
+    for (j = 0; j < 2000; j++)
+      A[i][j] = (int)(i * j % 2000) / 2000;
   }
 
   /* Computation */
   double t0 = now_ms();
-  
-    for (i = 0; i < 2000; i++)
-      for (j = 0; j < 2000; j++)
-        A[i][j] = A[i][j] + u1[i] * v1[j] + u2[i] * v2[j];
-  
-    for (i = 0; i < 2000; i++)
-      for (j = 0; j < 2000; j++)
-        x[i] = x[i] + beta * A[j][i] * y[j];
-  
-    for (i = 0; i < 2000; i++)
-      x[i] = x[i] + z[i];
-  
-    for (i = 0; i < 2000; i++)
-      for (j = 0; j < 2000; j++)
-        w[i] = w[i] +  alpha * A[i][j] * x[j];
-  
+
+  for (i = 0; i < 2000; i++)
+    for (j = 0; j < 2000; j++)
+      A[i][j] = A[i][j] + u1[i] * v1[j] + u2[i] * v2[j];
+
+  for (i = 0; i < 2000; i++)
+    for (j = 0; j < 2000; j++)
+      x[i] = x[i] + beta * A[j][i] * y[j];
+
+  for (i = 0; i < 2000; i++)
+    x[i] = x[i] + z[i];
+
+  for (i = 0; i < 2000; i++)
+    for (j = 0; j < 2000; j++)
+      w[i] = w[i] + alpha * A[i][j] * x[j];
+
   double t1 = now_ms();
 
 #ifdef AUTOC2CUDATEST

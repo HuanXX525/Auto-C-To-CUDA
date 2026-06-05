@@ -16,34 +16,34 @@ int main()
 
   /* Initialize arrays */
   for (i = 0; i < 800; i++)
-  for (j = 0; j < 1100; j++)
-  A[i][j] = (int) ((i*j+1) % 800) / 800;
+    for (j = 0; j < 1100; j++)
+      A[i][j] = (int)((i * j + 1) % 800) / 800;
   for (i = 0; i < 1100; i++)
-  for (j = 0; j < 900; j++)
-  B[i][j] = (int) (i*(j+1) % 900) / 900;
+    for (j = 0; j < 900; j++)
+      B[i][j] = (int)(i * (j + 1) % 900) / 900;
   for (i = 0; i < 900; i++)
-  for (j = 0; j < 1200; j++)
-  C[i][j] = (int) ((i*(j+3)+1) % 1200) / 1200;
+    for (j = 0; j < 1200; j++)
+      C[i][j] = (int)((i * (j + 3) + 1) % 1200) / 1200;
   for (i = 0; i < 800; i++)
-  for (j = 0; j < 1200; j++)
-  D[i][j] = (int) (i*(j+2) % 1100) / 1100;
+    for (j = 0; j < 1200; j++)
+      D[i][j] = (int)(i * (j + 2) % 1100) / 1100;
 
   /* Computation */
   double t0 = now_ms();
-    for (i = 0; i < 800; i++)
-      for (j = 0; j < 900; j++)
-        {
-  	tmp[i][j] = 0.0;
-  	for (k = 0; k < 1100; ++k)
-  	  tmp[i][j] += alpha * A[i][k] * B[k][j];
-        }
-    for (i = 0; i < 800; i++)
-      for (j = 0; j < 1200; j++)
-        {
-  	D[i][j] *= beta;
-  	for (k = 0; k < 900; ++k)
-  	  D[i][j] += tmp[i][k] * C[k][j];
-        }
+  for (i = 0; i < 800; i++)
+    for (j = 0; j < 900; j++)
+    {
+      tmp[i][j] = 0.0;
+      for (k = 0; k < 1100; ++k)
+        tmp[i][j] += alpha * A[i][k] * B[k][j];
+    }
+  for (i = 0; i < 800; i++)
+    for (j = 0; j < 1200; j++)
+    {
+      D[i][j] *= beta;
+      for (k = 0; k < 900; ++k)
+        D[i][j] += tmp[i][k] * C[k][j];
+    }
   double t1 = now_ms();
 
 #ifdef AUTOC2CUDATEST

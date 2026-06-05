@@ -19,8 +19,9 @@ int main()
         c[k] = k + 1;
 
     double t0 = now_ms();
-    for (int i = 0; i < N; i++) {
-        b[i] = (((((((((c[10]*a[i] + c[9])*a[i] + c[8])*a[i] + c[7])*a[i] + c[6])*a[i] + c[5])*a[i] + c[4])*a[i] + c[3])*a[i] + c[2])*a[i] + c[1])*a[i] + c[0];
+    for (int i = 0; i < N; i++)
+    {
+        b[i] = (((((((((c[10] * a[i] + c[9]) * a[i] + c[8]) * a[i] + c[7]) * a[i] + c[6]) * a[i] + c[5]) * a[i] + c[4]) * a[i] + c[3]) * a[i] + c[2]) * a[i] + c[1]) * a[i] + c[0];
     }
     double t1 = now_ms();
 
