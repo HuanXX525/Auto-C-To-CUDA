@@ -62,7 +62,7 @@ $(C2CUDA_DIRS):
 
 # ─── clean_bin ──────────────────────────────────────────────
 clean_bin:
-	find . -type f -name "*.bin" -delete
+# 	find . -type f -name "*.bin" -delete
 
 # ─── TEST: 编译 + 运行 + 比对 ────────────────────────────────
 test: $(TEST_DIRS) clean_bin
