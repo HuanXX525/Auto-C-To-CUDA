@@ -2,8 +2,8 @@
 /* Source: jacobi-1d.c */
 #include "../tool.h"
 
-int A[2000];
-int B[2000];
+double A[2000];
+double B[2000];
 int TSTEPS = 500;
 
 int main()
@@ -13,8 +13,8 @@ int main()
   /* Initialize arrays */
   for (i = 0; i < 2000; i++)
   {
-  A[i] = ((int) i+ 2) / 2000;
-  B[i] = ((int) i+ 3) / 2000;
+  A[i] = (double)(i + 2) / 2000.0;
+  B[i] = (double)(i + 3) / 2000.0;
   }
 
   /* Computation */
@@ -30,10 +30,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("jacobi-1d: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", A, 8000);
+  save_binary("bin/cuda_out.bin", A, 16000);
 #else
   printf("jacobi-1d: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", A, 8000);
+  save_binary("bin/c_out.bin", A, 16000);
 #endif
 
   return 0;

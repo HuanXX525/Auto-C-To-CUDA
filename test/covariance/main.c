@@ -2,19 +2,19 @@
 /* Source: covariance.c */
 #include "../tool.h"
 
-int data[1400][1200];
-int cov[1200][1200];
-int mean[1200];
+double data[1400][1200];
+double cov[1200][1200];
+double mean[1200];
 
 int main()
 {
   int i, j, k;
-  int float_n = 1400;
+  double float_n = 1400;
 
   /* Initialize arrays */
   for (i = 0; i < 1400; i++)
   for (j = 0; j < 1200; j++)
-  data[i][j] = ((int) i*j) / 1200;
+  data[i][j] = ((double) i*j) / 1200.0;
 
   /* Computation */
   double t0 = now_ms();
@@ -43,10 +43,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("covariance: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", cov, 5760000);
+  save_binary("bin/cuda_out.bin", cov, 11520000);
 #else
   printf("covariance: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", cov, 5760000);
+  save_binary("bin/c_out.bin", cov, 11520000);
 #endif
 
   return 0;

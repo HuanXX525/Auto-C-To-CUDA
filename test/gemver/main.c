@@ -2,36 +2,36 @@
 /* Source: gemver.c */
 #include "../tool.h"
 
-int A[2000][2000];
-int u1[2000];
-int v1[2000];
-int u2[2000];
-int v2[2000];
-int w[2000];
-int x[2000];
-int y[2000];
-int z[2000];
+double A[2000][2000];
+double u1[2000];
+double v1[2000];
+double u2[2000];
+double v2[2000];
+double w[2000];
+double x[2000];
+double y[2000];
+double z[2000];
 
 int main()
 {
   int i, j;
-  int fn = (int)2000;
-  int alpha = 1;
-  int beta = 1;
+  double fn = 2000.0;
+  double alpha = 1;
+  double beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 2000; i++)
   {
     u1[i] = i;
-    u2[i] = ((i + 1) / fn) / 2.0;
-    v1[i] = ((i + 1) / fn) / 4.0;
-    v2[i] = ((i + 1) / fn) / 6.0;
-    y[i] = ((i + 1) / fn) / 8.0;
-    z[i] = ((i + 1) / fn) / 9.0;
+    u2[i] = (i + 1.0) / fn / 2.0;
+    v1[i] = (i + 1.0) / fn / 4.0;
+    v2[i] = (i + 1.0) / fn / 6.0;
+    y[i] = (i + 1.0) / fn / 8.0;
+    z[i] = (i + 1.0) / fn / 9.0;
     x[i] = 0.0;
     w[i] = 0.0;
     for (j = 0; j < 2000; j++)
-      A[i][j] = (int)(i * j % 2000) / 2000;
+      A[i][j] = (double)(i * j % 2000) / 2000.0;
   }
 
   /* Computation */
@@ -56,10 +56,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("gemver: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", w, 8000);
+  save_binary("bin/cuda_out.bin", w, 16000);
 #else
   printf("gemver: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", w, 8000);
+  save_binary("bin/c_out.bin", w, 16000);
 #endif
 
   return 0;

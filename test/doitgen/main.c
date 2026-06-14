@@ -2,9 +2,9 @@
 /* Source: doitgen.c */
 #include "../tool.h"
 
-int A[150][140][160];
-int C4[160][160];
-int sum[160];
+double A[150][140][160];
+double C4[160][160];
+double sum[160];
 
 int main()
 {
@@ -15,10 +15,10 @@ int main()
   for (i = 0; i < 150; i++)
     for (j = 0; j < 140; j++)
       for (k = 0; k < 160; k++)
-        A[i][j][k] = (int)((i * j + k) % 160) / 160;
+        A[i][j][k] = (double)((i * j + k) % 160) / 160.0;
   for (i = 0; i < 160; i++)
     for (j = 0; j < 160; j++)
-      C4[i][j] = (int)(i * j % 160) / 160;
+      C4[i][j] = (double)(i * j % 160) / 160.0;
 
   /* Computation */
   double t0 = now_ms();
@@ -38,10 +38,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("doitgen: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", A, 13440000);
+  save_binary("bin/cuda_out.bin", A, 26880000);
 #else
   printf("doitgen: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", A, 13440000);
+  save_binary("bin/c_out.bin", A, 26880000);
 #endif
 
   return 0;

@@ -2,22 +2,22 @@
 /* Source: trmm.c */
 #include "../tool.h"
 
-int A[1000][1000];
-int B[1000][1200];
+double A[1000][1000];
+double B[1000][1200];
 
 int main()
 {
   int i, j, k;
-  int alpha = 1;
+  double alpha = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1000; i++) {
   for (j = 0; j < i; j++) {
-  A[i][j] = (int)((i+j) % 1000)/1000;
+  A[i][j] = (double)((i+j) % 1000)/1000.0;
   }
   A[i][i] = 1.0;
   for (j = 0; j < 1200; j++) {
-  B[i][j] = (int)((1200+(i-j)) % 1200)/1200;
+  B[i][j] = (double)((1200+(i-j)) % 1200)/1200.0;
   }
   }
 
@@ -33,10 +33,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("trmm: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", B, 4800000);
+  save_binary("bin/cuda_out.bin", B, 9600000);
 #else
   printf("trmm: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", B, 4800000);
+  save_binary("bin/c_out.bin", B, 9600000);
 #endif
 
   return 0;

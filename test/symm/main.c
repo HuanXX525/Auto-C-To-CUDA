@@ -2,26 +2,26 @@
 /* Source: symm.c */
 #include "../tool.h"
 
-int C[1000][1200];
-int A[1000][1000];
-int B[1000][1200];
+double C[1000][1200];
+double A[1000][1000];
+double B[1000][1200];
 
 int main()
 {
   int i, j, k;
-int temp2 = 0;
-  int alpha = 1;
-  int beta = 1;
+double temp2 = 0;
+  double alpha = 1;
+  double beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1000; i++)
   for (j = 0; j < 1200; j++) {
-  C[i][j] = (int) ((i+j) % 100) / 1000;
-  B[i][j] = (int) ((1200+i-j) % 100) / 1000;
+  C[i][j] = (double) ((i+j) % 100) / 1000.0;
+  B[i][j] = (double) ((1200+i-j) % 100) / 1000.0;
   }
   for (i = 0; i < 1000; i++) {
   for (j = 0; j <=i; j++)
-  A[i][j] = (int) ((i+j) % 100) / 1000;
+  A[i][j] = (double) ((i+j) % 100) / 1000.0;
   for (j = i+1; j < 1000; j++)
   A[i][j] = -999; //regions of arrays that should not be used
   }
@@ -42,10 +42,10 @@ int temp2 = 0;
 
 #ifdef AUTOC2CUDATEST
   printf("symm: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", C, 4800000);
+  save_binary("bin/cuda_out.bin", C, 9600000);
 #else
   printf("symm: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", C, 4800000);
+  save_binary("bin/c_out.bin", C, 9600000);
 #endif
 
   return 0;

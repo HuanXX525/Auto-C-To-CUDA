@@ -2,8 +2,8 @@
 /* Source: heat-3d.c */
 #include "../tool.h"
 
-int A[120][120][120];
-int B[120][120][120];
+double A[120][120][120];
+double B[120][120][120];
 int TSTEPS = 500;
 
 int main()
@@ -14,7 +14,7 @@ int main()
   for (i = 0; i < 120; i++)
     for (j = 0; j < 120; j++)
       for (k = 0; k < 120; k++)
-        A[i][j][k] = B[i][j][k] = (int)(i + j + (120 - k)) * 10 / (120);
+        A[i][j][k] = B[i][j][k] = (double)(i + j + (120 - k)) * 10.0 / 120.0;
 
   /* Computation */
   double t0 = now_ms();
@@ -45,10 +45,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("heat-3d: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", A, 6912000);
+  save_binary("bin/cuda_out.bin", A, 13824000);
 #else
   printf("heat-3d: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", A, 6912000);
+  save_binary("bin/c_out.bin", A, 13824000);
 #endif
 
   return 0;

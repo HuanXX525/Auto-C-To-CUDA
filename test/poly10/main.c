@@ -7,9 +7,9 @@
 #define N (20 * 1024 * 1024)
 #define MASK 0xFF
 
-int a[N];
-int b[N];
-int c[11];
+double a[N];
+double b[N];
+double c[11];
 
 int main()
 {
@@ -27,10 +27,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
     printf("poly10: CUDA %.3f ms\n", t1 - t0);
-    save_binary("bin/cuda_out.bin", b, N * sizeof(int));
+    save_binary("bin/cuda_out.bin", b, N * sizeof(double));
 #else
     printf("poly10: CPU  %.3f ms\n", t1 - t0);
-    save_binary("bin/c_out.bin", b, N * sizeof(int));
+    save_binary("bin/c_out.bin", b, N * sizeof(double));
 #endif
     return 0;
 }
