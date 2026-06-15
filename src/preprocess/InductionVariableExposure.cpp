@@ -309,7 +309,11 @@ bool isIV(SgStatement* stmt, SgForStatement* loop,
     }
 
     // ---------- Condition 2: increment must be an integer constant ----------
-    SgIntVal* intVal = isSgIntVal(incExpr);
+    // The constant may be wrapped in a SgCastExp (e.g., int→double promotion)
+    SgExpression* incExprUnwrapped = incExpr;
+    while (SgCastExp* castExp = isSgCastExp(incExprUnwrapped))
+        incExprUnwrapped = castExp->get_operand();
+    SgIntVal* intVal = isSgIntVal(incExprUnwrapped);
     if (!intVal) return false;
 
     int rawVal = intVal->get_value();
