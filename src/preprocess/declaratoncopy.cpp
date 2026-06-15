@@ -629,7 +629,7 @@ void addDeclaration(const DeclarationInfo &decl, SgStatement *callSite)
         return;
     }
 
-    newDecl->set_scope(globalScope);
+    // newDecl->set_scope(globalScope);
 
     // 插入到文件开头（第一个用户声明前）
     SgDeclarationStatementPtrList &decls = globalScope->get_declarations();
