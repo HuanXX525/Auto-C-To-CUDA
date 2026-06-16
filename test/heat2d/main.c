@@ -9,8 +9,8 @@
 #define N (W * H)
 #define MASK 0xFF
 
-int a[N];
-int b[N];
+double a[N];
+double b[N];
 
 int main()
 {
@@ -22,16 +22,16 @@ int main()
 
     double t0 = now_ms();
     for (int i = W + 1; i < N - W - 1; i++) {
-        b[i] = (a[i-W] + a[i-1] + a[i] + a[i+1] + a[i+W]) / 5;
+        b[i] = (a[i-W] + a[i-1] + a[i] + a[i+1] + a[i+W]) / 5.0;
     }
     double t1 = now_ms();
 
 #ifdef AUTOC2CUDATEST
     printf("heat2d: CUDA %.3f ms\n", t1 - t0);
-    save_binary("bin/cuda_out.bin", b, N * sizeof(int));
+    save_binary("bin/cuda_out.bin", b, N * sizeof(double));
 #else
     printf("heat2d: CPU  %.3f ms\n", t1 - t0);
-    save_binary("bin/c_out.bin", b, N * sizeof(int));
+    save_binary("bin/c_out.bin", b, N * sizeof(double));
 #endif
     return 0;
 }

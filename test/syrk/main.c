@@ -2,22 +2,22 @@
 /* Source: syrk.c */
 #include "../tool.h"
 
-int C[1200][1200];
-int A[1200][1000];
+double C[1200][1200];
+double A[1200][1000];
 
 int main()
 {
   int i, j, k;
-  int alpha = 1;
-  int beta = 1;
+  double alpha = 1;
+  double beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1200; i++)
   for (j = 0; j < 1000; j++)
-  A[i][j] = (int) ((i*j+1)%1200) / 1200;
+  A[i][j] = (double) ((i*j+1)%1200) / 1200.0;
   for (i = 0; i < 1200; i++)
   for (j = 0; j < 1200; j++)
-  C[i][j] = (int) ((i*j+2)%1000) / 1000;
+  C[i][j] = (double) ((i*j+2)%1000) / 1000.0;
 
   /* Computation */
   double t0 = now_ms();
@@ -33,10 +33,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("syrk: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", C, 5760000);
+  save_binary("bin/cuda_out.bin", C, 11520000);
 #else
   printf("syrk: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", C, 5760000);
+  save_binary("bin/c_out.bin", C, 11520000);
 #endif
 
   return 0;

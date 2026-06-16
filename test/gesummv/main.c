@@ -2,25 +2,25 @@
 /* Source: gesummv.c */
 #include "../tool.h"
 
-int A[1300][1300];
-int B[1300][1300];
-int tmp[1300];
-int x[1300];
-int y[1300];
+double A[1300][1300];
+double B[1300][1300];
+double tmp[1300];
+double x[1300];
+double y[1300];
 
 int main()
 {
   int i, j;
-  int alpha = 1;
-  int beta = 1;
+  double alpha = 1;
+  double beta = 1;
 
   /* Initialize arrays */
   for (i = 0; i < 1300; i++)
   {
-  x[i] = (int)( i % 1300) / 1300;
+  x[i] = (double)( i % 1300) / 1300.0;
   for (j = 0; j < 1300; j++) {
-  A[i][j] = (int) ((i*j+1) % 1300) / 1300;
-  B[i][j] = (int) ((i*j+2) % 1300) / 1300;
+  A[i][j] = (double) ((i*j+1) % 1300) / 1300.0;
+  B[i][j] = (double) ((i*j+2) % 1300) / 1300.0;
   }
   }
 
@@ -41,10 +41,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("gesummv: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", y, 5200);
+  save_binary("bin/cuda_out.bin", y, 10400);
 #else
   printf("gesummv: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", y, 5200);
+  save_binary("bin/c_out.bin", y, 10400);
 #endif
 
   return 0;

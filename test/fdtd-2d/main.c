@@ -2,9 +2,9 @@
 /* Source: fdtd-2d.c */
 #include "../tool.h"
 
-int ex[1000][1200];
-int ey[1000][1200];
-int hz[1000][1200];
+double ex[1000][1200];
+double ey[1000][1200];
+double hz[1000][1200];
 int _fict_[500];
 
 int main()
@@ -17,9 +17,9 @@ int main()
   for (i = 0; i < 1000; i++)
   for (j = 0; j < 1200; j++)
   {
-  ex[i][j] = ((int) i*(j+1)) / 1000;
-  ey[i][j] = ((int) i*(j+2)) / 1200;
-  hz[i][j] = ((int) i*(j+3)) / 1000;
+  ex[i][j] = ((double) i*(j+1)) / 1000.0;
+  ey[i][j] = ((double) i*(j+2)) / 1200.0;
+  hz[i][j] = ((double) i*(j+3)) / 1000.0;
   }
 
   /* Computation */
@@ -45,10 +45,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("fdtd-2d: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", ex, 4800000);
+  save_binary("bin/cuda_out.bin", ex, 9600000);
 #else
   printf("fdtd-2d: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", ex, 4800000);
+  save_binary("bin/c_out.bin", ex, 9600000);
 #endif
 
   return 0;

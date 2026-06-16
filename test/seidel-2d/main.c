@@ -2,7 +2,7 @@
 /* Source: seidel-2d.c */
 #include "../tool.h"
 
-int A[2000][2000];
+double A[2000][2000];
 int TSTEPS = 500;
 
 int main()
@@ -12,7 +12,7 @@ int main()
   /* Initialize arrays */
   for (i = 0; i < 2000; i++)
   for (j = 0; j < 2000; j++)
-  A[i][j] = ((int) i*(j+2) + 2) / 2000;
+  A[i][j] = ((double) i*(j+2) + 2) / 2000.0;
 
   /* Computation */
   double t0 = now_ms();
@@ -26,10 +26,10 @@ int main()
 
 #ifdef AUTOC2CUDATEST
   printf("seidel-2d: CUDA %.3f ms\n", t1 - t0);
-  save_binary("bin/cuda_out.bin", A, 16000000);
+  save_binary("bin/cuda_out.bin", A, 32000000);
 #else
   printf("seidel-2d: CPU  %.3f ms\n", t1 - t0);
-  save_binary("bin/c_out.bin", A, 16000000);
+  save_binary("bin/c_out.bin", A, 32000000);
 #endif
 
   return 0;
