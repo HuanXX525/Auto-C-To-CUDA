@@ -1,0 +1,3 @@
+[submodule "external/Aircraft-Simu"]
+	path = external/Aircraft-Simu
+	url = https://github.com/hulintian/Aircraft-Simu
