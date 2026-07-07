@@ -48,6 +48,7 @@
 #include <chrono>
 #include "fileio/io.h"
 #include <atomic>
+#include "utils/translate_job.h"
 
 
 static std::atomic<unsigned long long> g_inline_uid{0};
@@ -59,6 +60,7 @@ void __printSC(SgNode *node)
 	std::cout << "DEBUG->Print Source Code" << std::endl;
 	std::cout << node->unparseToString() << std::endl;
 }
+
 
 int main(int argc, char **argv)
 {
@@ -103,7 +105,8 @@ int main(int argc, char **argv)
 
     // run c2cuda pass
 	log_info("passes manager test");
-    c2cuda::run_pass(project, true);
+    // 根据自定义的verbose参数
+    c2cuda::run_pass(project, all_args.hasFlag("verbose"));
 
 	SgFilePtrList &fileList = project->get_fileList();
 	if (fileList.empty())
