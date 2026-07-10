@@ -280,8 +280,14 @@ int main(int argc, char **argv)
 		if (sourceFile)
 		{
 			fileGlobalScope = sourceFile->get_globalScope();
-			
-            renameToCU(sourceFile);
+
+            const std::string requestedOutput =
+                build_result.job.getOutputPath(
+                    sourceFile->get_sourceFileNameWithPath());
+            if (!renameToCU(sourceFile, requestedOutput))
+            {
+                return 1;
+            }
         }
 		else
 		{

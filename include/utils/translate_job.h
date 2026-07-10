@@ -27,7 +27,7 @@ struct TranslateJob {
     std::vector<std::string> include_paths;    // -I 路径
     std::vector<std::string> defines;          // -D 宏定义
     std::vector<std::string> extra_rose_args;  // 直接传给 ROSE 的额外参数
-    std::string output_dir;                    // 输出目录 (多文件模式)
+    std::string output_dir;                    // 可选输出目录; 为空时沿用源文件目录
     std::string base_dir;                      // 源文件公共前缀 (保持目录结构)
     bool verbose = false;
 
@@ -48,9 +48,17 @@ struct TranslateJob {
 
     // 计算源文件对应的输出路径 (.c -> .cu, 保持目录结构)
     std::string getOutputPath(const std::string& source_file) const {
-        fs::path src(source_file);
-        fs::path base(base_dir);
-        fs::path rel = fs::relative(src, base);
+        if (output_dir.empty()) return "";
+
+        fs::path src = fs::absolute(source_file).lexically_normal();
+        fs::path base = base_dir.empty()
+                            ? src.parent_path()
+                            : fs::absolute(base_dir).lexically_normal();
+        std::error_code ec;
+        fs::path rel = fs::relative(src, base, ec);
+        if (ec || rel.empty() || *rel.begin() == "..") {
+            rel = src.filename();
+        }
         fs::path out = fs::path(output_dir) / rel;
         out.replace_extension(".cu");
         return out.string();
@@ -116,7 +124,7 @@ public:
             extra_includes.push_back(args.getOption("include"));
         }
 
-        std::string output_dir = args.getOption("output-dir", "./c2cuda_out");
+        std::string output_dir = args.getOption("output-dir");
 
         if (has_compile_db) {
             job.mode = TranslateMode::CompileDB;
@@ -142,7 +150,17 @@ public:
             job.extra_rose_args = extractRoseArgs(args.remaining);
         } else {
             job.mode = TranslateMode::SingleFile;
-            // 单文件模式: remaining 原样传给 ROSE, 不需要构造 job 的其他字段
+            job.output_dir = output_dir;
+            // 直接传文件时仍保留 remaining 给 ROSE，同时收集路径用于输出目录映射。
+            for (size_t i = 1; i < args.remaining.size(); ++i) {
+                if (isCFile(args.remaining[i])) {
+                    job.source_files.push_back(
+                        fs::absolute(args.remaining[i]).lexically_normal().string());
+                }
+            }
+            if (!job.source_files.empty()) {
+                job.base_dir = computeCommonPrefix(job.source_files);
+            }
         }
 
         return result;
@@ -156,7 +174,7 @@ private:
               .addOption("compile-db", "p", "Path to compile_commands.json")
               .addOption("scan-dir", "s", "Recursively scan directory for .c files")
               .addOption("include", "I", "Extra include path")
-              // .addOption("output-dir", "O", "Output directory for multi-file mode", "./c2cuda_out")
+              .addOption("output-dir", "O", "Directory for generated .cu files")
               .addOption("exclude", "e", "Exclude file glob pattern");
         return parser;
     }
