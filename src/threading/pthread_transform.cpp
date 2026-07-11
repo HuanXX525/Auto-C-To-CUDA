@@ -143,7 +143,8 @@ static SgFunctionDefinition *findMain(SgSourceFile *file) {
  *  Helper: create the task function in global scope
  *    void* _c2cuda_pthread_task(void* arg);
  * ================================================================== */
-static SgFunctionDeclaration *createTaskFunction(SgGlobal *globalScope) {
+static SgFunctionDeclaration *createTaskFunction(SgGlobal *globalScope,
+                                                  SgFunctionDeclaration *mainDecl) {
     SgType *voidPtr = SageBuilder::buildPointerType(SageBuilder::buildVoidType());
 
     SgInitializedName *argParam =
@@ -157,12 +158,7 @@ static SgFunctionDeclaration *createTaskFunction(SgGlobal *globalScope) {
             "_c2cuda_pthread_task", voidPtr, paramList, globalScope);
     taskFn->get_functionModifier().setDefault();
 
-    SgStatement *first =
-        SageInterface::getFirstStatement(globalScope);
-    if (first)
-        SageInterface::insertStatementBefore(first, taskFn);
-    else
-        SageInterface::prependStatement(taskFn, globalScope);
+    SageInterface::insertStatementBefore(mainDecl, taskFn);
 
     return taskFn;
 }
@@ -330,9 +326,10 @@ void applyPthreadTransform(SgProject *project) {
         }
         log_info("pthread_transform: found main() in file %zu", fi);
 
-        /* 2) Create the task function in global scope */
+        /* 2) Create the task function in global scope, before main() */
+        SgFunctionDeclaration *mainDecl = mainDef->get_declaration();
         SgFunctionDeclaration *taskFn =
-            createTaskFunction(globalScope);
+            createTaskFunction(globalScope, mainDecl);
         SgFunctionDefinition *taskDef = taskFn->get_definition();
 
         /* 3) Move main body → task function + inject argc/argv preamble */
