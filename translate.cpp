@@ -47,6 +47,7 @@
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
+#include "threading/pthread_transform.hpp"
 #include <atomic>
 
 
@@ -523,6 +524,9 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define AUTOC2CUDATEST");
 		}
 	}
+
+	// 将整个提取为函数
+	c2cuda::applyPthreadTransform(project);
 
 	/* Obtain translation */
 	project->unparse();
