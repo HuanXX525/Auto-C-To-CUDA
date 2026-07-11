@@ -106,6 +106,12 @@ static int _c2cuda_load_config(const char *path,
     free(buf);
     return 1;
 }
+
+static double _c2cuda_now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
 )";
 
 /* ==================================================================
@@ -186,9 +192,17 @@ static void moveBodyAndInjectPreamble(SgFunctionDefinition *mainDef,
         std::string preamble =
             "    int _c2cuda_tid = (int)(long)arg;\n"
             "    int argc = _c2cuda_configs[_c2cuda_tid].argc;\n"
-            "    char **argv = _c2cuda_configs[_c2cuda_tid].argv;\n";
+            "    char **argv = _c2cuda_configs[_c2cuda_tid].argv;\n"
+            "    double _c2cuda_ts = _c2cuda_now_ms();\n"
+            "    printf(\"[c2cuda] task %d started\\n\", _c2cuda_tid);\n";
         SageInterface::addTextForUnparser(firstInTask, preamble,
             AstUnparseAttribute::e_before);
+
+        std::string postamble =
+            "    printf(\"[c2cuda] task %d done (%.0f ms)\\n\",\n"
+            "           _c2cuda_tid, _c2cuda_now_ms() - _c2cuda_ts);\n";
+        SageInterface::addTextForUnparser(firstInTask, postamble,
+            AstUnparseAttribute::e_after);
     }
 }
 
@@ -246,12 +260,20 @@ static void rewriteMain(SgFunctionDefinition *mainDef) {
         "                        : C2CUDA_BATCH_SIZE;\n"
         "    if (_c2cuda_n < 1) return 1;\n"
         "\n"
+        "    int _c2cuda_nthreads = thread_pool_optimal_count();\n"
+        "    printf(\"[c2cuda] tasks=%d, threads=%d\\n\",\n"
+        "           _c2cuda_n, _c2cuda_nthreads);\n"
+        "\n"
         "    void *_c2cuda_args[1024];\n"
         "    for (int _c2cuda_i = 0; _c2cuda_i < _c2cuda_n; _c2cuda_i++)\n"
         "        _c2cuda_args[_c2cuda_i] = (void*)(long)_c2cuda_i;\n"
         "\n"
+        "    double _c2cuda_t0 = _c2cuda_now_ms();\n"
         "    thread_pool_execute(_c2cuda_pthread_task,\n"
         "                        _c2cuda_args, _c2cuda_n, 0);\n"
+        "    double _c2cuda_t1 = _c2cuda_now_ms();\n"
+        "    printf(\"[c2cuda] total time: %.0f ms\\n\",\n"
+        "           _c2cuda_t1 - _c2cuda_t0);\n"
         "    return 0;\n"
         "}\n";
 
