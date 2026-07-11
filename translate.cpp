@@ -424,6 +424,8 @@ int main(int argc, char **argv)
 				for (inner_it = inner_loops.begin(); inner_it != inner_loops.end(); inner_it++)
 				{
 					SgForStatement *l = isSgForStatement(*inner_it);
+					if (!l->get_test())
+						continue;
 
 					/* Iteration variables */
 					/* 迭代变量获取 */

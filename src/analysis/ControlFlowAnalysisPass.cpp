@@ -99,7 +99,11 @@ void ControlFlowAnalysisPass::analyzeLoops(SgFunctionDefinition* funcDef, Functi
             SgExprStatement* es = isSgExprStatement(initStmt->get_init_stmt()[0]);
             if (es) info.initExpr = es->get_expression();
         }
-        info.condExpr = forStmt->get_test_expr();
+        {
+            SgStatement *testStmt = forStmt->get_test();
+            SgExprStatement *exprStmt = isSgExprStatement(testStmt);
+            info.condExpr = exprStmt ? exprStmt->get_expression() : nullptr;
+        }
         info.incrExpr = forStmt->get_increment();
 
         info.bodyStmtCount = countStatements(info.body);
