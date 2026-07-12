@@ -12,6 +12,19 @@
 ./build/bin/translate.out file1.c [file2.c ...]
 ```
 
+默认在源文件所在目录生成同名 `.cu` 文件。可以用 `--output-dir`（或 `-O`）
+指定输出根目录；多文件翻译会保留源文件公共目录以下的相对结构：
+
+```bash
+./build/bin/translate.out --output-dir ./cuda_out src/main.c src/math/add.c
+```
+
+如需为单个文件指定完整输出文件名，仍可使用 ROSE 的原有参数：
+
+```bash
+./build/bin/translate.out input.c -rose:o result/custom_name.cu
+```
+
 ## 安装
 
 [安装流程](./scripts/README.md)

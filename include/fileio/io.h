@@ -47,6 +47,7 @@ private:
 
 #include "rose.h"
 
-void renameToCU(SgSourceFile *sourceFile);
+bool renameToCU(SgSourceFile *sourceFile,
+                const std::string &requestedOutput = "");
 
 #endif

@@ -50,7 +50,7 @@ struct TranslateJob {
 - `include_paths`：最终合并后的 `-I`。
 - `defines`：最终合并后的 `-D`。
 - `extra_rose_args`：透传给 ROSE 的其他参数，比如 `-rose:skipfinalCompileStep`。
-- `output_dir`：多文件模式输出根目录。
+- `output_dir`：可选输出根目录；为空时在源文件所在目录生成 `.cu`。
 - `base_dir`：多文件模式的公共前缀目录，用于保持原目录结构。
 
 ### `TranslateJobBuilder::Result`
@@ -215,18 +215,21 @@ result     = ./cuda_out/math/add.cu
 
 ```bash
 ./translate.out input.c -rose:o output.cu
+./translate.out input.c --output-dir ./cuda_out
 ```
 
 ### compile_commands.json
 
 ```bash
-./translate.out --compile-db=build/compile_commands.json -rose:skipfinalCompileStep
+./translate.out --compile-db=build/compile_commands.json \
+    --output-dir=./cuda_out -rose:skipfinalCompileStep
 ```
 
 ### 扫描目录
 
 ```bash
-./translate.out --scan-dir=./src --include=./include -rose:skipfinalCompileStep
+./translate.out --scan-dir=./src --include=./include \
+    --output-dir=./cuda_out -rose:skipfinalCompileStep
 ```
 
 ## 6. 当前实现的限制和注意事项
@@ -237,21 +240,11 @@ result     = ./cuda_out/math/add.cu
 
 这两个参数不能同时传，同时传会直接报错退出。
 
-### `--output-dir` 目前在代码里还没有真正注册进 parser
+### 输出路径优先级
 
-虽然 `build()` 里会读：
-
-```cpp
-args.getOption("output-dir", "./c2cuda_out")
-```
-
-但 `createParser()` 里这一行现在还是注释状态：
-
-```cpp
-// .addOption("output-dir", "O", "Output directory for multi-file mode", "./c2cuda_out")
-```
-
-所以按当前代码，命令行传 `--output-dir` 还不会被 `CmdLineParser` 正式识别。
+未指定输出参数时，输出文件与源文件同目录。`--output-dir`/`-O` 可以指定
+输出根目录；如果同时使用 ROSE 的 `-rose:o` 指定完整输出文件名，则
+`-rose:o` 优先。
 
 ### `--include` 和 `--exclude` 当前只保留一个值
 

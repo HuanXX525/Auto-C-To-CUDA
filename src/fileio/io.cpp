@@ -76,26 +76,37 @@ std::vector<std::string> Config::getPureFunctions()
     return data.value("pure_functions", std::vector<std::string>());
 }
 
-void renameToCU(SgSourceFile *sourceFile)
+bool renameToCU(SgSourceFile *sourceFile, const std::string &requestedOutput)
 {
     std::string currentOutput = sourceFile->get_unparse_output_filename();
     if(!currentOutput.empty())
-        return;
+        return true;
     std::string fullName = sourceFile->get_sourceFileNameWithPath();
     log_info(">>>> Translating File: %s <<<<\n\n", fullName.c_str());
 
-    // 2. 查找最后一个点来替换后缀
-    size_t lastDot = fullName.find_last_of(".");
-    std::string newName;
-    if (lastDot != std::string::npos)
+    fs::path outputPath;
+    if (!requestedOutput.empty())
     {
-        newName = fullName.substr(0, lastDot) + ".cu";
+        outputPath = requestedOutput;
+        std::error_code ec;
+        fs::path parent = outputPath.parent_path();
+        if (!parent.empty())
+        {
+            fs::create_directories(parent, ec);
+        }
+        if (ec)
+        {
+            log_error("Failed to create output directory %s: %s",
+                      parent.string().c_str(), ec.message().c_str());
+            return false;
+        }
     }
     else
     {
-        newName = fullName + ".cu";
+        outputPath = fullName;
+        outputPath.replace_extension(".cu");
     }
 
-    // 3. 设置输出文件名，此时包含了原始路径
-    sourceFile->set_unparse_output_filename(newName);
+    sourceFile->set_unparse_output_filename(outputPath.string());
+    return true;
 }
