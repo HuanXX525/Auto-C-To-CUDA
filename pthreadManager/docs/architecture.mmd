@@ -1,0 +1,39 @@
+flowchart TD
+  classDef external fill:#E8E8E8,stroke:#666,stroke-width:2px,stroke-dasharray:8 5
+  classDef api fill:#B3E5FC,stroke:#0277BD,stroke-width:2px
+  classDef engine fill:#A5D6A7,stroke:#2E7D32,stroke-width:2px
+  classDef output fill:#FFCC80,stroke:#E65100,stroke-width:2px
+
+  subgraph In["外部（可替换）"]
+    TASK["任务函数 int (*func)(int, char**)"]:::external
+    ARGS["任务参数 args.json / task_param_t[]"]:::external
+  end
+
+  subgraph API["API 层"]
+    RUN["thread_pool_run<br/>一站式入口"]:::api
+    EXEC["thread_pool_execute<br/>自动编排"]:::api
+    LOW["thread_pool_create / submit<br/>wait_all / destroy<br/>底层控制"]:::api
+  end
+
+  subgraph Engine["执行引擎"]
+    QUEUE["FIFO 任务队列<br/>线程安全链表"]:::engine
+    WORKERS["工作线程池（N 个）<br/>竞争出队 → 执行 func"]:::engine
+  end
+
+  subgraph Out["输出"]
+    RESULTS["results 返回值数组"]:::output
+    SUMMARY["汇总摘要 + 日志文件"]:::output
+  end
+
+  ARGS --> RUN
+  TASK --> RUN
+  TASK --> EXEC
+  TASK --> LOW
+  RUN --> EXEC
+  EXEC --> LOW
+  LOW --> QUEUE
+  QUEUE --> WORKERS
+  WORKERS --> RESULTS
+  WORKERS --> SUMMARY
+  RESULTS --> SUMMARY
+  RUN --> SUMMARY

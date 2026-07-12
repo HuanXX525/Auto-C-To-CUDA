@@ -1,19 +1,27 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pthread
-TARGET = test
-IMG_PROC = program/image_proc
+AR = ar
+ARFLAGS = rcs
+CFLAGS = -Wall -Wextra -pthread -Isrc -Ithird_party -Iprogram
+TARGET = bin/test
+LIB = lib/libimage_proc.a
 
-.PHONY: all clean imgproc
+SRCS = $(wildcard src/*.c third_party/*.c)
+OBJS = $(patsubst %.c,build/%.o,$(notdir $(SRCS)))
 
-all: $(TARGET)
+.PHONY: all clean test_target
 
-$(TARGET): main.c thread_manager.c thread_manager.h
-	$(CC) $(CFLAGS) main.c thread_manager.c -o $(TARGET)
+all: $(LIB) $(TARGET)
 
-imgproc: $(IMG_PROC).exe
+$(LIB): program/image_proc.c
+	$(CC) -O2 -Wall -Wextra -Iprogram -c program/image_proc.c -o build/image_proc.o
+	$(AR) $(ARFLAGS) $(LIB) build/image_proc.o
 
-$(IMG_PROC).exe: $(IMG_PROC).c
-	$(CC) -O2 -Wall -Wextra $(IMG_PROC).c -lm -o $(IMG_PROC).exe
+$(TARGET): $(SRCS) $(LIB)
+	$(CC) $(CFLAGS) $(SRCS) -Llib -limage_proc -lm -o $(TARGET)
+
+test_target: bin/test_app
+bin/test_app: test/test.c
+	$(CC) $(CFLAGS) test/test.c -o bin/test_app
 
 clean:
-	rm -f $(TARGET) $(IMG_PROC).exe
+	rm -f $(TARGET) $(TARGET).exe $(LIB) bin/test_app bin/test_app.exe build/*.o

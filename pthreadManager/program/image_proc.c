@@ -8,6 +8,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#define STBI_WINDOWS_UTF8
+#define STBIW_WINDOWS_UTF8
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -248,7 +250,9 @@ static void bilateral(image_t *dst,
 }
 
 /* === main === */
-int main(int argc, char **argv) {
+// 1. 仅需修改原项目主函数名称与参数列表命名
+// 2. 将原项目编译成静态库
+int main_task(int argc, char **argv) {
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <input_path> <output_path>\n", argv[0]);
         fprintf(stderr, "  e.g.  %s photo.jpg result.png\n", argv[0]);
