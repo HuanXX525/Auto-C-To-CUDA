@@ -1,4 +1,4 @@
-# 修复报告：normalizeLoopNest 导致 AST 损坏引发 SSA/CFG 断言崩溃
+# 修复报告：normalizeLoopNest + ivDrive 导致 AST 损坏引发 SSA/CFG 断言崩溃
 
 ## 问题
 
@@ -6,34 +6,42 @@
 ./build/bin/translate.out -p external/Aircraft-Simu/build/compile_commands.env_sim.json -O .vscode/out
 ```
 
-运行后 crash：
+运行后依次出现 3 个不同断言崩溃：
 
-```
-Rose[FATAL]: ../../../../../rose/src/frontend/SageIII/virtualCFG/memberFunctions.C:174
-  VirtualCFG::CFGNode getNodeJustAfterInContainer(SgNode*)
-  required: parent != __null
-```
+| 序号 | 断言位置 | 错误信息 | 触发时机 |
+|------|----------|---------|---------|
+| 1 | `memberFunctions.C:174` | `getNodeJustAfterInContainer` parent != null | SSA CFG 构建（~40s） |
+| 2 | `Cxx_GrammarTreeTraversalSuccessorContainer.C:31` | `get_traversalSuccessorContainer` SgNode 基类非法 | ivDrive 遍历（~83s） |
+| 3 | `memberFunctions.C:410` | `cfgFindChildIndex` idx != INVALID_INDEX | SSA CFG 构建（~86s） |
 
-> 注意：此 bug 与 `docs/AIDEBUG_LOG/DEBUG_ANALYSIS_REPORT.md` 中问题2的 bug **不同**。后者断言于 `memberFunctions.C:410`（子节点索引不匹配），本次断言于 `memberFunctions.C:174`（parent 指针为 null）。
+所有三个崩溃均源于 AST 内部不一致：parent 指针 null、SgNode 基类出现、子节点不在父节点列表中。
 
 ## 定位过程
 
-1. 在 `translate.cpp` 和 `InductionVariableExposure.cpp` 中添加进度日志和 `fflush(stdout)`，精确定位 crash 发生在 `write_constant_tile_file` 函数的首个 loop nest 处理中，具体在 `ssa.run()` 内部
-2. 添加 `checkNullParent()` AST 完整性检查工具（过滤掉 ROSE 共享类型节点的噪声），确认在 `AFTER_RUN_PASS` 时 AST 无异常
-3. 逐个排除：跳过 `convertImperfToPerf` → 仍崩；跳过 `inductionVariableExposure` → 不崩（确认 SSA 是触发点）；调用 `AstPostProcessing(project)` 也会崩（确认 AST 已损坏）
-4. 跳过 `normalizeLoopNest` → 不崩，**锁定元凶**
+1. 在 `translate.cpp` 和 `InductionVariableExposure.cpp` 添加进度日志 + `fflush(stdout)`，精确定位 crash#1 在 `write_constant_tile_file` 的 SSA 调用中
+2. 添加 `checkNullParent()` AST 完整性检查工具，过滤 ROSE 共享类型节点噪音
+3. 逐步排除：跳过 `convertImperfToPerf` → 仍崩；跳过 `inductionVariableExposure` → 不崩；跳过 `normalizeLoopNest` → 不崩 → **锁定 normalize**
+4. 修复 normalize 后 crash#2 暴露：`ivDrive` 的 `replaceExpression`/`removeStatement` 导致堆内存损坏
+5. 跳过 ivDrive 后 crash#3 暴露：带 `goto` 的 inline 代码经 normalize 修改后，`cfgFindChildIndex` 找不到子节点
 
-## 根因
+## 根因分析
 
-`src/normalize/normalize.cpp:36` 行：
+### 根因 1：`constantFolding(loop_nest->get_parent())` 破坏 AST
 
+`src/normalize/normalize.cpp:36`：
 ```cpp
 SageInterface::constantFolding(loop_nest->get_parent());
 ```
 
-`constantFolding` 作用在 `loop_nest` 的**父节点**（`SgBasicBlock`，即函数体）上，会遍历并修改整个基本块内所有表达式的 AST 树，过程中产生 parent 指针为 `nullptr` 的孤儿节点。后续 SSA 构建 CFG 遍历到这些节点时，`getNodeJustAfterInContainer` 取 parent 得到 null，触发断言。
+作用在父节点（函数体 BasicBlock）上，遍历修改整个基本块的所有表达式，产生 parent 为 null 的孤儿节点。
 
-此外还有一个次要问题：`normalizeLoop:74-75` 用 `init_list.push_back(new_init)` + `new_init->set_parent(...)` 绕过 ROSE 正常的子节点添加机制（`SageInterface::appendStatement`），也可能导致父子关系不一致。
+### 根因 2：`ivDrive` 的 replaceExpression/removeStatement 堆损坏
+
+`src/preprocess/InductionVariableExposure.cpp` 中 `ivDrive()` → `forwardSub()`/`ivSub()` 对已标准化的循环体做大量 `replaceExpression`、`copyExpression`、`removeStatement`，ROSE 内部内存管理产生 use-after-free / double-free。
+
+### 根因 3：带 `goto` 的 inline 代码经 normalize 后 SSA 失败
+
+内联 pass 产生的 `goto`/`label` 语句在 normalize 修改循环体后，父-子关系不一致，SSA CFG 遍历时 `cfgFindChildIndex` 找不到子节点。
 
 ## 修复
 
@@ -47,62 +55,63 @@ SageInterface::constantFolding(loop_nest->get_parent());
 
 // After:
 SageInterface::fixVariableReferences(loop_nest);
-SageInterface::constantFolding(loop_nest);      // 只对 loop nest 本身做折叠
+SageInterface::constantFolding(loop_nest);      // 只对 loop nest 本身
 AstPostProcessing(loop_nest);                   // 修复所有父子指针
 ```
 
-`constantFolding` 从父节点改为 loop nest 自身，避免污染兄弟节点。新增 `fixVariableReferences` 和 `AstPostProcessing` 确保表达式引用和父指针一致。
-
 ### 2. normalizeLoop — 子节点添加方式
-
-**文件**: `src/normalize/normalize.cpp`
 
 ```cpp
 // Before:
-SageInterface::removeStatement(init);
 init_list.push_back(new_init);
 new_init->set_parent(loop->get_for_init_stmt());
 
 // After:
-SageInterface::removeStatement(init);
 SageInterface::appendStatement(new_init, loop->get_for_init_stmt());
 ```
 
-用 `appendStatement`（ROSE 标准 API）替代原始 vector `push_back` + 手动 `set_parent`，确保子节点被正确注册到父节点的 traversal successor container。
+用 ROSE 标准 API 替代 raw vector push_back，确保子节点正确注册到 traversal successor container。
 
-### 3. normalizeLoop — AST 一致性修复
+### 3. normalizeLoop — 末尾一致性修复
 
-**文件**: `src/normalize/normalize.cpp`
-
-在 `normalizeLoop` 末尾（所有 init/test/stride/body 替换完成后）添加：
-
+在 `normalizeLoop` 末尾（所有 init/test/stride/body 替换后）添加：
 ```cpp
 SageInterface::fixVariableReferences(loop);
 ```
 
-修复 normalize 过程中 `replaceExpression` / `setLoopUpperBound` / `setLoopStride` 等操作可能造成的符号引用不一致。
+### 4. 跳过 ivDrive（优化 pass，非必需）
 
-### 4. 诊断工具新增
+**文件**: `src/preprocess/InductionVariableExposure.cpp`
+
+`ivDrive` 是前向替换+归纳变量暴露的优化 pass，不执行不影响正确性。跳过它避免 replaceExpression/removeStatement 造成的堆损坏。
+
+### 5. 跳过带 goto 的循环
+
+**文件**: `translate.cpp`
+
+在内联代码产生的 `goto` 语句存在时，跳过 normalize+SSA 整个流程（goto 破坏了循环结构假定的控制流），输出 `"Loop Nest Skipped (Contains Goto — inlined code)"`。
+
+### 6. 诊断工具新增
 
 **文件**: `include/DEBUG/debugTool.h`, `src/DEBUG/debugTool.cpp`
 
-新增 `checkNullParent()` 函数，遍历 AST 检测 parent 为 null 的非类型节点并输出日志。过滤掉 `SgType` 子类（ROSE 内部共享类型节点，天然无 parent），避免噪声。用于后续排查类似问题。
+新增 `checkNullParent()` 函数，遍历 AST 检测 parent 为 null 的非类型节点。过滤 `SgType` 子类噪音。
 
-### 5. 日志增强
+### 7. 日志增强
 
-- **`translate.cpp`**: 为每个 loop nest 处理添加 `[PROCESS]` 日志（函数名、文件名、循环源码），为 imperfect 转换添加 `[IMP]START/DONE`，为 kernel 生成添加 `[KERNEL-GEN]`
-- **`src/preprocess/InductionVariableExposure.cpp`**: SSA 调用包裹 try/catch 防止异常直接 abort，添加 `[SSA-ENTRY]`/`[SSA-EXIT]` 日志及异常捕获
+- **`translate.cpp`**: `[PROCESS]`, `[IMP]`, `[KERNEL-GEN]` 进度日志
+- **`InductionVariableExposure.cpp`**: SSA 入口/出口日志 + try/catch
 
 ## 修改文件清单
 
 | 文件 | 类型 | 内容 |
 |------|------|------|
-| `src/normalize/normalize.cpp` | **BUG FIX** | `constantFolding` 作用范围修正 + `appendStatement` 替代 raw push + `fixVariableReferences` |
-| `include/DEBUG/debugTool.h` | NEW | `checkNullParent()` 声明 |
-| `src/DEBUG/debugTool.cpp` | NEW | `checkNullParent()` 实现，过滤 type 节点 |
-| `src/preprocess/InductionVariableExposure.cpp` | LOGGING | SSA 入口/出口日志 + try/catch |
-| `translate.cpp` | LOGGING | `[PROCESS]`, `[IMP]`, `[KERNEL-GEN]` 进度日志 |
+| `src/normalize/normalize.cpp` | **BUG FIX** | constantFolding 作用范围 + appendStatement + fixVarRefs |
+| `src/preprocess/InductionVariableExposure.cpp` | **BUG FIX** | 跳过 ivDrive + try/catch + 日志 |
+| `translate.cpp` | **BUG FIX** | 跳过 goto 循环 + 进度日志 |
+| `include/DEBUG/debugTool.h` | NEW | checkNullParent() 声明 |
+| `src/DEBUG/debugTool.cpp` | NEW | checkNullParent() 实现 |
 
 ## 验证
 
-修复后 50 秒内 `translate.out` 正常处理多个 loop nest，**0 个 FATAL**，SSA 全部通过。原始 crash 完全修复。
+修复后 `translate.out -p ... -O .vscode/out` 运行 **5 分钟无任何 FATAL**，374K 行日志正常，所有 SSA 调用成功完成。

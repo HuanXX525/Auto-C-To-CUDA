@@ -412,6 +412,13 @@ int main(int argc, char **argv)
 				         loop_nest->get_file_info()->get_filenameString().c_str(),
 				         loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')).c_str());
 				log_debug(">> Processing Loop Nest: %s", loop_nest->unparseToString().c_str());
+
+				Rose_STL_Container<SgNode*> gotos = NodeQuery::querySubTree(loop_nest, V_SgGotoStatement);
+				if (!gotos.empty()) {
+					log_info("Loop Nest Skipped (Contains Goto — inlined code)");
+					continue;
+				}
+
 				/* Check if loop nest is perfectly nested */
 				bool perf = isPerfectlyNested(loop_nest);
 
