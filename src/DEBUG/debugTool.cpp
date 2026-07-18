@@ -1,4 +1,6 @@
 #include "DEBUG/debugTool.h"
+#include "logger.h"
+#include <sstream>
 static bool isRealProjectNode(SgNode *n);
 
 /**
@@ -81,6 +83,69 @@ void checkParentConsistency(SgNode *root)
                 << "Parent does NOT contain this node "
                 << "in traversalSuccessorContainer\n";
         }
+    }
+}
+
+void checkNullParent(SgNode *root, const std::string &tag,
+                    std::function<void(const std::string&)> logger_)
+{
+    if (!root) {
+        logger_("[AST-CHECK][" + tag + "] root is null");
+        return;
+    }
+
+    int nullCount = 0;
+    int typeNodeSkipCount = 0;
+    Rose_STL_Container<SgNode *> nodes =
+        NodeQuery::querySubTree(root, V_SgNode);
+
+    for (SgNode *n : nodes)
+    {
+        if (!n) continue;
+
+        SgNode *parent = n->get_parent();
+        if (parent) continue;
+
+        if (isSgProject(n) || isSgFileList(n) || isSgSourceFile(n)
+            || isSgGlobal(n) || isSgBinaryComposite(n))
+            continue;
+
+        if (isSgType(n)) {
+            typeNodeSkipCount++;
+            continue;
+        }
+
+        if (nullCount < 30) {
+            std::ostringstream oss;
+            oss << "[AST-CHECK][" << tag << "] NULL PARENT #" << (nullCount+1)
+                << " class=" << n->class_name()
+                << " ptr=" << n;
+
+            Sg_File_Info *fi = n->get_file_info();
+            if (fi) {
+                oss << " file=" << fi->get_filenameString()
+                    << ":" << fi->get_line();
+            }
+
+            try {
+                std::string src = n->unparseToString();
+                if (src.size() > 120) src = src.substr(0, 120) + "...";
+                oss << " code=`" << src << "`";
+            } catch (...) {
+                oss << " code=<unparse failed>";
+            }
+
+            logger_(oss.str());
+        }
+        nullCount++;
+    }
+
+    if (nullCount > 0) {
+        logger_("[AST-CHECK][" + tag + "] TOTAL NULL PARENT NODES (non-type): "
+                + std::to_string(nullCount)
+                + " (SgType nodes skipped: " + std::to_string(typeNodeSkipCount) + ")");
+    } else {
+        logger_("[AST-CHECK][" + tag + "] OK - no null parent nodes found");
     }
 }
 

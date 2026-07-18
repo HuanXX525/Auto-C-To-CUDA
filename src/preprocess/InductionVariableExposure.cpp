@@ -502,14 +502,31 @@ void inductionVariableExposure(SgForStatement *loop_nest) {
         return;
     }
 
+    SgFunctionDefinition* funcDef = SageInterface::getEnclosingFunctionDefinition(loop_nest);
+    std::string funcName = funcDef ? funcDef->get_declaration()->get_name().getString() : "?";
+
+    log_info("[SSA-ENTRY] inductionVariableExposure for func=%s loop=%s",
+             funcName.c_str(),
+             loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')).c_str());
+
     log_info("Running SSA-based induction variable exposure");
 
-    StaticSingleAssignment ssa(project);
-    ssa.run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
+    try {
+        log_info("[SSA] Calling ssa.run() for project...");
+        StaticSingleAssignment ssa(project);
+        ssa.run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
+        log_info("[SSA] ssa.run() completed successfully");
 
-    ivDrive(loop_nest, ssa);
+        ivDrive(loop_nest, ssa);
+    } catch (const std::exception &e) {
+        log_error("[SSA-EXCEPTION] %s", e.what());
+        return;
+    } catch (...) {
+        log_error("[SSA-EXCEPTION] unknown exception during SSA");
+        return;
+    }
 
     SageInterface::constantFolding(loop_nest);
 
-    log_info("Induction variable exposure completed");
+    log_info("[SSA-EXIT] inductionVariableExposure completed for func=%s", funcName.c_str());
 }

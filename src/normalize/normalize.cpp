@@ -33,7 +33,9 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	// 	std::cout << "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 	// }
 	/* Perform constant folding on the normalized nest (need to supply the parent node) */
-	SageInterface::constantFolding(loop_nest->get_parent());
+	SageInterface::fixVariableReferences(loop_nest);
+	SageInterface::constantFolding(loop_nest);
+	AstPostProcessing(loop_nest);
 
 	/* If we get here, the loop nest should be normalized */
 	return true;
@@ -71,8 +73,7 @@ bool normalizeLoop(SgForStatement *loop)
 
 			/* Set the init expression to the new assign statment */
 			SageInterface::removeStatement(init);
-			init_list.push_back(new_init);
-			new_init->set_parent(loop->get_for_init_stmt());
+			SageInterface::appendStatement(new_init, loop->get_for_init_stmt());
 		}
 		else
 			return false;
@@ -222,6 +223,8 @@ bool normalizeLoop(SgForStatement *loop)
 	
 	}
 
+	/* Fix parent pointers and variable references after all modifications */
+	SageInterface::fixVariableReferences(loop);
 
 	/* If we get here, all steps were successful and loop is normalized */
 	return true;

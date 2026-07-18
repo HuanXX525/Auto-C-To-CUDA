@@ -335,7 +335,6 @@ int main(int argc, char **argv)
 				Rose_STL_Container<SgNode *> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 				int nest_size = inner_loops.size();
 
-		/* Check if loop is perfectly nested */
 			if (isPerfectlyNested(loop_nest) == false)
 			{
 				/* Only convert the first imperfect nest per function */
@@ -346,6 +345,8 @@ int main(int argc, char **argv)
 				else
 				{
 					/* Try to convert the nest into a perfect one */
+					log_info("[IMP]START converting imperfect loop in func=%s",
+					         defn->get_declaration()->get_name().getString().c_str());
 					log_debug("[IMP]Trying to convert imperfectly nested loop into perfectly nested one");
 					std::vector<SgStatement *>perf_loop_nests = convertImperfToPerf(loop_nest);
 					log_debug("[IMP]Converted Imperfectly Nested Loop into Perfectly Nested Loops");
@@ -356,6 +357,9 @@ int main(int argc, char **argv)
 						SgBasicBlock *bb_new = SageBuilder::buildBasicBlock_nfi(perf_loop_nests);
 						bb_new->set_parent(loop_nest->get_parent());
 						isSgStatement(loop_nest->get_parent())->replace_statement(loop_nest, bb_new);
+						log_info("[IMP]DONE conversion in func=%s: %zu perfect nests created",
+						         defn->get_declaration()->get_name().getString().c_str(),
+						         perf_loop_nests.size());
 					}
 					impConvCount++;
 				}
@@ -401,6 +405,12 @@ int main(int argc, char **argv)
 			for (nest_iter = loopNestList.begin(); nest_iter != loopNestList.end(); nest_iter++)
 			{
 				SgForStatement *loop_nest = *nest_iter;
+				SgFunctionDefinition *cur_func = SageInterface::getEnclosingFunctionDefinition(loop_nest);
+				std::string cur_func_name = cur_func ? cur_func->get_declaration()->get_name().getString() : "?";
+				log_info("[PROCESS] nest_id=%d func=%s file=%s loop=%s",
+				         nest_id, cur_func_name.c_str(),
+				         loop_nest->get_file_info()->get_filenameString().c_str(),
+				         loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')).c_str());
 				log_debug(">> Processing Loop Nest: %s", loop_nest->unparseToString().c_str());
 				/* Check if loop nest is perfectly nested */
 				bool perf = isPerfectlyNested(loop_nest);
@@ -463,8 +473,6 @@ int main(int argc, char **argv)
 				attr->set_symb_vec(symb_vec);
 
 				/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-				// runInductionVarPass(loop_nest);
-
 				inductionVariableExposure(loop_nest);
 				eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
 
@@ -481,7 +489,10 @@ int main(int argc, char **argv)
 				{
 			case 0: /* Code Generation */
 				log_info("No Dependency Exists");
+				log_info("[KERNEL-GEN] Generating kernel for nest_id=%d func=%s",
+				         nest_id, cur_func_name.c_str());
 				kernelCodeGenSimple(loop_nest, fileGlobalScope, nest_id);
+				log_info("[KERNEL-GEN] Done kernel for nest_id=%d", nest_id);
 				parallelized_loops.push_back({
 					defn->get_declaration()->get_name().getString(),
 					attr->get_nest_size(),
