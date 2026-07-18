@@ -1,7 +1,7 @@
 TARGET = branch_flatten
 
-BUILD_DIR      ?= ../../build/tools/$(TARGET)
-BIN_DIR        ?= ../../build/bin/tools
+BUILD_DIR      ?= ../../../build/tools/$(TARGET)
+BIN_DIR        ?= ../../../build/bin/tools
 CXX            ?= g++
 CXXFLAGS       ?= -std=c++17 -O2
 INCLUDES       ?=
