@@ -89,7 +89,7 @@ private:
         // 简化检测：有 init、有 cond、有 incr、无 break/goto
         SgForInitStatement* init = forStmt->get_for_init_stmt();
         if (!init || init->get_init_stmt().empty()) return false;
-        if (!forStmt->get_test_expr()) return false;
+        if (!forStmt->get_test()) return false;
         if (!forStmt->get_increment()) return false;
         if (containsNodeType(forStmt->get_loop_body(), V_SgBreakStmt)) return false;
         if (containsNodeType(forStmt->get_loop_body(), V_SgGotoStatement)) return false;

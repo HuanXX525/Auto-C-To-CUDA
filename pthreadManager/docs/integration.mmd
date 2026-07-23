@@ -1,0 +1,36 @@
+flowchart TD
+  classDef user fill:#FFF3E0,stroke:#E65100,stroke-width:2px
+  classDef mgr fill:#B3E5FC,stroke:#0277BD,stroke-width:2px
+  classDef step fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+  classDef result fill:#CE93D8,stroke:#4A148C,stroke-width:2px
+
+  subgraph User["你的项目 / Your Project"]
+    ORIG["原始代码<br/>有自己的 main() 和逻辑"]:::user
+    MOD["改造后<br/>int main_task(int argc, char** argv)<br/>argc/argv 解析参数并执行任务"]:::user
+    LIB["编译为静态库<br/>libyour_project.a"]:::user
+  end
+
+  subgraph Bridge["对接层"]
+    ARGS["args.json<br/>每行 = argv[1..N]<br/>提供任务参数"]:::step
+    FUNC_SIG["函数签名规约<br/>int (*task_func)(int, char**)<br/>管理器统一调用"]:::step
+  end
+
+  subgraph Manager["线程池管理器 / Thread Pool Manager"]
+    API["public API<br/>thread_pool_run / execute / submit"]:::mgr
+    ENGINE["执行引擎<br/>FIFO队列 + N个工作线程<br/>并行调用 task_func"]:::mgr
+    RESULT["输出<br/>results[] + 汇总日志"]:::mgr
+  end
+
+  subgraph Build["构建（Makefile）"]
+    LINK["链接阶段<br/>gcc src/*.c third_party/*.c \\<br/>  -Llib -lyour_project -pthread -lm<br/>  -o bin/test"]:::step
+  end
+
+  ORIG -->|"Step 1: 改造签名<br/>main → main_task"| MOD
+  MOD -->|"Step 2: 编译为 .a<br/>gcc -c your_project.c"| LIB
+  LIB -->|"Step 3: 链接<br/>-Llib -lyour_project"| LINK
+  
+  ARGS --> LINK
+  FUNC_SIG --> LINK
+  LINK --> API
+  API --> ENGINE
+  ENGINE --> RESULT

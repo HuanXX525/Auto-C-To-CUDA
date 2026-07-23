@@ -47,6 +47,7 @@
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
+#include "threading/pthread_transform.hpp"
 #include <atomic>
 #include "utils/translate_job.h"
 
@@ -449,6 +450,8 @@ int main(int argc, char **argv)
 				for (inner_it = inner_loops.begin(); inner_it != inner_loops.end(); inner_it++)
 				{
 					SgForStatement *l = isSgForStatement(*inner_it);
+					if (!l->get_test())
+						continue;
 
 					/* Iteration variables */
 					/* 迭代变量获取 */
@@ -550,6 +553,9 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define AUTOC2CUDATEST");
 		}
 	}
+
+	// 将整个提取为函数
+	c2cuda::applyPthreadTransform(project);
 
 	/* Obtain translation */
 	project->unparse();
