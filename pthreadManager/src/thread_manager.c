@@ -54,6 +54,14 @@ struct thread_pool {
 
 static double g_cpu_ratio = 1.0;
 
+__Pm__config_t __Pm__g_config = {
+    .num_threads = 0,
+    .cpu_ratio   = 1.0,
+    .json_path   = "args.json",
+    .log_path    = "./thread_log.log",
+    .help        = 0,
+};
+
 /**
  * @brief 获取 CPU 核心数
  *
@@ -80,7 +88,7 @@ static int get_cpu_cores(void) {
  *
  * @return 推荐线程数（≥1）
  */
-int thread_pool_optimal_count(void) {
+int __Pm__thread_pool_optimal_count(void) {
     int cores = get_cpu_cores();
     double factor = 1.0 + (1.0 - g_cpu_ratio) / g_cpu_ratio;
     int n = (int)(cores * factor);
@@ -90,12 +98,12 @@ int thread_pool_optimal_count(void) {
 /**
  * @brief 设置任务的 CPU 使用率预估值
  *
- * 影响 thread_pool_optimal_count 的计算结果。
+ * 影响 __Pm__thread_pool_optimal_count 的计算结果。
  * 值域被裁剪到 [0.01, 1.0]。
  *
  * @param ratio 0.01（纯 IO）~ 1.0（纯计算）
  */
-void thread_pool_set_cpu_ratio(double ratio) {
+void __Pm__thread_pool_set_cpu_ratio(double ratio) {
     if (ratio < 0.01) ratio = 0.01;
     if (ratio > 1.0)  ratio = 1.0;
     g_cpu_ratio = ratio;
@@ -166,14 +174,14 @@ static void* worker_wrapper(void* arg) {
         pool->active_count++;
         pthread_mutex_unlock(&pool->mutex);
 
-        LOG_TRACE("[Task %d] start", task->id);
+        __Pm__LOG_TRACE("[Task %d] start", task->id);
         clock_t t0 = clock();
         int ret = task->func(task->argc, task->argv);
         if (task->id < pool->num_results)
             pool->results[task->id] = ret;
         clock_t t1 = clock();
         double ms = (double)(t1 - t0) / CLOCKS_PER_SEC * 1000.0;
-        LOG_TRACE("    task done in %.3f ms", ms);
+        __Pm__LOG_TRACE("    task done in %.3f ms", ms);
 
         pthread_mutex_lock(&pool->mutex);
         pool->active_count--;
@@ -193,15 +201,15 @@ static void* worker_wrapper(void* arg) {
  * 逐一创建 pthread 工作线程。
  * 若任一 pthread_create 失败，已创建的线程会被 join 后统一回收。
  *
- * @param num_threads 工作线程数；≤0 时通过 thread_pool_optimal_count() 自动计算
+ * @param num_threads 工作线程数；≤0 时通过 __Pm__thread_pool_optimal_count() 自动计算
  * @return 线程池指针，任何失败返回 NULL
  */
-thread_pool_t* thread_pool_create(int num_threads) {
+__Pm__thread_pool_t* __Pm__thread_pool_create(int num_threads) {
     if (num_threads <= 0)
-        num_threads = thread_pool_optimal_count();
+        num_threads = __Pm__thread_pool_optimal_count();
     if (num_threads < 1) num_threads = 1;
 
-    thread_pool_t* pool = (thread_pool_t*)malloc(sizeof(thread_pool_t));
+    __Pm__thread_pool_t* pool = (__Pm__thread_pool_t*)malloc(sizeof(__Pm__thread_pool_t));
     if (!pool) return NULL;
 
     pool->num_threads = num_threads;
@@ -257,7 +265,7 @@ thread_pool_t* thread_pool_create(int num_threads) {
  * @param argv  参数数组（由任务函数负责释放）
  * @return 成功 0，参数非法或内存分配失败返回 -1
  */
-int thread_pool_submit(thread_pool_t* pool,
+int __Pm__thread_pool_submit(__Pm__thread_pool_t* pool,
                        int (*func)(int, char**), int id, int argc, char** argv)
 {
     if (!pool || !func) return -1;
@@ -286,7 +294,7 @@ int thread_pool_submit(thread_pool_t* pool,
  *
  * @param pool 线程池指针
  */
-void thread_pool_wait_all(thread_pool_t* pool) {
+void __Pm__thread_pool_wait_all(__Pm__thread_pool_t* pool) {
     pthread_mutex_lock(&pool->mutex);
     while (pool->queue_size > 0 || pool->active_count > 0) {
         pthread_cond_wait(&pool->complete, &pool->mutex);
@@ -306,10 +314,10 @@ void thread_pool_wait_all(thread_pool_t* pool) {
  *
  * @param pool 线程池指针，NULL 安全
  */
-void thread_pool_destroy(thread_pool_t* pool) {
+void __Pm__thread_pool_destroy(__Pm__thread_pool_t* pool) {
     if (!pool) return;
 
-    thread_pool_wait_all(pool);
+    __Pm__thread_pool_wait_all(pool);
 
     pthread_mutex_lock(&pool->mutex);
     pool->shutdown = 1;
@@ -346,32 +354,32 @@ void thread_pool_destroy(thread_pool_t* pool) {
  * @return int* 长度为 num_tasks 的返回值数组，
  *         调用者须用 free() 释放。失败返回 NULL。
  */
-int* thread_pool_execute(int (*func)(int, char**), task_param_t* args[],
+int* __Pm__thread_pool_execute(int (*func)(int, char**), __Pm__task_param_t* args[],
                          int num_tasks, int num_threads)
 {
     if (!func || !args || num_tasks <= 0) return NULL;
 
-    thread_pool_t* pool = thread_pool_create(num_threads);
+    __Pm__thread_pool_t* pool = __Pm__thread_pool_create(num_threads);
     if (!pool) return NULL;
 
     int* results = calloc(num_tasks, sizeof(int));
     if (!results) {
-        thread_pool_destroy(pool);
+        __Pm__thread_pool_destroy(pool);
         return NULL;
     }
     pool->results = results;
     pool->num_results = num_tasks;
 
     for (int i = 0; i < num_tasks; i++) {
-        if (thread_pool_submit(pool, func, i, args[i]->argc, args[i]->argv) != 0) {
+        if (__Pm__thread_pool_submit(pool, func, i, args[i]->argc, args[i]->argv) != 0) {
             free(results);
-            thread_pool_destroy(pool);
+            __Pm__thread_pool_destroy(pool);
             return NULL;
         }
     }
 
-    thread_pool_wait_all(pool);
-    thread_pool_destroy(pool);
+    __Pm__thread_pool_wait_all(pool);
+    __Pm__thread_pool_destroy(pool);
     return results;
 }
 
@@ -381,7 +389,7 @@ int* thread_pool_execute(int (*func)(int, char**), task_param_t* args[],
  * @param pool 线程池指针
  * @return 排队中的任务数量
  */
-int thread_pool_queue_size(thread_pool_t* pool) {
+int __Pm__thread_pool_queue_size(__Pm__thread_pool_t* pool) {
     pthread_mutex_lock(&pool->mutex);
     int n = pool->queue_size;
     pthread_mutex_unlock(&pool->mutex);
@@ -394,7 +402,7 @@ int thread_pool_queue_size(thread_pool_t* pool) {
  * @param pool 线程池指针
  * @return 正在执行的任务数量
  */
-int thread_pool_active_count(thread_pool_t* pool) {
+int __Pm__thread_pool_active_count(__Pm__thread_pool_t* pool) {
     pthread_mutex_lock(&pool->mutex);
     int n = pool->active_count;
     pthread_mutex_unlock(&pool->mutex);
@@ -413,7 +421,7 @@ int thread_pool_active_count(thread_pool_t* pool) {
 static char* read_file(const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) {
-        LOG_ERROR("cannot open '%s'", path);
+        __Pm__LOG_ERROR("cannot open '%s'", path);
         return NULL;
     }
     fseek(f, 0, SEEK_END);
@@ -442,34 +450,34 @@ static char* read_file(const char* path) {
  *
  * @param path      JSON 文件路径
  * @param out_count [输出] 任务数量
- * @return task_param_t** 任务参数数组，长度为 *out_count，
+ * @return __Pm__task_param_t** 任务参数数组，长度为 *out_count，
  *         每个元素须分别 free(argv) 和 free(p)。失败返回 NULL。
  */
-static task_param_t** parse_args(const char* path, int* out_count) {
+static __Pm__task_param_t** parse_args(const char* path, int* out_count) {
     char* json_str = read_file(path);
     if (!json_str) return NULL;
 
     cJSON* root = cJSON_Parse(json_str);
     free(json_str);
     if (!root) {
-        LOG_ERROR("JSON parse error: %s", cJSON_GetErrorPtr());
+        __Pm__LOG_ERROR("JSON parse error: %s", cJSON_GetErrorPtr());
         return NULL;
     }
 
     if (!cJSON_IsArray(root)) {
-        LOG_ERROR("%s must be an array", path);
+        __Pm__LOG_ERROR("%s must be an array", path);
         cJSON_Delete(root);
         return NULL;
     }
 
     int task_count = cJSON_GetArraySize(root);
     if (task_count <= 0) {
-        LOG_ERROR("%s is empty", path);
+        __Pm__LOG_ERROR("%s is empty", path);
         cJSON_Delete(root);
         return NULL;
     }
 
-    task_param_t** args = malloc(sizeof(task_param_t*) * task_count);
+    __Pm__task_param_t** args = malloc(sizeof(__Pm__task_param_t*) * task_count);
     if (!args) {
         cJSON_Delete(root);
         return NULL;
@@ -478,7 +486,7 @@ static task_param_t** parse_args(const char* path, int* out_count) {
     for (int i = 0; i < task_count; i++) {
         cJSON* inner = cJSON_GetArrayItem(root, i);
         if (!cJSON_IsArray(inner)) {
-            LOG_ERROR("entry %d is not an array", i);
+            __Pm__LOG_ERROR("entry %d is not an array", i);
             for (int k = 0; k < i; k++) {
                 free(args[k]->argv);
                 free(args[k]);
@@ -489,7 +497,7 @@ static task_param_t** parse_args(const char* path, int* out_count) {
         }
 
         int inner_len = cJSON_GetArraySize(inner);
-        task_param_t* p = malloc(sizeof(task_param_t));
+        __Pm__task_param_t* p = malloc(sizeof(__Pm__task_param_t));
         p->argc = inner_len + 1;
         p->argv = malloc(sizeof(char*) * (p->argc + 1));
 
@@ -497,7 +505,7 @@ static task_param_t** parse_args(const char* path, int* out_count) {
         for (int j = 0; j < inner_len; j++) {
             cJSON* item = cJSON_GetArrayItem(inner, j);
             if (!cJSON_IsString(item)) {
-                LOG_ERROR("entry %d element %d is not a string", i, j);
+                __Pm__LOG_ERROR("entry %d element %d is not a string", i, j);
                 p->argv[j + 1] = strdup("");
             } else {
                 p->argv[j + 1] = strdup(item->valuestring);
@@ -519,47 +527,49 @@ static task_param_t** parse_args(const char* path, int* out_count) {
  * 完整流程：
  *   1. 初始化日志（控制台或文件）
  *   2. 调用 parse_args 解析 JSON 参数文件
- *   3. 调用 thread_pool_execute 多线程执行所有任务
+ *   3. 调用 __Pm__thread_pool_execute 多线程执行所有任务
  *   4. 逐条输出每个任务的返回值
  *   5. 打印执行时间总结
  *   6. 关闭日志，释放所有资源
  *
  * @param func      任务函数，须符合 int (*)(int, char**) 签名
- * @param json_path 任务参数字典 JSON 文件路径
- * @param log_path  日志路径，传 NULL 则输出到控制台
  * @return 成功 0，失败 -1
  */
-int thread_pool_run(int (*func)(int, char**), const char* json_path, const char* log_path) {
-    log_open(log_path, log_path ? LOG_INFO : LOG_TRACE);
+int __Pm__thread_pool_run(int (*func)(int, char**)) {
+    /*启动日志*/
+    __Pm__log_open(__Pm__g_config.log_path, __Pm__g_config.log_path ? __Pm__LOG_INFO : __Pm__LOG_TRACE);
 
-    int task_count;
-    task_param_t** args = parse_args(json_path, &task_count);
+    /* 加载任务参数 */
+    int task_count; // 要执行的任务数量，来自参数json
+    __Pm__task_param_t** args = parse_args(__Pm__g_config.json_path, &task_count); // 任务参数列表
     if (!args) {
-        log_close();
+        __Pm__log_close();
         return -1;
     }
-
-    LOG_INFO("tasks: %d", task_count);
-
+    __Pm__LOG_INFO("tasks(from %s): %d", __Pm__g_config.json_path, task_count);
+    /* 开始 */
+    // 开始统计时间
     clock_t start = clock();
-    LOG_INFO("executing...");
-    int* results = thread_pool_execute(func, args, task_count, 0);
-    LOG_INFO("all done");
-
+    __Pm__LOG_INFO("executing...");
+    __Pm__thread_pool_set_cpu_ratio(__Pm__g_config.cpu_ratio);
+    int* results = __Pm__thread_pool_execute(func, args, task_count, __Pm__g_config.num_threads);
+    __Pm__LOG_INFO("all done");
+    clock_t end = clock();
+    /* 结束 */
+    // 记录各个任务主函数返回值
     for (int i = 0; i < task_count; i++) {
-        LOG_INFO("result[%d] = %d", i, results[i]);
+        __Pm__LOG_INFO("result[%d] = %d", i, results[i]);
         free(args[i]);
     }
     free(results);
     free(args);
-
-    clock_t end = clock();
+    // 记录总结
     double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
-    LOG_INFO("--- summary ---");
-    LOG_INFO("tasks  %d", task_count);
-    LOG_INFO("time   %.3f s", elapsed);
-    LOG_INFO("avg    %.3f ms/task", elapsed / task_count * 1000.0);
-
-    log_close();
+    __Pm__LOG_INFO("--- summary ---");
+    __Pm__LOG_INFO("tasks  %d", task_count);
+    __Pm__LOG_INFO("time   %.3f s", elapsed);
+    __Pm__LOG_INFO("avg    %.3f ms/task", elapsed / task_count * 1000.0);
+    // 关闭日志
+    __Pm__log_close();
     return 0;
 }

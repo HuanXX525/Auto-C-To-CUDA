@@ -4,7 +4,7 @@
 #include <time.h>
 
 static FILE* g_log = NULL;
-static log_level_t g_level = LOG_TRACE;
+static __Pm__log_level_t g_level = __Pm__LOG_TRACE;
 
 /**
  * @brief 打开日志输出
@@ -16,7 +16,7 @@ static log_level_t g_level = LOG_TRACE;
  * @param path  日志文件路径，传 NULL 表示控制台输出
  * @param level 日志过滤级别
  */
-void log_open(const char* path, log_level_t level) {
+void __Pm__log_open(const char* path, __Pm__log_level_t level) {
     g_level = level;
     if (path)
         g_log = fopen(path, "w");
@@ -25,7 +25,7 @@ void log_open(const char* path, log_level_t level) {
 /**
  * @brief 关闭日志文件（若已打开），恢复静默状态
  */
-void log_close(void) {
+void __Pm__log_close(void) {
     if (g_log) {
         fclose(g_log);
         g_log = NULL;
@@ -37,7 +37,7 @@ void log_close(void) {
  *
  * 格式：时间 [级别标签] 消息
  * 控制台模式下：
- *   - LOG_ERROR → stderr
+ *   - __Pm__LOG_ERROR → stderr
  *   - 其他级别 → stdout
  * 文件模式下全部写入文件。
  *
@@ -45,10 +45,10 @@ void log_close(void) {
  * @param fmt    printf 风格格式化字符串
  * @param ...    可变参数
  */
-void log_write(log_level_t level, const char* fmt, ...) {
+void __Pm__log_write(__Pm__log_level_t level, const char* fmt, ...) {
     if (level > g_level) return;
 
-    FILE* out = g_log ? g_log : (level == LOG_ERROR ? stderr : stdout);
+    FILE* out = g_log ? g_log : (level == __Pm__LOG_ERROR ? stderr : stdout);
 
     time_t t = time(NULL);
     struct tm* tm = localtime(&t);
@@ -57,9 +57,9 @@ void log_write(log_level_t level, const char* fmt, ...) {
 
     const char* tag = "";
     switch (level) {
-        case LOG_ERROR: tag = "[E]"; break;
-        case LOG_INFO:  tag = "[I]"; break;
-        case LOG_TRACE: tag = "[T]"; break;
+        case __Pm__LOG_ERROR: tag = "[E]"; break;
+        case __Pm__LOG_INFO:  tag = "[I]"; break;
+        case __Pm__LOG_TRACE: tag = "[T]"; break;
     }
 
     fprintf(out, "%s %s ", buf, tag);
