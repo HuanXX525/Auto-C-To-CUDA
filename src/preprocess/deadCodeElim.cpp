@@ -124,7 +124,7 @@ void collectDefs(SgStatement* stmt, std::vector<SgInitializedName*>& out) {
 //  Public entry point
 // ---------------------------------------------------------------------------
 
-void eliminateDeadCode(SgBasicBlock* block) {
+void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
     if (!block) return;
 
     SgProject* project = SageInterface::getProject(block);
@@ -135,17 +135,23 @@ void eliminateDeadCode(SgBasicBlock* block) {
 
     log_info("Running SSA-based dead code elimination");
 
-    fixForLoopTests(project);
-
-    // Run SSA analysis on the project
-    StaticSingleAssignment ssa(project);
-    ssa.run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
+    bool ownSsa = false;
+    StaticSingleAssignment *ssa = ssa_in;
+    if (!ssa) {
+        fixForLoopTests(project);
+        ssa = new StaticSingleAssignment(project);
+        ownSsa = true;
+        ssa->run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
+    }
 
     // Flatten all statements in the block into a linear list
     std::vector<SgStatement*> allStmts;
     flattenStmts(block, allStmts);
 
-    if (allStmts.empty()) return;
+    if (allStmts.empty()) {
+        if (ownSsa) delete ssa;
+        return;
+    }
 
     // ---------------------------------------------------------------
     //  Step 1: Build def-use edges using SSA
@@ -171,7 +177,7 @@ void eliminateDeadCode(SgBasicBlock* block) {
     std::map<SgStatement*, std::set<SgStatement*>> preds;
     for (SgStatement* s : allStmts) {
         const StaticSingleAssignment::NodeReachingDefTable& uses =
-            ssa.getUsesAtNode(s);
+            ssa->getUsesAtNode(s);
         for (const auto& useEntry : uses) {
             const StaticSingleAssignment::VarName& vn = useEntry.first;
             auto dit = defMap.find(vn);
@@ -231,4 +237,6 @@ void eliminateDeadCode(SgBasicBlock* block) {
 
     if (removedCount > 0)
         log_info("Dead code elimination removed %d definitions", removedCount);
+
+    if (ownSsa) delete ssa;
 }

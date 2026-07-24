@@ -494,7 +494,7 @@ void ivDrive(SgForStatement* loop, const StaticSingleAssignment& ssa) {
 //  Public entry point
 // ---------------------------------------------------------------------------
 
-void inductionVariableExposure(SgForStatement *loop_nest) {
+void inductionVariableExposure(SgForStatement *loop_nest, StaticSingleAssignment *ssa) {
     if (!loop_nest) return;
 
     SgProject* project = SageInterface::getProject(loop_nest);
@@ -512,12 +512,16 @@ void inductionVariableExposure(SgForStatement *loop_nest) {
 
     log_info("Running SSA-based induction variable exposure");
 
+    bool ownSsa = false;
     try {
-        fixForLoopTests(project);
-        log_info("[SSA] Calling ssa.run() for project...");
-        StaticSingleAssignment ssa(project);
-        ssa.run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
-        log_info("[SSA] ssa.run() completed successfully");
+        if (!ssa) {
+            fixForLoopTests(project);
+            log_info("[SSA] Calling ssa.run() for project...");
+            ssa = new StaticSingleAssignment(project);
+            ownSsa = true;
+            ssa->run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);
+            log_info("[SSA] ssa.run() completed successfully");
+        }
 
         // ivDrive is an optimization pass that rewrites induction variables.
         // It performs aggressive AST modifications (replaceExpression, copyExpression,
@@ -526,11 +530,15 @@ void inductionVariableExposure(SgForStatement *loop_nest) {
         // ivDrive(loop_nest, ssa);
     } catch (const std::exception &e) {
         log_error("[SSA-EXCEPTION] %s", e.what());
+        if (ownSsa) delete ssa;
         return;
     } catch (...) {
         log_error("[SSA-EXCEPTION] unknown exception during SSA");
+        if (ownSsa) delete ssa;
         return;
     }
+
+    if (ownSsa) delete ssa;
 
     log_info("[SSA-EXIT] inductionVariableExposure completed for func=%s", funcName.c_str());
 }

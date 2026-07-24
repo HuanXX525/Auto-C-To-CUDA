@@ -1,5 +1,8 @@
 #ifndef DEADCODEELIM_H
 #define DEADCODEELIM_H
 #include "rose.h"
-void eliminateDeadCode(SgBasicBlock* block);
+
+class StaticSingleAssignment;
+
+void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa = nullptr);
 #endif

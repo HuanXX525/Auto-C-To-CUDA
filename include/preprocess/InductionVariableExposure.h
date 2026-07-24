@@ -2,5 +2,7 @@
 #define INDUCTIONVARIABLEEXPOSURE_H
 #include "rose.h"
 
-void inductionVariableExposure(SgForStatement *loop_nest);
+class StaticSingleAssignment;
+
+void inductionVariableExposure(SgForStatement *loop_nest, StaticSingleAssignment *ssa = nullptr);
 #endif

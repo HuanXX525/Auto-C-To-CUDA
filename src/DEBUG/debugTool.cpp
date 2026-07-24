@@ -181,14 +181,14 @@ static bool isRealProjectNode(SgNode* n)
 }
 
 
-void fixForLoopTests(SgProject *project)
+void fixForLoopTests(SgNode *root)
 {
-	if (!project)
+	if (!root)
 		return;
 
 	int fixed = 0;
 	Rose_STL_Container<SgNode *> loops =
-		NodeQuery::querySubTree(project, V_SgForStatement);
+		NodeQuery::querySubTree(root, V_SgForStatement);
 
 	for (SgNode *n : loops)
 	{

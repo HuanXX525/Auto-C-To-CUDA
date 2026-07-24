@@ -44,6 +44,7 @@
 #include "preprocess/preprocess.hpp"
 #include "preprocess/declarationcopy.h"
 #include "DEBUG/debugTool.h"
+#include <staticSingleAssignment.h>
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
@@ -304,12 +305,29 @@ int main(int argc, char **argv)
 		/* Will hold each of the loop nests */
 		std::list<SgForStatement *> loopNestList;
 
-		/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
-		bool ecs_fn_flag = false;
+	/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
+	bool ecs_fn_flag = false;
 
-		/* Loop through each function definition */
-		/* 对从单个文件中查询到的所有函数定义Node执行以下操作 */
-		while (funcIter != functions.end() && fileGlobalScope != nullptr)
+	/* Build project-wide SSA once per file, shared by all functions and
+	   loop nests in this file.  StaticSingleAssignment(project) traverses
+	   every function in the project, so re-creating it per function is
+	   the dominant runtime cost.  A single SSA build suffices because
+	   inductionVariableExposure no longer modifies AST (ivDrive disabled)
+	   and eliminateDeadCode only queries reaching-def data. */
+	StaticSingleAssignment *fileSsa = nullptr;
+	if (fileGlobalScope) {
+		SgProject *proj = SageInterface::getProject(fileGlobalScope);
+		if (proj) {
+			fixForLoopTests(proj);
+			fileSsa = new StaticSingleAssignment(proj);
+			fileSsa->run(false, false);
+			log_info("[SSA] Project-wide SSA built once for file (reused by all functions)");
+		}
+	}
+
+	/* Loop through each function definition */
+	/* 对从单个文件中查询到的所有函数定义Node执行以下操作 */
+	while (funcIter != functions.end() && fileGlobalScope != nullptr)
 		{
 			/* Get the actual definition node */
 			SgFunctionDefinition *defn = isSgFunctionDefinition(*funcIter);
@@ -399,10 +417,11 @@ int main(int argc, char **argv)
 				/* Increment to get to next loop_nest */
 				for_iter += nest_size;
 			}
-			log_info("OUTER LOOPS: Get %ld Outer Loops", loopNestList.size());
-			// nest_id += loopNestList.size(); // 防止多文件下id重复
-			/* Iterate through the loop nests */
-			std::list<SgForStatement *>::iterator nest_iter;
+		log_info("OUTER LOOPS: Get %ld Outer Loops", loopNestList.size());
+		// nest_id += loopNestList.size(); // 防止多文件下id重复
+
+		/* Iterate through the loop nests */
+		std::list<SgForStatement *>::iterator nest_iter;
 			for (nest_iter = loopNestList.begin(); nest_iter != loopNestList.end(); nest_iter++)
 			{
 				SgForStatement *loop_nest = *nest_iter;
@@ -487,8 +506,8 @@ int main(int argc, char **argv)
 				attr->set_symb_vec(symb_vec);
 
 			/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-			inductionVariableExposure(loop_nest);
-			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
+			inductionVariableExposure(loop_nest, fileSsa);
+			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()), fileSsa);
 
 				/* Affine test */
 				if (!affineTest(loop_nest))
@@ -538,10 +557,13 @@ int main(int argc, char **argv)
 			loopNestList.clear();
 			log_info("--------------------- Exit func %s ---------------------\n", defn->get_declaration()->get_name().getString().c_str());
 			funcIter++;
-			// log_debug("DEBUG:\n %s",defn->unparseToString().c_str());
-		}
+		// log_debug("DEBUG:\n %s",defn->unparseToString().c_str());
+	}
 
-		/* #define the CUDA_BLOCKs */
+	delete fileSsa;
+	fileSsa = nullptr;
+
+	/* #define the CUDA_BLOCKs */
 		/* 在文件的第一个语句前面添加下面的声明 */
 		if (fileGlobalScope != nullptr)
 		{
