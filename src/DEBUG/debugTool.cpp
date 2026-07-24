@@ -181,6 +181,43 @@ static bool isRealProjectNode(SgNode* n)
 }
 
 
+void fixForLoopTests(SgProject *project)
+{
+	if (!project)
+		return;
+
+	int fixed = 0;
+	Rose_STL_Container<SgNode *> loops =
+		NodeQuery::querySubTree(project, V_SgForStatement);
+
+	for (SgNode *n : loops)
+	{
+		SgForStatement *loop = isSgForStatement(n);
+		if (!loop)
+			continue;
+
+		SgStatement *test_stmt = loop->get_test();
+		if (isSgExprStatement(test_stmt))
+			continue;
+
+		SgExprStatement *new_test = SageBuilder::buildExprStatement(
+			SageBuilder::buildIntVal(1));
+		new_test->set_parent(loop);
+		loop->set_test(new_test);
+		fixed++;
+
+		Sg_File_Info *fi = loop->get_file_info();
+		std::cout << "[FIX-FOR-LOOP] Fixed corrupted for-loop test"
+			<< " line=" << (fi ? fi->get_line() : 0)
+			<< " file=" << (fi ? fi->get_filenameString() : "?")
+			<< " replaced_with=SgIntVal(1)"
+			<< std::endl;
+	}
+
+	if (fixed > 0)
+		std::cout << "[FIX-FOR-LOOP] Total fixed: " << fixed << std::endl;
+}
+
 void checkVarRefs(SgNode *root)
 {
     Rose_STL_Container<SgNode*> vars =

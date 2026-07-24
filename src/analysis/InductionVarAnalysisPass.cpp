@@ -520,7 +520,12 @@ bool analyzeInductionVars(SgForStatement *loop_nest, InductionVarInfo &info)
 
 	int loop_nest_size = attr->get_nest_size();
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
-	SgBasicBlock *body = isSgBasicBlock(isSgForStatement(inner_loops[loop_nest_size - 1])->get_loop_body());
+	if (loop_nest_size <= 0 || (int)inner_loops.size() < loop_nest_size)
+		return false;
+	SgForStatement *innermost_loop = isSgForStatement(inner_loops[loop_nest_size - 1]);
+	if (!innermost_loop)
+		return false;
+	SgBasicBlock *body = isSgBasicBlock(innermost_loop->get_loop_body());
 	if(!body)
 		return false;
 

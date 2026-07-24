@@ -19,7 +19,12 @@ void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &
 
 	/* Obtain loop_nest body -- A copy of this will be used in the body of the kernel function */
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
-	SgBasicBlock *body = isSgBasicBlock(isSgForStatement(inner_loops[inner_loops.size() - 1])->get_loop_body());
+	if (inner_loops.empty())
+		return;
+	SgForStatement *innermost = isSgForStatement(inner_loops[inner_loops.size() - 1]);
+	SgBasicBlock *body = isSgBasicBlock(innermost ? innermost->get_loop_body() : NULL);
+	if (!body)
+		return;
 	SgBasicBlock *kernel_body = isSgBasicBlock(SageInterface::copyStatement(body));
 
 	/* Define kernel function */
@@ -162,11 +167,18 @@ bool getLoopInfo(SgForStatement *loop_nest, SgStatement *loop_body, std::vector<
 	{
 		SgForStatement *l = isSgForStatement(*inner_it);
 
+		SgStatement *test_stmt = l->get_test();
+		if (!test_stmt || !isSgExprStatement(test_stmt))
+			return false;
+
 		/* Iteration variables */
 		iter_vec.push_back(SageInterface::getLoopIndexVariable(l));
 														
 		/* Bounds Expressions */
-		SgExpression *bound = isSgBinaryOp(l->get_test_expr())->get_rhs_operand();
+		SgBinaryOp *test_binop = isSgBinaryOp(l->get_test_expr());
+		if (!test_binop)
+			return false;
+		SgExpression *bound = test_binop->get_rhs_operand();
 		bound_vec.push_back(bound);
 
 		/* Symbolic variables */
@@ -484,7 +496,12 @@ void kernelFnDef(SgForStatement *loop_nest, const std::vector<SgInitializedName*
 	if(iter_vec.size() > 3)
 	{
 		Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
-		bound_if_body = isSgBasicBlock(isSgForStatement(inner_loops[2])->get_loop_body());
+		if (inner_loops.size() < 3)
+			return;
+		SgForStatement *loop_at_2 = isSgForStatement(inner_loops[2]);
+		bound_if_body = isSgBasicBlock(loop_at_2 ? loop_at_2->get_loop_body() : NULL);
+		if (!bound_if_body)
+			return;
 
 		/* Create declaration for all of iter vars in the nested loops which will be run on the GPU */
 		for(size_t i = 3; i < inner_loops.size(); i++)

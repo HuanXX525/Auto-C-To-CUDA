@@ -4,6 +4,7 @@
 #include "preprocess/InductionVariableExposure.h"
 #include "loop_attr.hpp"
 #include "logger.h"
+#include "DEBUG/debugTool.h"
 
 #include <vector>
 #include <map>
@@ -512,6 +513,7 @@ void inductionVariableExposure(SgForStatement *loop_nest) {
     log_info("Running SSA-based induction variable exposure");
 
     try {
+        fixForLoopTests(project);
         log_info("[SSA] Calling ssa.run() for project...");
         StaticSingleAssignment ssa(project);
         ssa.run(/*interprocedural=*/false, /*treatPointersAsStructures=*/false);

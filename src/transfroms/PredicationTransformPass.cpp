@@ -41,11 +41,19 @@ bool PredicationTransformPass::transform(SgProject* project, PassContext& ctx) {
         SageInterface::replaceStatement(pred.info->node, newStmt);
         count++;
     }
-    //
-    // 关键：转换完成后修复整棵 AST
-    if (count > 0) {
-        AstPostProcessing(project);
-    }
+	//
+	// 关键：转换完成后修复受影响的子 AST，避免全项目 AstPostProcessing
+	// 全项目 AstPostProcessing 会遍历所有函数，可能与先前的 loop
+	// normalization/transformation 产生 for-loop 内部不一致（例如 test
+	// expression 被错误地设置为 SgNullStatement），导致后续 SSA 断言失败。
+	if (count > 0) {
+		for (auto& pred : candidates) {
+			SgNode *scope = pred.info->node->get_parent();
+			if (scope) {
+				SageInterface::fixVariableReferences(scope);
+			}
+		}
+	}
 
     log("Predicated " + std::to_string(count) + " if statements.");
     return count > 0;

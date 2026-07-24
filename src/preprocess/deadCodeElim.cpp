@@ -3,6 +3,7 @@
 
 #include "preprocess/deadCodeElim.h"
 #include "logger.h"
+#include "DEBUG/debugTool.h"
 
 #include <vector>
 #include <set>
@@ -133,6 +134,8 @@ void eliminateDeadCode(SgBasicBlock* block) {
     }
 
     log_info("Running SSA-based dead code elimination");
+
+    fixForLoopTests(project);
 
     // Run SSA analysis on the project
     StaticSingleAssignment ssa(project);

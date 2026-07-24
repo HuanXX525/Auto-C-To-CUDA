@@ -10,5 +10,7 @@ void checkVarRefs(SgNode *root);
 
 void checkNullParent(SgNode *root, const std::string &tag,
                     std::function<void(const std::string&)> logger);
+
+void fixForLoopTests(SgProject *project);
 #endif
 

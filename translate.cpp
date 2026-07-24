@@ -450,16 +450,20 @@ int main(int argc, char **argv)
 				for (inner_it = inner_loops.begin(); inner_it != inner_loops.end(); inner_it++)
 				{
 					SgForStatement *l = isSgForStatement(*inner_it);
-					if (!l->get_test())
-						continue;
+				SgStatement *test_stmt = l->get_test();
+				if (!test_stmt || !isSgExprStatement(test_stmt))
+					continue;
 
 					/* Iteration variables */
 					/* 迭代变量获取 */
 					iter_vec.push_back(SageInterface::getLoopIndexVariable(l));
 
-					/* Bounds Expressions */
-					/* 获得边界，由于标准化了一定是上界 */
-					SgExpression *bound = isSgBinaryOp(l->get_test_expr())->get_rhs_operand();
+				/* Bounds Expressions */
+				/* 获得边界，由于标准化了一定是上界 */
+				SgBinaryOp *test_binop = isSgBinaryOp(l->get_test_expr());
+				if (!test_binop)
+					continue;
+				SgExpression *bound = test_binop->get_rhs_operand();
 					bound_vec.push_back(bound);
 
 					/* Symbolic Constants -- Query for any variable references in the bounds expression */
@@ -482,9 +486,9 @@ int main(int argc, char **argv)
 				attr->set_bound_vec(bound_vec);
 				attr->set_symb_vec(symb_vec);
 
-				/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-				inductionVariableExposure(loop_nest);
-				eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
+			/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
+			inductionVariableExposure(loop_nest);
+			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()));
 
 				/* Affine test */
 				if (!affineTest(loop_nest))

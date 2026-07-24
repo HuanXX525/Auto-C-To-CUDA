@@ -1,6 +1,7 @@
 /* Loop normalization */
 
 #include "normalize/normalize.hpp"
+#include "logger.h"
 
 /* Normalize the loop nest (this gets called in main() of translate.cpp */
 bool normalizeLoopNest(SgForStatement *loop_nest)
@@ -91,6 +92,12 @@ bool normalizeLoop(SgForStatement *loop)
 	********************************
 	*/
 	
+	/* Verify test is a proper expression (not SgNullStatement) after forLoopNormalization */
+	if (!isSgExprStatement(loop->get_test())) {
+		log_debug("normalizeLoop: test expression is not a valid SgExprStatement, skipping");
+		return false;
+	}
+
 	SgExpression *test_expr = loop->get_test_expr();
 	SgBinaryOp *test = isSgBinaryOp(test_expr);
 
