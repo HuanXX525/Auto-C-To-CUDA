@@ -89,19 +89,39 @@ bool isUsefulStmt(SgStatement* stmt) {
     if (containsFunctionCall(stmt)) return true;
     if (hasArrayWrite(stmt)) return true;
 
+    // Compound assignments and increments (e.g. a+=b, ++a) are accumulators
+    // whose final value matters outside the loop. Treat as side effect.
+    if (SgExprStatement* es = isSgExprStatement(stmt)) {
+        SgExpression* e = es->get_expression();
+        if (isSgCompoundAssignOp(e) || isSgPlusPlusOp(e) || isSgMinusMinusOp(e))
+            return true;
+    }
+
     return false;
 }
 
 // ---------- Variable definition extraction ----------
 
-// Get the SgInitializedName defined by a simple assignment or decl.
+// Get the SgInitializedName defined by an assignment, compound assignment,
+// increment/decrement, or variable declaration.
 SgInitializedName* getDefinedVar(SgStatement* stmt) {
     SgExprStatement* es = isSgExprStatement(stmt);
     if (es) {
-        SgAssignOp* assign = isSgAssignOp(es->get_expression());
-        if (!assign) return nullptr;
-        SgVarRefExp* lhs = isSgVarRefExp(assign->get_lhs_operand());
-        return lhs ? lhs->get_symbol()->get_declaration() : nullptr;
+        SgExpression* expr = es->get_expression();
+        if (SgAssignOp* assign = isSgAssignOp(expr)) {
+            SgVarRefExp* lhs = isSgVarRefExp(assign->get_lhs_operand());
+            if (lhs) return lhs->get_symbol()->get_declaration();
+        }
+        if (SgCompoundAssignOp* ca = isSgCompoundAssignOp(expr)) {
+            SgVarRefExp* lhs = isSgVarRefExp(ca->get_lhs_operand());
+            if (lhs) return lhs->get_symbol()->get_declaration();
+        }
+        if (isSgPlusPlusOp(expr) || isSgMinusMinusOp(expr)) {
+            SgUnaryOp* uop = isSgUnaryOp(expr);
+            SgVarRefExp* operand = isSgVarRefExp(uop->get_operand());
+            if (operand) return operand->get_symbol()->get_declaration();
+        }
+        return nullptr;
     }
     SgVariableDeclaration* vd = isSgVariableDeclaration(stmt);
     if (vd) {
@@ -161,14 +181,14 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
     //    def_stmt_of[V] for each V used by S (from SSA getUsesAtNode)
     // ---------------------------------------------------------------
 
-    // Build map: VarName → defining statement
-    std::map<StaticSingleAssignment::VarName, SgStatement*> defMap;
+    // Build map: VarName → defining statements (may be multiple: decl + assignment)
+    std::map<StaticSingleAssignment::VarName, std::vector<SgStatement*>> defMap;
     for (SgStatement* s : allStmts) {
         std::vector<SgInitializedName*> defs;
         collectDefs(s, defs);
         for (SgInitializedName* d : defs) {
             StaticSingleAssignment::VarName vn = makeVarName(d);
-            defMap[vn] = s;
+            defMap[vn].push_back(s);
         }
     }
 
@@ -206,9 +226,10 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
             auto dit = defMap.find(vn);
             if (dit == defMap.end()) continue;
 
-            SgStatement* defStmt = dit->second;
-            if (defStmt != s)
-                preds[s].insert(defStmt);
+            for (SgStatement* defStmt : dit->second) {
+                if (defStmt != s)
+                    preds[s].insert(defStmt);
+            }
         }
     }
 

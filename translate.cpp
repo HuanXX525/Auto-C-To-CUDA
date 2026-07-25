@@ -48,7 +48,6 @@
 #include <inliner.h>
 #include <chrono>
 #include "fileio/io.h"
-#include "threading/pthread_transform.hpp"
 #include <atomic>
 #include "utils/translate_job.h"
 
@@ -571,9 +570,6 @@ int main(int argc, char **argv)
 
 	delete globalSsa;
 	globalSsa = nullptr;
-
-	// 将整个提取为函数
-	c2cuda::applyPthreadTransform(project);
 
 	/* Obtain translation */
 	project->unparse();
