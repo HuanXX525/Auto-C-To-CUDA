@@ -220,6 +220,15 @@ bool normalizeLoop(SgForStatement *loop)
 		/* Make the change from index to (S*index)-S+L */
 		if(curr_decl == index_decl)
 		{
+			/* Skip lvalue uses: ++i / --i and i on lhs of assignment would
+			   produce invalid code after replacement (e.g. ++(1*i+0)) */
+			SgNode *parent = curr_ref->get_parent();
+			if (isSgPlusPlusOp(parent) || isSgMinusMinusOp(parent))
+				continue;
+			if (SgBinaryOp *bop = isSgBinaryOp(parent)) {
+				if (bop->get_lhs_operand() == curr_ref)
+					continue;
+			}
 						
 			/* Make it (S*index) + (L-S) to help with constant folding */
 			SgExpression *mul = SageBuilder::buildMultiplyOp(SageInterface::copyExpression(S), SageInterface::copyExpression(index));

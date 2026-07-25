@@ -362,10 +362,19 @@ public:
                     if (vdecl)
                     {
                         // 跳过当前函数内部的局部变量（内联后会被 renameAfterInline 处理）
-                        SgFunctionDefinition *enclosingFunc =
-                            SageInterface::getEnclosingFunctionDefinition(vdecl);
-                        if (enclosingFunc != m_funcDef)
-                            addVariableDecl(result, seen, vdecl);
+                        // 同时跳过 struct/class 成员变量，它们不属于函数作用域
+                        SgScopeStatement *declScope = vdecl->get_scope();
+                        if (isSgClassDefinition(declScope))
+                        {
+                            // 这是结构体/类成员，不单独插入，类型依赖由 collectFromType 处理
+                        }
+                        else
+                        {
+                            SgFunctionDefinition *enclosingFunc =
+                                SageInterface::getEnclosingFunctionDefinition(vdecl);
+                            if (enclosingFunc != m_funcDef)
+                                addVariableDecl(result, seen, vdecl);
+                        }
                     }
 
                     // 变量类型也可能引入 typedef / struct / enum
