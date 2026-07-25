@@ -266,6 +266,15 @@ int main(int argc, char **argv)
 	log_info("第二遍");
 	int nest_id = 0; // 防止多文件ID重复
 
+	/* Build project-wide SSA once for the entire project.
+	   StaticSingleAssignment traverses every function in the project,
+	   so doing it once is sufficient and avoids redundant work per file. */
+	StaticSingleAssignment *globalSsa = nullptr;
+	fixForLoopTests(project);
+	globalSsa = new StaticSingleAssignment(project);
+	globalSsa->run(false, false);
+	log_info("[SSA] Project-wide SSA built once globally (reused by all files)");
+
 	/* Track parallelized loops for summary output */
 	struct ParallelizedLoop {
 		std::string func_name;
@@ -307,23 +316,6 @@ int main(int argc, char **argv)
 
 	/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
 	bool ecs_fn_flag = false;
-
-	/* Build project-wide SSA once per file, shared by all functions and
-	   loop nests in this file.  StaticSingleAssignment(project) traverses
-	   every function in the project, so re-creating it per function is
-	   the dominant runtime cost.  A single SSA build suffices because
-	   inductionVariableExposure no longer modifies AST (ivDrive disabled)
-	   and eliminateDeadCode only queries reaching-def data. */
-	StaticSingleAssignment *fileSsa = nullptr;
-	if (fileGlobalScope) {
-		SgProject *proj = SageInterface::getProject(fileGlobalScope);
-		if (proj) {
-			fixForLoopTests(proj);
-			fileSsa = new StaticSingleAssignment(proj);
-			fileSsa->run(false, false);
-			log_info("[SSA] Project-wide SSA built once for file (reused by all functions)");
-		}
-	}
 
 	/* Loop through each function definition */
 	/* 对从单个文件中查询到的所有函数定义Node执行以下操作 */
@@ -506,8 +498,8 @@ int main(int argc, char **argv)
 				attr->set_symb_vec(symb_vec);
 
 			/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-			inductionVariableExposure(loop_nest, fileSsa);
-			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()), fileSsa);
+			inductionVariableExposure(loop_nest, globalSsa);
+			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()), globalSsa);
 
 				/* Affine test */
 				if (!affineTest(loop_nest))
@@ -560,9 +552,6 @@ int main(int argc, char **argv)
 		// log_debug("DEBUG:\n %s",defn->unparseToString().c_str());
 	}
 
-	delete fileSsa;
-	fileSsa = nullptr;
-
 	/* #define the CUDA_BLOCKs */
 		/* 在文件的第一个语句前面添加下面的声明 */
 		if (fileGlobalScope != nullptr)
@@ -579,6 +568,9 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define AUTOC2CUDATEST");
 		}
 	}
+
+	delete globalSsa;
+	globalSsa = nullptr;
 
 	// 将整个提取为函数
 	c2cuda::applyPthreadTransform(project);

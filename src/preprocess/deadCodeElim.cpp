@@ -176,10 +176,33 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
     // predecessor of S = def_stmt_of[V] for each V used in S
     std::map<SgStatement*, std::set<SgStatement*>> preds;
     for (SgStatement* s : allStmts) {
-        const StaticSingleAssignment::NodeReachingDefTable& uses =
-            ssa->getUsesAtNode(s);
-        for (const auto& useEntry : uses) {
-            const StaticSingleAssignment::VarName& vn = useEntry.first;
+        // SSA may store uses at child expression nodes (SgFunctionCallExp, SgVarRefExp, etc.)
+        // rather than at the statement level.  Collect uses from the stmt itself and
+        // from all significant child nodes.
+        std::set<StaticSingleAssignment::VarName> allUses;
+
+        auto collectFromNode = [&](SgNode* node) {
+            const StaticSingleAssignment::NodeReachingDefTable& uses =
+                ssa->getUsesAtNode(node);
+            for (const auto& useEntry : uses)
+                allUses.insert(useEntry.first);
+        };
+
+        // Query the statement itself
+        collectFromNode(s);
+
+        // Also query function call expressions and variable references inside the statement
+        Rose_STL_Container<SgNode*> callExps =
+            NodeQuery::querySubTree(s, V_SgFunctionCallExp);
+        for (SgNode* call : callExps)
+            collectFromNode(call);
+
+        Rose_STL_Container<SgNode*> varRefs =
+            NodeQuery::querySubTree(s, V_SgVarRefExp);
+        for (SgNode* vref : varRefs)
+            collectFromNode(vref);
+
+        for (const auto& vn : allUses) {
             auto dit = defMap.find(vn);
             if (dit == defMap.end()) continue;
 
