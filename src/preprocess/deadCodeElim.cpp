@@ -1,5 +1,6 @@
 #include <rose.h>
 #include <staticSingleAssignment.h>
+#include <reachingDef.h>
 
 #include "preprocess/deadCodeElim.h"
 #include "logger.h"
@@ -154,38 +155,63 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
     }
 
     // ---------------------------------------------------------------
-    //  Step 1: Build def-use edges using SSA
+    //  Step 1: Build def-use edges using SSA reaching definitions
     // ---------------------------------------------------------------
-    //  We maintain:  def_stmt_of[VarName] = the statement that defines it
-    //  For each statement S, its def-use predecessors are:
-    //    def_stmt_of[V] for each V used by S (from SSA getUsesAtNode)
+    //  Bug fix #1 (defMap overwrite):
+    //    Previous code used defMap[VarName] → Stmt, which caused later
+    //    definitions to overwrite earlier ones for the same variable
+    //    name. Now we query SSA's reaching definition for each variable
+    //    reference directly, so each use maps to its exact definition.
+    //
+    //  Bug fix #2 (getUsesAtNode returns empty at statement level):
+    //    SSA's getUsesAtNode(Stmt) returns 0 uses for variables inside
+    //    array subscripts. Now we traverse SgVarRefExp children and use
+    //    getReachingDefsAtNode_ for precise def-use edges.
+    //
+    //  Conservative policy: phi nodes, null pointers, and definitions
+    //  outside the current block are all skipped (no edge built).
     // ---------------------------------------------------------------
 
-    // Build map: VarName → defining statement
-    std::map<StaticSingleAssignment::VarName, SgStatement*> defMap;
-    for (SgStatement* s : allStmts) {
-        std::vector<SgInitializedName*> defs;
-        collectDefs(s, defs);
-        for (SgInitializedName* d : defs) {
-            StaticSingleAssignment::VarName vn = makeVarName(d);
-            defMap[vn] = s;
-        }
-    }
+    // Fast lookup set for statements in this block
+    std::set<SgStatement*> stmtSet(allStmts.begin(), allStmts.end());
 
-    // Build predecessor edges:  S → { predecessors }
-    // predecessor of S = def_stmt_of[V] for each V used in S
+    // Build predecessor edges: S → { defining statements of variables used in S }
     std::map<SgStatement*, std::set<SgStatement*>> preds;
     for (SgStatement* s : allStmts) {
-        const StaticSingleAssignment::NodeReachingDefTable& uses =
-            ssa->getUsesAtNode(s);
-        for (const auto& useEntry : uses) {
-            const StaticSingleAssignment::VarName& vn = useEntry.first;
-            auto dit = defMap.find(vn);
-            if (dit == defMap.end()) continue;
+        // Traverse all variable references within the statement
+        Rose_STL_Container<SgNode*> varRefs =
+            NodeQuery::querySubTree(s, V_SgVarRefExp);
+        for (SgNode* n : varRefs) {
+            SgVarRefExp* ref = isSgVarRefExp(n);
+            if (!ref) continue;
 
-            SgStatement* defStmt = dit->second;
-            if (defStmt != s)
-                preds[s].insert(defStmt);
+            // Query precise reaching definitions at this use point
+            const StaticSingleAssignment::NodeReachingDefTable& reachingDefs =
+                ssa->getReachingDefsAtNode_(ref);
+
+            for (const auto& rdEntry : reachingDefs) {
+                const StaticSingleAssignment::ReachingDefPtr& reachingDef =
+                    rdEntry.second;
+
+                // Conservative: skip null reaching def
+                if (!reachingDef) continue;
+
+                // Conservative: skip phi nodes (multiple definitions merge)
+                if (reachingDef->isPhiFunction()) continue;
+
+                // Get the AST node where this definition occurs
+                SgNode* defNode = reachingDef->getDefinitionNode();
+                if (!defNode) continue;
+
+                // Find the enclosing statement of the definition
+                SgStatement* defStmt =
+                    SageInterface::getEnclosingNode<SgStatement>(defNode, true);
+                if (!defStmt) continue;
+
+                // Only build edges to statements within this block
+                if (defStmt != s && stmtSet.count(defStmt))
+                    preds[s].insert(defStmt);
+            }
         }
     }
 
