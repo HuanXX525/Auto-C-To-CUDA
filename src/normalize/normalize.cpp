@@ -1,7 +1,39 @@
-/* Loop normalization */
+/* Normalize loop nest */
 
 #include "normalize/normalize.hpp"
 #include "logger.h"
+
+namespace {
+
+// Extract integer value from any ROSE integer constant expression,
+// regardless of signedness.  Returns 0 for non-constant expressions.
+// Also recurses through SgCastExp wrappers.
+long long intValueOf(SgExpression *e)
+{
+	if (!e) return 0;
+	if (SgCastExp* cast = isSgCastExp(e))
+		return intValueOf(cast->get_operand());
+	if (SgUnsignedIntVal* v = isSgUnsignedIntVal(e)) return (long long)v->get_value();
+	if (SgIntVal* v = isSgIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedLongVal* v = isSgUnsignedLongVal(e)) return (long long)v->get_value();
+	if (SgLongIntVal* v = isSgLongIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedLongLongIntVal* v = isSgUnsignedLongLongIntVal(e)) return (long long)v->get_value();
+	if (SgLongLongIntVal* v = isSgLongLongIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedShortVal* v = isSgUnsignedShortVal(e)) return (long long)v->get_value();
+	if (SgShortVal* v = isSgShortVal(e)) return (long long)v->get_value();
+	return 0;
+}
+
+// True if the expression is a compile-time integer constant (possibly
+// wrapped in casts).
+bool isIntConst(SgExpression *e)
+{
+	if (!e) return false;
+	if (isSgCastExp(e)) return isIntConst(isSgCastExp(e)->get_operand());
+	return isSgValueExp(e);
+}
+
+} // anonymous namespace
 
 /* Normalize the loop nest (this gets called in main() of translate.cpp */
 bool normalizeLoopNest(SgForStatement *loop_nest)
@@ -268,10 +300,23 @@ bool normalizeLoop(SgForStatement *loop)
 					continue;
 			}
 						
-			/* Make it (S*index) + (L-S) to help with constant folding */
-			SgExpression *mul = SageBuilder::buildMultiplyOp(SageInterface::copyExpression(S), SageInterface::copyExpression(index));
-			//SgExpression *new_var = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(mul, S) , L);
-			SgExpression *new_var = SageBuilder::buildAddOp(mul, SageBuilder::buildSubtractOp(SageInterface::copyExpression(L), SageInterface::copyExpression(S) ) );				
+			/* Make it (S*index) + (L-S) using signed arithmetic to
+			   avoid unsigned wrapping (e.g. 0u-1 ≠ -1, it wraps to
+			   UINT_MAX, corrupting array indices). */
+			SgExpression *mul = SageBuilder::buildMultiplyOp(
+				SageInterface::copyExpression(S),
+				SageInterface::copyExpression(index));
+			SgExpression *new_var;
+			if (isIntConst(L) && isIntConst(S)) {
+				long long delta = intValueOf(L) - intValueOf(S);
+				new_var = SageBuilder::buildAddOp(
+					mul, SageBuilder::buildLongLongIntVal(delta));
+			} else {
+				new_var = SageBuilder::buildAddOp(mul,
+					SageBuilder::buildSubtractOp(
+						SageInterface::copyExpression(L),
+						SageInterface::copyExpression(S)));
+			}
 			SageInterface::replaceExpression(curr_ref, new_var); 
 		}
 	
