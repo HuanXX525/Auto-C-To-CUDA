@@ -265,40 +265,29 @@ int main(int argc, char **argv)
 	log_info("第二遍");
 	int nest_id = 0; // 防止多文件ID重复
 
-	/* Build project-wide SSA once for the entire project.
-	   StaticSingleAssignment traverses every function in the project,
-	   so doing it once is sufficient and avoids redundant work per file. */
-	StaticSingleAssignment *globalSsa = nullptr;
-	fixForLoopTests(project);
-	globalSsa = new StaticSingleAssignment(project);
-	globalSsa->run(false, false);
-	log_info("[SSA] Project-wide SSA built once globally (reused by all files)");
-
-	/* Track parallelized loops for summary output */
-	struct ParallelizedLoop {
-		std::string func_name;
-		int nest_size;
-		std::string loop_info;
+	/* Project-level data for deferred SSA phases */
+	struct QualifiedNest {
+		SgForStatement *loop_nest;
+		LoopNestAttribute *attr;
+		SgFunctionDefinition *cur_func;
+		std::string cur_func_name;
+		SgGlobal *file_global_scope;
 	};
-	std::vector<ParallelizedLoop> parallelized_loops;
+	std::vector<QualifiedNest> qualified;
+
+	/* Fix for(;;) null-test expressions before normalisation touches them */
+	fixForLoopTests(project);
+
+	/* ──── Pass 1: collect + normalise all loop nests ──── */
 	for (size_t fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
 	{
-		/* Obtain the global scope */
-		SgGlobal *fileGlobalScope = nullptr; // 生成代码时需要在本文件的域内生成
+		SgGlobal *fileGlobalScope = nullptr;
 		SgFile *file = fileList[fileIndex];
 		SgSourceFile *sourceFile = isSgSourceFile(file);
 		if (sourceFile)
 		{
 			fileGlobalScope = sourceFile->get_globalScope();
-
-            const std::string requestedOutput =
-                build_result.job.getOutputPath(
-                    sourceFile->get_sourceFileNameWithPath());
-            if (!renameToCU(sourceFile, requestedOutput))
-            {
-                return 1;
-            }
-        }
+		}
 		else
 		{
 			continue;
@@ -312,9 +301,6 @@ int main(int argc, char **argv)
 
 		/* Will hold each of the loop nests */
 		std::list<SgForStatement *> loopNestList;
-
-	/* Flag to see if ecsMinFn and ecsMaxFn have been created already (to be used in parallelism extraction) */
-	bool ecs_fn_flag = false;
 
 	/* Loop through each function definition */
 	/* 对从单个文件中查询到的所有函数定义Node执行以下操作 */
@@ -496,53 +482,7 @@ int main(int argc, char **argv)
 				attr->set_bound_vec(bound_vec);
 				attr->set_symb_vec(symb_vec);
 
-			/* Induction-variable exposure runs after normalization and before affine/dependence checks. */
-			inductionVariableExposure(loop_nest, globalSsa);
-			eliminateDeadCode(isSgBasicBlock(loop_nest->get_loop_body()), globalSsa);
-
-				/* Affine test */
-				if (!affineTest(loop_nest))
-				{
-					log_info("Loop Nest Skipped (Not Affine)");
-					attr->set_nest_flag(false);
-					continue;
-				}
-
-				/* Dependency Tests */
-				switch (dependencyExists(loop_nest))
-				{
-			case 0: /* Code Generation */
-				log_info("No Dependency Exists");
-				log_info("[KERNEL-GEN] Generating kernel for nest_id=%d func=%s",
-				         nest_id, cur_func_name.c_str());
-				kernelCodeGenSimple(loop_nest, fileGlobalScope, nest_id);
-				log_info("[KERNEL-GEN] Done kernel for nest_id=%d", nest_id);
-				parallelized_loops.push_back({
-					defn->get_declaration()->get_name().getString(),
-					attr->get_nest_size(),
-					loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')) });
-				break;
-
-			case 1: /* Parallelism Extraction */
-				log_info("Dependency Exists");
-				if (!extractParallelism(loop_nest, fileGlobalScope, nest_id, ecs_fn_flag))
-					log_info("Loop Nest Skipped (Could Not Extract Parallelism");
-				else
-					parallelized_loops.push_back({
-						defn->get_declaration()->get_name().getString(),
-						attr->get_nest_size(),
-						loop_nest->unparseToString().substr(0, loop_nest->unparseToString().find('\n')) });
-
-					break;
-
-				case 2: /* Skip Loop Nest */
-					log_info("Loop Nest Skipped (Could Not Determine Dependence)");
-					attr->set_nest_flag(false);
-					continue;
-
-				default: /* Should not reach here, skip loop to be safe */
-					continue;
-				}
+				qualified.push_back({loop_nest, attr, cur_func, cur_func_name, fileGlobalScope});
 			}
 			// TEST
 			loopNestList.clear();
@@ -550,9 +490,116 @@ int main(int argc, char **argv)
 			funcIter++;
 		// log_debug("DEBUG:\n %s",defn->unparseToString().c_str());
 	}
+	}  /* end Pass 1 (collect + normalise) */
 
-	/* #define the CUDA_BLOCKs */
-		/* 在文件的第一个语句前面添加下面的声明 */
+	/* ── Phase 1: SSA → induction variable exposure (project-wide) ── */
+	if (!qualified.empty()) {
+		log_info("[SSA-PHASE1] Building SSA for induction variable exposure (%zu nests)",
+		         qualified.size());
+		fixForLoopTests(project);
+		StaticSingleAssignment *ssa = new StaticSingleAssignment(project);
+		ssa->run(false, false);
+		for (auto &qn : qualified)
+			inductionVariableExposure(qn.loop_nest, ssa);
+		delete ssa;
+	}
+
+	/* ── Phase 2: SSA → dead code elimination (project-wide) ── */
+	if (!qualified.empty()) {
+		log_info("[SSA-PHASE2] Rebuilding SSA for dead code elimination");
+		fixForLoopTests(project);
+		StaticSingleAssignment *ssa = new StaticSingleAssignment(project);
+		ssa->run(false, false);
+		for (auto &qn : qualified)
+			eliminateDeadCode(isSgBasicBlock(qn.loop_nest->get_loop_body()), ssa);
+		delete ssa;
+	}
+
+	/* ──── Pass 2: code generation per file ──── */
+
+	/* Track parallelized loops for summary output */
+	struct ParallelizedLoop {
+		std::string func_name;
+		int nest_size;
+		std::string loop_info;
+	};
+	std::vector<ParallelizedLoop> parallelized_loops;
+
+	for (size_t fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
+	{
+		SgGlobal *fileGlobalScope = nullptr;
+		SgFile *file = fileList[fileIndex];
+		SgSourceFile *sourceFile = isSgSourceFile(file);
+		if (sourceFile)
+		{
+			fileGlobalScope = sourceFile->get_globalScope();
+
+			const std::string requestedOutput =
+				build_result.job.getOutputPath(
+					sourceFile->get_sourceFileNameWithPath());
+			if (!renameToCU(sourceFile, requestedOutput))
+			{
+				return 1;
+			}
+		}
+		else
+		{
+			continue;
+		}
+
+		bool ecs_fn_flag = false;
+
+		/* ── Phase 3: affine test → dependency test → code generation ── */
+		for (auto &qn : qualified) {
+			if (qn.file_global_scope != fileGlobalScope)
+				continue;
+
+			log_info("[CODGEN] nest_id=%d func=%s",
+			         nest_id, qn.cur_func_name.c_str());
+
+			if (!affineTest(qn.loop_nest)) {
+				log_info("Loop Nest Skipped (Not Affine)");
+				qn.attr->set_nest_flag(false);
+				continue;
+			}
+
+			switch (dependencyExists(qn.loop_nest)) {
+			case 0: /* Code Generation */
+				log_info("No Dependency Exists");
+				log_info("[KERNEL-GEN] Generating kernel for nest_id=%d func=%s",
+				         nest_id, qn.cur_func_name.c_str());
+				kernelCodeGenSimple(qn.loop_nest, fileGlobalScope, nest_id);
+				log_info("[KERNEL-GEN] Done kernel for nest_id=%d", nest_id);
+				parallelized_loops.push_back({
+					qn.cur_func->get_declaration()->get_name().getString(),
+					qn.attr->get_nest_size(),
+					qn.loop_nest->unparseToString().substr(0, qn.loop_nest->unparseToString().find('\n'))
+				});
+				break;
+
+			case 1: /* Parallelism Extraction */
+				log_info("Dependency Exists");
+				if (!extractParallelism(qn.loop_nest, fileGlobalScope, nest_id, ecs_fn_flag))
+					log_info("Loop Nest Skipped (Could Not Extract Parallelism");
+				else
+					parallelized_loops.push_back({
+						qn.cur_func->get_declaration()->get_name().getString(),
+						qn.attr->get_nest_size(),
+						qn.loop_nest->unparseToString().substr(0, qn.loop_nest->unparseToString().find('\n'))
+					});
+				break;
+
+			case 2:
+				log_info("Loop Nest Skipped (Could Not Determine Dependence)");
+				qn.attr->set_nest_flag(false);
+				continue;
+
+			default:
+				continue;
+			}
+		}
+
+		/* #define the CUDA_BLOCKs */
 		if (fileGlobalScope != nullptr)
 		{
 			SgLocatedNode *top_scope = fileGlobalScope;
@@ -563,13 +610,9 @@ int main(int argc, char **argv)
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_X 128");
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Y 1");
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define CUDA_BLOCK_Z 1");
-			// 添加宏用于测试，区分是否已经转化
 			SageBuilder::buildCpreprocessorDefineDeclaration(top_scope, "#define AUTOC2CUDATEST");
 		}
 	}
-
-	delete globalSsa;
-	globalSsa = nullptr;
 
 	/* Obtain translation */
 	project->unparse();

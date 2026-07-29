@@ -36,7 +36,41 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	/* Perform constant folding on the normalized nest (need to supply the parent node) */
 	SageInterface::fixVariableReferences(loop_nest);
 	SageInterface::constantFolding(loop_nest);
-	AstPostProcessing(loop_nest);
+
+	/* AstPostProcessing fixes parent pointers but also runs ROSE's own DCE,
+	   which can drop variable declarations that are only used as array
+	   subscript indices.  Save referenced vars, let it run, then restore
+	   any declarations that went missing. */
+	{
+		std::set<SgInitializedName*> liveVars;
+		Rose_STL_Container<SgNode*> refs =
+			NodeQuery::querySubTree(loop_nest, V_SgVarRefExp);
+		for (SgNode* n : refs) {
+			SgVarRefExp* ref = isSgVarRefExp(n);
+			if (ref && ref->get_symbol())
+				liveVars.insert(ref->get_symbol()->get_declaration());
+		}
+		AstPostProcessing(loop_nest);
+		Rose_STL_Container<SgNode*> nowDecls =
+			NodeQuery::querySubTree(loop_nest, V_SgVariableDeclaration);
+		std::set<SgInitializedName*> nowVars;
+		for (SgNode* n : nowDecls) {
+			SgVariableDeclaration* vd = isSgVariableDeclaration(n);
+			if (!vd) continue;
+			SgInitializedNamePtrList& vars = vd->get_variables();
+			for (SgInitializedName* v : vars)
+				nowVars.insert(v);
+		}
+		SgBasicBlock* body = isSgBasicBlock(loop_nest->get_loop_body());
+		for (SgInitializedName* var : liveVars) {
+			if (nowVars.count(var)) continue;
+			SgInitializer* init = var->get_initializer();
+			SgVariableDeclaration* newVd = SageBuilder::buildVariableDeclaration(
+				var->get_name(), var->get_type(), init, body);
+			if (body && newVd)
+				SageInterface::prependStatement(newVd, body);
+		}
+	}
 
 	/* If we get here, the loop nest should be normalized */
 	return true;
@@ -46,6 +80,10 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 /* Normalize individual loops (this gets called by normalizeLoopNest() */
 bool normalizeLoop(SgForStatement *loop)
 {
+	/* Skip for(;;) and loops whose test is missing/corrupted */
+	if (!isSgExprStatement(loop->get_test()))
+		return false;
+
 	/* Creates loop in form of: int i; for(i = L; i <= U; i += S) */
 	if(SageInterface::forLoopNormalization(loop) == false)
 		return false;

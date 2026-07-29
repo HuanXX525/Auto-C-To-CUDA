@@ -222,8 +222,31 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
         for (SgNode* vref : varRefs)
             collectFromNode(vref);
 
+        // Fallback: direct AST scan for uses that SSA misses
+        // (e.g., array-index variables on the LHS of an assignment)
+        if (isUsefulStmt(s)) {
+            for (SgNode* vref : varRefs) {
+                SgVarRefExp* ref = isSgVarRefExp(vref);
+                if (!ref) continue;
+                SgInitializedName* varDecl = ref->get_symbol()->get_declaration();
+                if (!varDecl) continue;
+                StaticSingleAssignment::VarName vn;
+                vn.push_back(varDecl);
+                auto dit = defMap.find(vn);
+                if (dit != defMap.end()) {
+                    for (SgStatement* defStmt : dit->second) {
+                        if (defStmt != s)
+                            preds[s].insert(defStmt);
+                    }
+                }
+            }
+        }
+
         for (const auto& vn : allUses) {
-            auto dit = defMap.find(vn);
+            if (vn.empty()) continue;
+            StaticSingleAssignment::VarName baseName;
+            baseName.push_back(vn[0]);
+            auto dit = defMap.find(baseName);
             if (dit == defMap.end()) continue;
 
             for (SgStatement* defStmt : dit->second) {
