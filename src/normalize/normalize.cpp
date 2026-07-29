@@ -41,9 +41,10 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	/* Obtain each of the loops in the nest */
 	Rose_STL_Container<SgNode*> loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 
-	/* Loop thru the loops in the nest */
-	Rose_STL_Container<SgNode*>::iterator iter;
-	for(iter = loops.begin(); iter != loops.end(); iter++)
+	/* Loop thru the loops in the nest — reverse (innermost-first)
+	   so inner loop normalization sees unmodified outer loop variables. */
+	Rose_STL_Container<SgNode*>::reverse_iterator iter;
+	for(iter = loops.rbegin(); iter != loops.rend(); iter++)
 	{
 		/* Make proper cast */
 		SgForStatement *loop = isSgForStatement(*iter);
@@ -208,13 +209,10 @@ bool normalizeLoop(SgForStatement *loop)
 			//SgExpression *num = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(U, L) , S);
 			//SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
 			
-			/* Replace U with (U + (S - L))/S in order to help with constant folding (since U can be a variable) */
+			/* Replace U with (U + (S - L))/S.  Cast L to signed to
+			   avoid unsigned wrapping (e.g. S-(i+1u) when i>0). */
+			SgType *sigTy = SageBuilder::buildLongType();
 
-			/* Handle the case when U is a binary op (ex: U = x+1)
-			   
-			   This only helps for the case when U was originally a var, 
-			   since SageInterface::forLoopNormalization() may add or sub a 1
-			*/
 			SgExpression *num;
 			if(isSgBinaryOp(U))
 			{
@@ -224,22 +222,35 @@ bool normalizeLoop(SgForStatement *loop)
 				/* (x+1)+(S-L) --> x+(1+(S-L)) */
 				if(isSgAddOp(U))
 				{
-					SgExpression *intermed = SageBuilder::buildAddOp(rhs, SageBuilder::buildSubtractOp(S, L) );
+					SgExpression *intermed = SageBuilder::buildAddOp(rhs,
+						SageBuilder::buildSubtractOp(
+							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 
 				/* (x-1)+(S-L) --> x+(S-(1+L)) */
 				else if(isSgSubtractOp(U))
 				{
-					SgExpression *intermed = SageBuilder::buildSubtractOp(S, SageBuilder::buildAddOp(rhs, L) );
+					SgExpression *intermed = SageBuilder::buildSubtractOp(
+						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+						SageBuilder::buildCastExp(
+							SageBuilder::buildAddOp(rhs, SageInterface::copyExpression(L)),
+							sigTy));
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 				/* Just leave U as is */
 				else
-					num = SageBuilder::buildAddOp(U, SageBuilder::buildSubtractOp(S,L) );
+					num = SageBuilder::buildAddOp(U,
+						SageBuilder::buildSubtractOp(
+							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 			}
 			else
-				num = SageBuilder::buildAddOp(U, SageBuilder::buildSubtractOp(S,L) );
+				num = SageBuilder::buildAddOp(U,
+					SageBuilder::buildSubtractOp(
+						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+						SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 
 			
 			SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
