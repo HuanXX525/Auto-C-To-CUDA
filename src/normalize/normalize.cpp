@@ -70,40 +70,13 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	SageInterface::fixVariableReferences(loop_nest);
 	SageInterface::constantFolding(loop_nest);
 
-	/* AstPostProcessing fixes parent pointers but also runs ROSE's own DCE,
-	   which can drop variable declarations that are only used as array
-	   subscript indices.  Save referenced vars, let it run, then restore
-	   any declarations that went missing. */
-	{
-		std::set<SgInitializedName*> liveVars;
-		Rose_STL_Container<SgNode*> refs =
-			NodeQuery::querySubTree(loop_nest, V_SgVarRefExp);
-		for (SgNode* n : refs) {
-			SgVarRefExp* ref = isSgVarRefExp(n);
-			if (ref && ref->get_symbol())
-				liveVars.insert(ref->get_symbol()->get_declaration());
-		}
-		AstPostProcessing(loop_nest);
-		Rose_STL_Container<SgNode*> nowDecls =
-			NodeQuery::querySubTree(loop_nest, V_SgVariableDeclaration);
-		std::set<SgInitializedName*> nowVars;
-		for (SgNode* n : nowDecls) {
-			SgVariableDeclaration* vd = isSgVariableDeclaration(n);
-			if (!vd) continue;
-			SgInitializedNamePtrList& vars = vd->get_variables();
-			for (SgInitializedName* v : vars)
-				nowVars.insert(v);
-		}
-		SgBasicBlock* body = isSgBasicBlock(loop_nest->get_loop_body());
-		for (SgInitializedName* var : liveVars) {
-			if (nowVars.count(var)) continue;
-			SgInitializer* init = var->get_initializer();
-			SgVariableDeclaration* newVd = SageBuilder::buildVariableDeclaration(
-				var->get_name(), var->get_type(), init, body);
-			if (body && newVd)
-				SageInterface::prependStatement(newVd, body);
-		}
-	}
+	/* AstPostProcessing fixes parent pointers.  (Previously this block also
+	   saved-and-restored variable declarations claimed to be dropped by
+	   ROSE's built-in DCE; experiments in .vscode/test/rose_dce_repro showed
+	   AstPostProcessing does not run DCE, and the restore logic duplicated
+	   function-scope variables into loop bodies causing shadowing bugs.
+	   DCE false removal itself was fixed in b8b822a / deadCodeElim.cpp.) */
+	AstPostProcessing(loop_nest);
 
 	/* If we get here, the loop nest should be normalized */
 	return true;
@@ -302,12 +275,17 @@ bool normalizeLoop(SgForStatement *loop)
 		if(curr_decl == index_decl)
 		{
 			/* Skip lvalue uses: ++i / --i and i on lhs of assignment would
-			   produce invalid code after replacement (e.g. ++(1*i+0)) */
+			   produce invalid code after replacement (e.g. ++(1*i+0)).
+			   Only skip for assignment operators, NOT for arithmetic binary
+			   ops (+, -, etc.), otherwise sub-expressions like i-W, i+1
+			   inside array indices would keep i un-substituted, leading to
+			   out-of-bounds access after loop normalization shifts the
+			   iteration variable start from L to 1. */
 			SgNode *parent = curr_ref->get_parent();
 			if (isSgPlusPlusOp(parent) || isSgMinusMinusOp(parent))
 				continue;
-			if (SgBinaryOp *bop = isSgBinaryOp(parent)) {
-				if (bop->get_lhs_operand() == curr_ref)
+			if (isSgAssignOp(parent)) {
+				if (isSgAssignOp(parent)->get_lhs_operand() == curr_ref)
 					continue;
 			}
 						
