@@ -90,19 +90,39 @@ bool isUsefulStmt(SgStatement* stmt) {
     if (containsFunctionCall(stmt)) return true;
     if (hasArrayWrite(stmt)) return true;
 
+    // Compound assignments and increments (e.g. a+=b, ++a) are accumulators
+    // whose final value matters outside the loop. Treat as side effect.
+    if (SgExprStatement* es = isSgExprStatement(stmt)) {
+        SgExpression* e = es->get_expression();
+        if (isSgCompoundAssignOp(e) || isSgPlusPlusOp(e) || isSgMinusMinusOp(e))
+            return true;
+    }
+
     return false;
 }
 
 // ---------- Variable definition extraction ----------
 
-// Get the SgInitializedName defined by a simple assignment or decl.
+// Get the SgInitializedName defined by an assignment, compound assignment,
+// increment/decrement, or variable declaration.
 SgInitializedName* getDefinedVar(SgStatement* stmt) {
     SgExprStatement* es = isSgExprStatement(stmt);
     if (es) {
-        SgAssignOp* assign = isSgAssignOp(es->get_expression());
-        if (!assign) return nullptr;
-        SgVarRefExp* lhs = isSgVarRefExp(assign->get_lhs_operand());
-        return lhs ? lhs->get_symbol()->get_declaration() : nullptr;
+        SgExpression* expr = es->get_expression();
+        if (SgAssignOp* assign = isSgAssignOp(expr)) {
+            SgVarRefExp* lhs = isSgVarRefExp(assign->get_lhs_operand());
+            if (lhs) return lhs->get_symbol()->get_declaration();
+        }
+        if (SgCompoundAssignOp* ca = isSgCompoundAssignOp(expr)) {
+            SgVarRefExp* lhs = isSgVarRefExp(ca->get_lhs_operand());
+            if (lhs) return lhs->get_symbol()->get_declaration();
+        }
+        if (isSgPlusPlusOp(expr) || isSgMinusMinusOp(expr)) {
+            SgUnaryOp* uop = isSgUnaryOp(expr);
+            SgVarRefExp* operand = isSgVarRefExp(uop->get_operand());
+            if (operand) return operand->get_symbol()->get_declaration();
+        }
+        return nullptr;
     }
     SgVariableDeclaration* vd = isSgVariableDeclaration(stmt);
     if (vd) {

@@ -1,7 +1,39 @@
-/* Loop normalization */
+/* Normalize loop nest */
 
 #include "normalize/normalize.hpp"
 #include "logger.h"
+
+namespace {
+
+// Extract integer value from any ROSE integer constant expression,
+// regardless of signedness.  Returns 0 for non-constant expressions.
+// Also recurses through SgCastExp wrappers.
+long long intValueOf(SgExpression *e)
+{
+	if (!e) return 0;
+	if (SgCastExp* cast = isSgCastExp(e))
+		return intValueOf(cast->get_operand());
+	if (SgUnsignedIntVal* v = isSgUnsignedIntVal(e)) return (long long)v->get_value();
+	if (SgIntVal* v = isSgIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedLongVal* v = isSgUnsignedLongVal(e)) return (long long)v->get_value();
+	if (SgLongIntVal* v = isSgLongIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedLongLongIntVal* v = isSgUnsignedLongLongIntVal(e)) return (long long)v->get_value();
+	if (SgLongLongIntVal* v = isSgLongLongIntVal(e)) return (long long)v->get_value();
+	if (SgUnsignedShortVal* v = isSgUnsignedShortVal(e)) return (long long)v->get_value();
+	if (SgShortVal* v = isSgShortVal(e)) return (long long)v->get_value();
+	return 0;
+}
+
+// True if the expression is a compile-time integer constant (possibly
+// wrapped in casts).
+bool isIntConst(SgExpression *e)
+{
+	if (!e) return false;
+	if (isSgCastExp(e)) return isIntConst(isSgCastExp(e)->get_operand());
+	return isSgValueExp(e);
+}
+
+} // anonymous namespace
 
 /* Normalize the loop nest (this gets called in main() of translate.cpp */
 bool normalizeLoopNest(SgForStatement *loop_nest)
@@ -9,9 +41,10 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	/* Obtain each of the loops in the nest */
 	Rose_STL_Container<SgNode*> loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 
-	/* Loop thru the loops in the nest */
-	Rose_STL_Container<SgNode*>::iterator iter;
-	for(iter = loops.begin(); iter != loops.end(); iter++)
+	/* Loop thru the loops in the nest — reverse (innermost-first)
+	   so inner loop normalization sees unmodified outer loop variables. */
+	Rose_STL_Container<SgNode*>::reverse_iterator iter;
+	for(iter = loops.rbegin(); iter != loops.rend(); iter++)
 	{
 		/* Make proper cast */
 		SgForStatement *loop = isSgForStatement(*iter);
@@ -36,6 +69,13 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 	/* Perform constant folding on the normalized nest (need to supply the parent node) */
 	SageInterface::fixVariableReferences(loop_nest);
 	SageInterface::constantFolding(loop_nest);
+
+	/* AstPostProcessing fixes parent pointers.  (Previously this block also
+	   saved-and-restored variable declarations claimed to be dropped by
+	   ROSE's built-in DCE; experiments in .vscode/test/rose_dce_repro showed
+	   AstPostProcessing does not run DCE, and the restore logic duplicated
+	   function-scope variables into loop bodies causing shadowing bugs.
+	   DCE false removal itself was fixed in b8b822a / deadCodeElim.cpp.) */
 	AstPostProcessing(loop_nest);
 
 	/* If we get here, the loop nest should be normalized */
@@ -46,6 +86,10 @@ bool normalizeLoopNest(SgForStatement *loop_nest)
 /* Normalize individual loops (this gets called by normalizeLoopNest() */
 bool normalizeLoop(SgForStatement *loop)
 {
+	/* Skip for(;;) and loops whose test is missing/corrupted */
+	if (!isSgExprStatement(loop->get_test()))
+		return false;
+
 	/* Creates loop in form of: int i; for(i = L; i <= U; i += S) */
 	if(SageInterface::forLoopNormalization(loop) == false)
 		return false;
@@ -138,13 +182,10 @@ bool normalizeLoop(SgForStatement *loop)
 			//SgExpression *num = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(U, L) , S);
 			//SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
 			
-			/* Replace U with (U + (S - L))/S in order to help with constant folding (since U can be a variable) */
+			/* Replace U with (U + (S - L))/S.  Cast L to signed to
+			   avoid unsigned wrapping (e.g. S-(i+1u) when i>0). */
+			SgType *sigTy = SageBuilder::buildLongType();
 
-			/* Handle the case when U is a binary op (ex: U = x+1)
-			   
-			   This only helps for the case when U was originally a var, 
-			   since SageInterface::forLoopNormalization() may add or sub a 1
-			*/
 			SgExpression *num;
 			if(isSgBinaryOp(U))
 			{
@@ -154,22 +195,35 @@ bool normalizeLoop(SgForStatement *loop)
 				/* (x+1)+(S-L) --> x+(1+(S-L)) */
 				if(isSgAddOp(U))
 				{
-					SgExpression *intermed = SageBuilder::buildAddOp(rhs, SageBuilder::buildSubtractOp(S, L) );
+					SgExpression *intermed = SageBuilder::buildAddOp(rhs,
+						SageBuilder::buildSubtractOp(
+							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 
 				/* (x-1)+(S-L) --> x+(S-(1+L)) */
 				else if(isSgSubtractOp(U))
 				{
-					SgExpression *intermed = SageBuilder::buildSubtractOp(S, SageBuilder::buildAddOp(rhs, L) );
+					SgExpression *intermed = SageBuilder::buildSubtractOp(
+						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+						SageBuilder::buildCastExp(
+							SageBuilder::buildAddOp(rhs, SageInterface::copyExpression(L)),
+							sigTy));
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 				/* Just leave U as is */
 				else
-					num = SageBuilder::buildAddOp(U, SageBuilder::buildSubtractOp(S,L) );
+					num = SageBuilder::buildAddOp(U,
+						SageBuilder::buildSubtractOp(
+							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 			}
 			else
-				num = SageBuilder::buildAddOp(U, SageBuilder::buildSubtractOp(S,L) );
+				num = SageBuilder::buildAddOp(U,
+					SageBuilder::buildSubtractOp(
+						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+						SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
 
 			
 			SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
@@ -220,11 +274,38 @@ bool normalizeLoop(SgForStatement *loop)
 		/* Make the change from index to (S*index)-S+L */
 		if(curr_decl == index_decl)
 		{
+			/* Skip lvalue uses: ++i / --i and i on lhs of assignment would
+			   produce invalid code after replacement (e.g. ++(1*i+0)).
+			   Only skip for assignment operators, NOT for arithmetic binary
+			   ops (+, -, etc.), otherwise sub-expressions like i-W, i+1
+			   inside array indices would keep i un-substituted, leading to
+			   out-of-bounds access after loop normalization shifts the
+			   iteration variable start from L to 1. */
+			SgNode *parent = curr_ref->get_parent();
+			if (isSgPlusPlusOp(parent) || isSgMinusMinusOp(parent))
+				continue;
+			if (isSgAssignOp(parent)) {
+				if (isSgAssignOp(parent)->get_lhs_operand() == curr_ref)
+					continue;
+			}
 						
-			/* Make it (S*index) + (L-S) to help with constant folding */
-			SgExpression *mul = SageBuilder::buildMultiplyOp(SageInterface::copyExpression(S), SageInterface::copyExpression(index));
-			//SgExpression *new_var = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(mul, S) , L);
-			SgExpression *new_var = SageBuilder::buildAddOp(mul, SageBuilder::buildSubtractOp(SageInterface::copyExpression(L), SageInterface::copyExpression(S) ) );				
+			/* Make it (S*index) + (L-S) using signed arithmetic to
+			   avoid unsigned wrapping (e.g. 0u-1 ≠ -1, it wraps to
+			   UINT_MAX, corrupting array indices). */
+			SgExpression *mul = SageBuilder::buildMultiplyOp(
+				SageInterface::copyExpression(S),
+				SageInterface::copyExpression(index));
+			SgExpression *new_var;
+			if (isIntConst(L) && isIntConst(S)) {
+				long long delta = intValueOf(L) - intValueOf(S);
+				new_var = SageBuilder::buildAddOp(
+					mul, SageBuilder::buildLongLongIntVal(delta));
+			} else {
+				new_var = SageBuilder::buildAddOp(mul,
+					SageBuilder::buildSubtractOp(
+						SageInterface::copyExpression(L),
+						SageInterface::copyExpression(S)));
+			}
 			SageInterface::replaceExpression(curr_ref, new_var); 
 		}
 	
