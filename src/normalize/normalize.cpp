@@ -33,6 +33,20 @@ bool isIntConst(SgExpression *e)
 	return isSgValueExp(e);
 }
 
+// Build (S - L) with signed arithmetic.  When both operands are
+// compile-time constants the difference is folded directly into a
+// signed literal, avoiding SgCastExp nodes in the result (ROSE's
+// constant folding does not eliminate them, and the affine test
+// rejects any expression containing a cast).
+SgExpression *buildSignedSub(SgExpression *S, SgExpression *L, SgType *sigTy)
+{
+	if (isIntConst(S) && isIntConst(L))
+		return SageBuilder::buildLongLongIntVal(intValueOf(S) - intValueOf(L));
+	return SageBuilder::buildSubtractOp(
+		SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
+		SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy));
+}
+
 } // anonymous namespace
 
 /* Normalize the loop nest (this gets called in main() of translate.cpp */
@@ -182,8 +196,10 @@ bool normalizeLoop(SgForStatement *loop)
 			//SgExpression *num = SageBuilder::buildAddOp( SageBuilder::buildSubtractOp(U, L) , S);
 			//SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
 			
-			/* Replace U with (U + (S - L))/S.  Cast L to signed to
-			   avoid unsigned wrapping (e.g. S-(i+1u) when i>0). */
+			/* Replace U with (U + (S - L))/S.  The (S-L) part uses
+			   signed arithmetic to avoid unsigned wrapping (e.g.
+			   S-(i+1u) when i>0), and is constant-folded when S and L
+			   are both constants so no SgCastExp nodes survive. */
 			SgType *sigTy = SageBuilder::buildLongType();
 
 			SgExpression *num;
@@ -196,34 +212,27 @@ bool normalizeLoop(SgForStatement *loop)
 				if(isSgAddOp(U))
 				{
 					SgExpression *intermed = SageBuilder::buildAddOp(rhs,
-						SageBuilder::buildSubtractOp(
-							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
-							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
+						buildSignedSub(S, L, sigTy));
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 
 				/* (x-1)+(S-L) --> x+(S-(1+L)) */
 				else if(isSgSubtractOp(U))
 				{
-					SgExpression *intermed = SageBuilder::buildSubtractOp(
-						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
-						SageBuilder::buildCastExp(
-							SageBuilder::buildAddOp(rhs, SageInterface::copyExpression(L)),
-							sigTy));
+					SgExpression *rhsL;
+					if (isIntConst(rhs) && isIntConst(L))
+						rhsL = SageBuilder::buildLongLongIntVal(intValueOf(rhs) + intValueOf(L));
+					else
+						rhsL = SageBuilder::buildAddOp(rhs, SageInterface::copyExpression(L));
+					SgExpression *intermed = buildSignedSub(S, rhsL, sigTy);
 					num = SageBuilder::buildAddOp(lhs, intermed);
 				}
 				/* Just leave U as is */
 				else
-					num = SageBuilder::buildAddOp(U,
-						SageBuilder::buildSubtractOp(
-							SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
-							SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
+					num = SageBuilder::buildAddOp(U, buildSignedSub(S, L, sigTy));
 			}
 			else
-				num = SageBuilder::buildAddOp(U,
-					SageBuilder::buildSubtractOp(
-						SageBuilder::buildCastExp(SageInterface::copyExpression(S), sigTy),
-						SageBuilder::buildCastExp(SageInterface::copyExpression(L), sigTy)));
+				num = SageBuilder::buildAddOp(U, buildSignedSub(S, L, sigTy));
 
 			
 			SgExpression *new_upper_bound = SageBuilder::buildIntegerDivideOp(num, S);
