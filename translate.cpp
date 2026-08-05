@@ -34,11 +34,7 @@
 
 #include "include/utils/translate_job.h"
 #include "pass/PassManager.hpp"
-#include "transforms/WhileToForPass.hpp"
-// #include "pass/InlinePass.hpp"
-#include "pass/NestCollectPass.hpp"
-#include "pass/SSAStagePass.hpp"
-#include "pass/CodeGenPass.hpp"
+#include "pass/TranslateContext.hpp"
 #include "rose.h"
 #include <chrono>
 #include <iostream>
@@ -83,9 +79,10 @@ int main(int argc, char **argv)
 	ROSE_INITIALIZE;
 	SgProject *project = frontend(rose_argc, rose_argv.data());
 
-    // 基础分析 pass（控制流、谓词分析等）
+    // 基础分析 pass + 主流水线（WhileToFor → Inline → NestCollect → SSA×2 → CodeGen）
 	log_info("passes manager test");
-    c2cuda::run_pass(project, all_args.hasFlag("verbose"));
+    c2cuda::PassContext ctx = c2cuda::run_pass(
+        project, build_result.job, all_args.hasFlag("verbose"));
 
 	SgFilePtrList &fileList = project->get_fileList();
 	if (fileList.empty())
@@ -93,22 +90,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	/* ────────── 主流水线：WhileToFor → Inline → NestCollect → SSA×2 → CodeGen ────────── */
-	// c2cuda::TranslateContext tctx;
-	// c2cuda::PassManager pm;
-	// pm.setVerbose(all_args.hasFlag("verbose"));
-	// pm.add<c2cuda::WhileToForPass>(tctx);       // while→for + 函数拓扑排序
-	// pm.add<c2cuda::InlinePass>(tctx);           // 函数属性标记 + 内联
-	// pm.add<c2cuda::NestCollectPass>(tctx);      // 循环收集 + 完美嵌套转换 + 归一化
-	// pm.add<c2cuda::SSAInductionExposePass>(tctx); // SSA: 诱导变量暴露
-	// pm.add<c2cuda::SSADeadCodeElimPass>(tctx);  // SSA: 死代码消除
-	// pm.add<c2cuda::CodeGenPass>(tctx, build_result.job); // affine/依赖测试 + kernel 生成
-	// pm.run(project);
-
-	// if (tctx.failed)
-	// {
-	// 	return 1;
-	// }
+	if (ctx.getOr<bool>("failed", false))
+	{
+		return 1;
+	}
 
 	/* 输出翻译结果 */
 	project->unparse();
@@ -118,16 +103,18 @@ int main(int argc, char **argv)
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     log_info("This transform consumed %lld ms", (long long)ms);
 
-	// /* 打印并行化摘要 */
-	// log_info("==================== Parallelization Summary ====================");
-	// log_info("Total parallelized loop nests: %zu", tctx.parallelized_loops.size());
-	// for (size_t i = 0; i < tctx.parallelized_loops.size(); i++)
-	// {
-	// 	auto &pl = tctx.parallelized_loops[i];
-	// 	log_info("  [%zu] Function: %s | Nest depth: %d",
-	// 			 i + 1, pl.func_name.c_str(), pl.nest_size);
-	// }
-	// log_info("=================================================================");
+	/* 打印并行化摘要 */
+    auto parallelized =
+        ctx.getOr<std::vector<c2cuda::ParallelizedLoop>>("parallelized_loops", {});
+	log_info("==================== Parallelization Summary ====================");
+	log_info("Total parallelized loop nests: %zu", parallelized.size());
+	for (size_t i = 0; i < parallelized.size(); i++)
+	{
+        auto &pl = parallelized[i];
+		log_info("  [%zu] Function: %s | Nest depth: %d",
+				 i + 1, pl.func_name.c_str(), pl.nest_size);
+	}
+	log_info("=================================================================");
 
 	return 0;
 }

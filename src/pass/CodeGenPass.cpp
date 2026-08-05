@@ -1,4 +1,5 @@
 #include "pass/CodeGenPass.hpp"
+#include "pass/TranslateContext.hpp"
 #include "affine/affine.hpp"
 #include "dependency/dependency.hpp"
 #include "parallel/parallel.hpp"
@@ -37,6 +38,10 @@ void addCudaDefines(SgGlobal *globalScope)
 
 bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
 {
+    const auto &qualified = ctx.getRef<std::vector<QualifiedNest>>("qualified");
+    int nest_id = ctx.getOr<int>("nest_id", 0);
+    std::vector<ParallelizedLoop> parallelized;
+
     SgFilePtrList &fileList = project->get_fileList();
 
     for (size_t fileIndex = 0; fileIndex < fileList.size(); ++fileIndex)
@@ -52,20 +57,20 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
             sourceFile->get_sourceFileNameWithPath());
         if (!renameToCU(sourceFile, requestedOutput))
         {
-            tctx_.failed = true;
+            ctx.set<bool>("failed", true);
             return true;
         }
 
         bool ecs_fn_flag = false;
 
         // 对该文件下的每个合格嵌套：affine 测试 → 依赖测试 → 代码生成
-        for (auto &qn : tctx_.qualified)
+        for (auto &qn : qualified)
         {
             if (qn.file_global_scope != fileGlobalScope)
                 continue;
 
             log_info("[CODGEN] nest_id=%d func=%s",
-                     tctx_.nest_id, qn.cur_func_name.c_str());
+                     nest_id, qn.cur_func_name.c_str());
 
             if (!affineTest(qn.loop_nest))
             {
@@ -79,10 +84,10 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
             case 0: /* 无依赖：直接生成简单 kernel */
                 log_info("No Dependency Exists");
                 log_info("[KERNEL-GEN] Generating kernel for nest_id=%d func=%s",
-                         tctx_.nest_id, qn.cur_func_name.c_str());
-                kernelCodeGenSimple(qn.loop_nest, fileGlobalScope, tctx_.nest_id);
-                log_info("[KERNEL-GEN] Done kernel for nest_id=%d", tctx_.nest_id);
-                tctx_.parallelized_loops.push_back({
+                         nest_id, qn.cur_func_name.c_str());
+                kernelCodeGenSimple(qn.loop_nest, fileGlobalScope, nest_id);
+                log_info("[KERNEL-GEN] Done kernel for nest_id=%d", nest_id);
+                parallelized.push_back({
                     qn.cur_func->get_declaration()->get_name().getString(),
                     qn.attr->get_nest_size(),
                     qn.loop_nest->unparseToString().substr(
@@ -93,10 +98,10 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
             case 1: /* 存在依赖：尝试提取并行性 */
                 log_info("Dependency Exists");
                 if (!extractParallelism(qn.loop_nest, fileGlobalScope,
-                                        tctx_.nest_id, ecs_fn_flag))
+                                        nest_id, ecs_fn_flag))
                     log_info("Loop Nest Skipped (Could Not Extract Parallelism");
                 else
-                    tctx_.parallelized_loops.push_back({
+                    parallelized.push_back({
                         qn.cur_func->get_declaration()->get_name().getString(),
                         qn.attr->get_nest_size(),
                         qn.loop_nest->unparseToString().substr(
@@ -117,6 +122,11 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
         // 注入 CUDA #define
         addCudaDefines(fileGlobalScope);
     }
+
+    // 将结果写回上下文，供调用方（main）统计摘要使用
+    ctx.set("nest_id", nest_id);
+    ctx.set<std::vector<ParallelizedLoop>>("parallelized_loops",
+                                           std::move(parallelized));
 
     return true;
 }

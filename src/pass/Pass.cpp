@@ -1,8 +1,11 @@
 #include "pass/Pass.hpp"
 #include "pass/PassManager.hpp"
+#include "pass/SSAStagePass.hpp"
+#include "pass/CodeGenPass.hpp"
 #include <rose.h>
 #include "transforms/WhileToForPass.hpp"
 #include "transforms/InlinePass.hpp"
+#include "transforms/NestCollectPass.hpp"
 #include "transforms/AnnotateLoop.hpp"
 #include "analysis/FuncCollection.hpp"
 #include "analysis/LoopCollection.hpp"
@@ -12,7 +15,7 @@
 
 namespace c2cuda {
 
-void run_pass( SgProject* project, bool isVerbose ) {
+PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbose ) {
     PassManager pm;
     pm.setVerbose(isVerbose);
     bool funcInline = true;
@@ -26,9 +29,15 @@ void run_pass( SgProject* project, bool isVerbose ) {
     if(funcInline){
         pm.add<transforms::InlinePass>();
     }
+    pm.add<transforms::NestCollectPass>(); // 循环收集 + 完美嵌套转换 + 归一化
+    pm.add<SSAInductionExposePass>();      // SSA: 诱导变量暴露
+    pm.add<SSADeadCodeElimPass>();         // SSA: 死代码消除
+    pm.add<CodeGenPass>(job);              // affine/依赖测试 + kernel 生成
 
-    bool modified = pm.run(project);
+    pm.run(project);
 
+    // 返回共享上下文，供 main 做摘要输出 / 失败判定
+    return pm.getContext();
 }
 
 } // namespace c2cuda

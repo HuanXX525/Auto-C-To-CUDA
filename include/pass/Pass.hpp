@@ -111,6 +111,7 @@ private:
 };
  
 // The Pass runner
-void run_pass( SgProject* project, bool isVerbose=false );
+struct TranslateJob;
+PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbose=false );
 
 } // namespace Pass
