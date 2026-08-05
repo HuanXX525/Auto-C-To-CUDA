@@ -1,7 +1,7 @@
 #include "pass/Pass.hpp"
 #include "pass/PassManager.hpp"
-#include "pass/SSAStagePass.hpp"
-#include "pass/CodeGenPass.hpp"
+#include "transforms/SSAStagePass.hpp"
+#include "transforms/CodeGenPass.hpp"
 #include <rose.h>
 #include "transforms/WhileToForPass.hpp"
 #include "transforms/InlinePass.hpp"
@@ -30,9 +30,9 @@ PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbos
         pm.add<transforms::InlinePass>();
     }
     pm.add<transforms::NestCollectPass>(); // 循环收集 + 完美嵌套转换 + 归一化
-    pm.add<SSAInductionExposePass>();      // SSA: 诱导变量暴露
-    pm.add<SSADeadCodeElimPass>();         // SSA: 死代码消除
-    pm.add<CodeGenPass>(job);              // affine/依赖测试 + kernel 生成
+    pm.add<transforms::SSAInductionExposePass>();      // SSA: 诱导变量暴露
+    pm.add<transforms::SSADeadCodeElimPass>();         // SSA: 死代码消除
+    pm.add<transforms::CodeGenPass>(job);              // affine/依赖测试 + kernel 生成
 
     pm.run(project);
 

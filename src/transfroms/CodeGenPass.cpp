@@ -1,4 +1,4 @@
-#include "pass/CodeGenPass.hpp"
+#include "transforms/CodeGenPass.hpp"
 #include "pass/TranslateContext.hpp"
 #include "affine/affine.hpp"
 #include "dependency/dependency.hpp"
@@ -9,7 +9,7 @@
 
 #include "logger.h"
 
-namespace c2cuda {
+namespace c2cuda::transforms {
 
 namespace {
 
@@ -131,4 +131,4 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
     return true;
 }
 
-} // namespace c2cuda
+} // namespace c2cuda::transforms

@@ -1,4 +1,4 @@
-#include "pass/SSAStagePass.hpp"
+#include "transforms/SSAStagePass.hpp"
 #include "pass/TranslateContext.hpp"
 #include "preprocess/InductionVariableExposure.h"
 #include "preprocess/deadCodeElim.h"
@@ -8,7 +8,7 @@
 
 #include "logger.h"
 
-namespace c2cuda {
+namespace c2cuda::transforms {
 
 bool SSAInductionExposePass::transform(SgProject *project, PassContext &ctx)
 {
@@ -45,4 +45,4 @@ bool SSADeadCodeElimPass::transform(SgProject *project, PassContext &ctx)
     return true;
 }
 
-} // namespace c2cuda
+} // namespace c2cuda::transforms

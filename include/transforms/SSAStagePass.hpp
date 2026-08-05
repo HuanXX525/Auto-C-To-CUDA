@@ -3,7 +3,7 @@
 #include "pass/Pass.hpp"
 #include "pass/TransformPass.hpp"
 
-namespace c2cuda {
+namespace c2cuda::transforms {
 
 // SSA 阶段 1：诱导变量暴露（project-wide SSA）
 class SSAInductionExposePass : public TransformPass {
@@ -23,4 +23,4 @@ public:
     bool transform(SgProject *project, PassContext &ctx) override;
 };
 
-} // namespace c2cuda
+} // namespace c2cuda::transforms

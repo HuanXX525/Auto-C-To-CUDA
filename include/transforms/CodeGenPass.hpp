@@ -4,7 +4,7 @@
 #include "pass/TransformPass.hpp"
 #include "utils/translate_job.h"
 
-namespace c2cuda {
+namespace c2cuda::transforms {
 
 // 第二遍 Pass2：逐文件做 affine/依赖测试与 kernel 代码生成，并注入 CUDA defines
 class CodeGenPass : public TransformPass {
@@ -18,4 +18,4 @@ private:
     const TranslateJob &job_;
 };
 
-} // namespace c2cuda
+} // namespace c2cuda::transforms
