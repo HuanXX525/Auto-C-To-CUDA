@@ -1,4 +1,4 @@
-#include "pass/NestCollectPass.hpp"
+#include "transforms/NestCollectPass.hpp"
 #include "normalize/normalize.hpp"
 #include "preprocess/preprocess.hpp"
 #include "DEBUG/debugTool.h"
@@ -9,10 +9,7 @@
 
 #include "logger.h"
 
-namespace c2cuda {
-
-namespace {
-
+namespace c2cuda::transforms {
 // 收集单层循环的迭代变量、上界表达式与符号常量，写入 attr
 void collectLoopInfo(SgForStatement *loop_nest, LoopNestAttribute *attr)
 {
@@ -54,7 +51,7 @@ void collectLoopInfo(SgForStatement *loop_nest, LoopNestAttribute *attr)
     attr->set_iter_vec(iter_vec);
     attr->set_bound_vec(bound_vec);
     attr->set_symb_vec(symb_vec);
-}
+
 
 } // namespace
 

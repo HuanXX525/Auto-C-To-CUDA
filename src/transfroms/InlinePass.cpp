@@ -1,4 +1,4 @@
-#include "pass/InlinePass.hpp"
+#include "transforms/InlinePass.hpp"
 #include "preprocess/declarationcopy.h"
 #include "preprocess/preprocess.hpp"
 #include <inliner.h>
@@ -6,19 +6,20 @@
 
 #include "logger.h"
 
-namespace c2cuda {
+namespace c2cuda::transforms {
 
 bool InlinePass::transform(SgProject *project, PassContext &ctx)
 {
     // TODO：收集循环计算量信息
-
-    for (auto forIter = tctx_.ordered_loop_nests.begin();
-         forIter != tctx_.ordered_loop_nests.end(); forIter++)
+    auto ordered_loop_nests = ctx.getRef<std::vector<SgForStatement *>>("for_loops");
+    auto funcOrder = ctx.getRef<std::map<std::string, int>>("func_order");
+    for (auto forIter = ordered_loop_nests.begin();
+         forIter != ordered_loop_nests.end(); forIter++)
     {
         SgForStatement *forstat = isSgForStatement(*forIter);
         if (!forstat)
             continue;
-        log_debug(">> Enter for Loop: %s", forstat->unparseToString().c_str());
+        log(">> Enter for Loop: \n" + forstat->unparseToString());
 
         // 递归内联：上一次内联改变了 AST 则继续，直至稳定
         bool changed = true;
@@ -38,7 +39,7 @@ bool InlinePass::transform(SgProject *project, PassContext &ctx)
                     call->getAttribute("FuncAttribute"));
                 if (f_a)
                     continue;
-                FuncAttribute::getAttributes(call, tctx_.funcOrder);
+                FuncAttribute::getAttributes(call, funcOrder);
             }
 
             // 内联
@@ -76,7 +77,7 @@ bool InlinePass::transform(SgProject *project, PassContext &ctx)
                         {
                             addDeclaration(decl, mark);
                         }
-                        log_info("Function Call %s Inlined Successfully", fname.c_str());
+                        log("Function Call Inlined Successfully ：" + fname);
                         changed = true;
                     }
                 }

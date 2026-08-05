@@ -12,8 +12,9 @@ void FuncsCollectPass::analyze(SgProject* project, c2cuda::PassContext& ctx) {
     std::vector<SgFunctionDeclaration*> funcs;
 
     Rose_STL_Container<SgNode*> nodes = NodeQuery::querySubTree(project, V_SgFunctionDeclaration);
-
-    for(SgNode* n : nodes) {
+    for (SgNode *n : nodes)
+    {   
+        // 仅保留有定义的函数
         if(auto * funcDecl = isSgFunctionDeclaration(n)) {
             if(funcDecl->get_definingDeclaration() == funcDecl) {
                 funcs.push_back(funcDecl);

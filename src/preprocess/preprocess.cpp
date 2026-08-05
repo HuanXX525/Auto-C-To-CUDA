@@ -589,6 +589,7 @@ bool FuncAttribute::_pure_function(SgFunctionDefinition *funDef)
 	return true;
 }
 
+// 为当前调用节点设置函数属性
 void FuncAttribute::getAttributes(SgFunctionCallExp *call, std::map<std::string, int> &funcOrder)
 {
 	static std::vector<std::string> safe_funcs = Config::getInstance().getSafeFunctions();
