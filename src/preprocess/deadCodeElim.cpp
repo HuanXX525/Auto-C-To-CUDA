@@ -72,6 +72,27 @@ bool hasArrayWrite(SgStatement* stmt) {
     return false;
 }
 
+// 检测语句是否通过指针解引用写入内存 (*p = ...)。
+// 内联函数常通过指针参数改写调用方内存（如 *p = value; ++p），
+// hasArrayWrite 只覆盖 SgPntrArrRefExp（a[i]），漏掉了 *p 这类内存副作用。
+// 若内联后仅靠 def-use 边保命，遇到循环自改变量的 phi 断链容易误删。
+bool hasPointerDerefWrite(SgStatement* stmt) {
+    Rose_STL_Container<SgNode*> derefs =
+        NodeQuery::querySubTree(stmt, V_SgPointerDerefExp);
+    for (auto it = derefs.begin(); it != derefs.end(); ++it) {
+        SgNode* p = (*it)->get_parent();
+        while (p) {
+            if (SgAssignOp* assign = isSgAssignOp(p))
+                return assign->get_lhs_operand() == (*it);
+            if (isSgExprStatement(p) || isSgBasicBlock(p) ||
+                isSgForStatement(p) || isSgWhileStmt(p))
+                break;
+            p = p->get_parent();
+        }
+    }
+    return false;
+}
+
 // A statement is "absolutely useful" if it produces a visible effect
 // or controls execution flow.
 bool isUsefulStmt(SgStatement* stmt) {
@@ -89,6 +110,7 @@ bool isUsefulStmt(SgStatement* stmt) {
     // Side effects
     if (containsFunctionCall(stmt)) return true;
     if (hasArrayWrite(stmt)) return true;
+    if (hasPointerDerefWrite(stmt)) return true;
 
     // Compound assignments and increments (e.g. a+=b, ++a) are accumulators
     // whose final value matters outside the loop. Treat as side effect.
@@ -177,23 +199,34 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
     // ---------------------------------------------------------------
     //  Step 1: Build def-use edges using SSA reaching definitions
     // ---------------------------------------------------------------
-    //  Bug fix #1 (defMap overwrite):
-    //    Previous code used defMap[VarName] → Stmt, which caused later
-    //    definitions to overwrite earlier ones for the same variable
-    //    name. Now we query SSA's reaching definition for each variable
-    //    reference directly, so each use maps to its exact definition.
+    //  精确边（Bug fix #1, #2 — 来自 bfb2b99）：
+    //    对每个 SgVarRefExp 查询 SSA 的精确实达定义，直接建边，
+    //    避免了旧 defMap 的设计缺陷——同变量被重复定义时，后一次定义会
+    //    覆盖前一次，导致前面的 uses 都错误地连到最后的 def。
+    //    同时遍历 child 节点引用，解决了 getUsesAtNode(Stmt) 对数组
+    //    下标等嵌套表达式返回空 uses 的问题。
     //
-    //  Bug fix #2 (getUsesAtNode returns empty at statement level):
-    //    SSA's getUsesAtNode(Stmt) returns 0 uses for variables inside
-    //    array subscripts. Now we traverse SgVarRefExp children and use
-    //    getReachingDefsAtNode_ for precise def-use edges.
+    //  保守回退（修复自 935c929 / 当前 bug）：
+    //    被内联函数的参数副本声明用于循环内自改变量（如 while/for）时，
+    //    SSA 在循环 header 处给出 phi 节点（合并了声明 def 与循环体内
+    //    ++/-- 等多条 def）。若严格跳过 phi → 0 条边 → 声明在 Step 4
+    //    被误删。另外循环体内的 def 不在 flattened allStmts 集合里，
+    //    即使 SSA 报告的是单条非-phi reaching def，其 enclosingStmt
+    //    也不在 stmtSet，同样导致 0 条边。
     //
-    //  Conservative policy: phi nodes, null pointers, and definitions
-    //  outside the current block are all skipped (no edge built).
+    //    因此维护一个随程序顺序逐条推进的 lastDef 映射：
+    //    - 当精确 reaching def 找到了可用的块内边时，使用精确边；
+    //    - 当所有精确 def 都不可用（phi / null / 作用域外）时，
+    //      回退到本块中程序顺序上离该引用最近的同变量定义。
+    //    这样既保留了 SSA 精确边的优点（不误连到后出现的无关 def），
+    //    又在循环自改变量场景下恢复了对前驱声明的保守连通。
     // ---------------------------------------------------------------
 
     // Fast lookup set for statements in this block
     std::set<SgStatement*> stmtSet(allStmts.begin(), allStmts.end());
+
+    // 程序顺序上各变量的最近前驱定义（逐步更新，用于 phi/out-of-block 回退）
+    std::map<StaticSingleAssignment::VarName, SgStatement*> lastDef;
 
     // Build predecessor edges: S → { defining statements of variables used in S }
     std::map<SgStatement*, std::set<SgStatement*>> preds;
@@ -216,7 +249,7 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
                 // Conservative: skip null reaching def
                 if (!reachingDef) continue;
 
-                // Conservative: skip phi nodes (multiple definitions merge)
+                // 跳过 phi 节点——多条定义汇合，不确定到底来自哪条
                 if (reachingDef->isPhiFunction()) continue;
 
                 // Get the AST node where this definition occurs
@@ -229,9 +262,36 @@ void eliminateDeadCode(SgBasicBlock* block, StaticSingleAssignment *ssa_in) {
                 if (!defStmt) continue;
 
                 // Only build edges to statements within this block
-                if (defStmt != s && stmtSet.count(defStmt))
+                if (defStmt != s && stmtSet.count(defStmt)) {
                     preds[s].insert(defStmt);
+                }
             }
+
+            // 回退——被内联函数的参数副本声明用于循环内自改变量（如 while/for）时，
+            // SSA 在循环 header 处给出 phi 节点，或循环体内的 def 不在 flattened
+            // allStmts 集合内，导致本引用找不到任何可用达到定义。
+            // 此时退回到程序顺序上离该引用最近的前驱同变量定义，恢复安全的保守连接。
+            //
+            // 注意：不能以 foundUsable（全局标记）为条件——getReachingDefsAtNode_
+            // 返回的是该 AST 点所有变量的 reaching def 表，即便本变量的达到定义是 phi，
+            // 其他变量（如 key、file）的条目仍可能标记 foundUsable=true 从而跳过
+            // 对本变量的回退。因此改为无守卫地总是添加本变量的 lastDef 边，
+            // preds 集合天然去重，不会引入多余边。
+            {
+                StaticSingleAssignment::VarName vn =
+                    makeVarName(ref->get_symbol()->get_declaration());
+                auto lit = lastDef.find(vn);
+                if (lit != lastDef.end() && lit->second != s) {
+                    preds[s].insert(lit->second);
+                }
+            }
+        }
+
+        // 将本语句的变量定义更新为最晚定义（lastDef 按程序顺序逐条推移）
+        std::vector<SgInitializedName*> defs;
+        collectDefs(s, defs);
+        for (SgInitializedName* d : defs) {
+            lastDef[makeVarName(d)] = s;
         }
     }
 
