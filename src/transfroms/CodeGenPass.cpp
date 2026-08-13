@@ -85,13 +85,20 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
                 log_info("No Dependency Exists");
                 log_info("[KERNEL-GEN] Generating kernel for nest_id=%d func=%s",
                          nest_id, qn.cur_func_name.c_str());
-                kernelCodeGenSimple(qn.loop_nest, fileGlobalScope, nest_id);
+                if (!kernelCodeGenSimple(qn.loop_nest, fileGlobalScope, nest_id))
+                {
+                    log_info("Loop Nest Skipped (No Array Writes — Cannot Generate Kernel)");
+                    qn.attr->set_nest_flag(false);
+                    continue;
+                }
                 log_info("[KERNEL-GEN] Done kernel for nest_id=%d", nest_id);
                 parallelized.push_back({
                     qn.cur_func->get_declaration()->get_name().getString(),
                     qn.attr->get_nest_size(),
                     qn.loop_nest->unparseToString().substr(
-                        0, qn.loop_nest->unparseToString().find('\n'))
+                        0, qn.loop_nest->unparseToString().find('\n')),
+                    qn.loop_nest->get_file_info()->get_filenameString(),
+                    qn.loop_nest->get_file_info()->get_raw_line()
                 });
                 break;
 
@@ -105,7 +112,9 @@ bool CodeGenPass::transform(SgProject *project, PassContext &ctx)
                         qn.cur_func->get_declaration()->get_name().getString(),
                         qn.attr->get_nest_size(),
                         qn.loop_nest->unparseToString().substr(
-                            0, qn.loop_nest->unparseToString().find('\n'))
+                            0, qn.loop_nest->unparseToString().find('\n')),
+                        qn.loop_nest->get_file_info()->get_filenameString(),
+                        qn.loop_nest->get_file_info()->get_raw_line()
                     });
                 break;
 

@@ -10,11 +10,12 @@
 /* Driver function to create kernel definition and call for simple (i.e. NO DEPENDENCIES) cases and loop fission cases
    
    Input: Loop nest, global scope info, nest_id (passed by reference so that we can update it throughout the code base as needed)
-   Output: Generates kernel fn defn, calls to cudaMalloc() and cudaMemcpy(), and calls to the kernel itself
+   Output: Generates kernel fn defn, calls to cudaMalloc() and cudaMemcpy(), and calls to the kernel itself.
+   Returns: true if the kernel was generated (loop replaced), false if the loop cannot be parallelized (e.g. no array writes) and was left untouched.
 
    This function is used for the NO DEPENDENCIES and loop fission cases.  For the ECS cases, a different driver function is used.
 */ 
-void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &nest_id);
+bool kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &nest_id);
 
 
 /* Driver function to create kernel definition and call for ECS cases 

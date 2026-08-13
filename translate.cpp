@@ -111,10 +111,11 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < parallelized.size(); i++)
 	{
         auto &pl = parallelized[i];
-		log_info("  [%zu] Function: %s | Nest depth: %d",
-				 i + 1, pl.func_name.c_str(), pl.nest_size);
+		log_info("  [%zu] Function: %s | Nest depth: %d | %s:%d",
+				 i + 1, pl.func_name.c_str(), pl.nest_size,
+				 pl.file_name.c_str(), pl.line);
 	}
 	log_info("=================================================================");
-
+    // fflush(stdout);
 	return 0;
 }

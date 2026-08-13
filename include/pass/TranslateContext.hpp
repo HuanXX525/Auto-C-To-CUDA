@@ -22,6 +22,8 @@ struct ParallelizedLoop {
     std::string func_name;
     int nest_size;
     std::string loop_info;
+    std::string file_name;   // 源文件路径
+    int line = 0;            // 循环起始行号（原始源码）
 };
 
 // 主流水线（WhileToFor → Inline → NestCollect → SSA×2 → CodeGen）

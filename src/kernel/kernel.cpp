@@ -3,7 +3,7 @@
 
 
 /* Driver function to create kernel defn/call for simple code generation (i.e. NO DEPENDENCIES) */
-void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &nest_id)
+bool kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &nest_id)
 {
 	/* Build the basic block which will replace the loop nest */
 	SgBasicBlock *bb_new = SageBuilder::buildBasicBlock();
@@ -15,16 +15,16 @@ void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &
 	std::vector<SgInitializedName*> symb_vec;
 	std::set<SgInitializedName*> param_vars;
 	if(!getLoopInfo(loop_nest, loop_nest, iter_vec, bound_vec, symb_vec, param_vars))
-		return;
+		return false;
 
 	/* Obtain loop_nest body -- A copy of this will be used in the body of the kernel function */
 	Rose_STL_Container<SgNode*> inner_loops = NodeQuery::querySubTree(loop_nest, V_SgForStatement);
 	if (inner_loops.empty())
-		return;
+		return false;
 	SgForStatement *innermost = isSgForStatement(inner_loops[inner_loops.size() - 1]);
 	SgBasicBlock *body = isSgBasicBlock(innermost ? innermost->get_loop_body() : NULL);
 	if (!body)
-		return;
+		return false;
 	SgBasicBlock *kernel_body = isSgBasicBlock(SageInterface::copyStatement(body));
 
 	/* Define kernel function */
@@ -71,6 +71,8 @@ void kernelCodeGenSimple(SgForStatement *loop_nest, SgGlobal *globalScope, int &
 
 	/* Don't forget to update the nest_id */
 	nest_id += 1;
+
+	return true;
 }
 
 /* Driver function to generate CUDA for ECS cases */
