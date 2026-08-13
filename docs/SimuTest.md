@@ -38,6 +38,4 @@ python3 /workspace/compare_runs.py /workspace/external/Aircraft-Simu/runs/accura
 
 ### 性能测试
 
-在正确性测试可以通过后，更改cmake将目标编译为静态库，链接线程管理程序(pthreadManager)
 
-分别对CPU运行100多个实例和线程管理程序运行100多个实例进行时间测量
