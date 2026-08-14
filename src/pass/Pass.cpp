@@ -15,7 +15,10 @@
 
 namespace c2cuda {
 
-PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbose ) {
+/**
+ * 方案1：适用于存在计算密集型任务的项目，通过将计算密集型任务迁移到GPU上来减少CPU负担
+ */
+PassContext plan1( SgProject* project, const TranslateJob& job, bool isVerbose ) {
     PassManager pm;
     pm.setVerbose(isVerbose);
     bool funcInline = true;
@@ -38,6 +41,16 @@ PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbos
 
     // 返回共享上下文，供 main 做摘要输出 / 失败判定
     return pm.getContext();
+}
+
+/**
+ * 方案2：尝试将整个实例直接迁移到GPU上，一个线程跑一个实例
+ */
+PassContext plan2(SgProject *project, const TranslateJob &job, bool isVerbose)
+{
+    // 1. 解决依赖CPU的UDP通信问题，合并两个程序为一个
+    // 2. 解决依赖CPU的文件读取问题
+    // 3. 分支问题，一个线程映射到一个wrap
 }
 
 } // namespace c2cuda

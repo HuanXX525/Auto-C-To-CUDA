@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     // 基础分析 pass + 主流水线（WhileToFor → Inline → NestCollect → SSA×2 → CodeGen）
 	log_info("passes manager test");
-    c2cuda::PassContext ctx = c2cuda::run_pass(
+    c2cuda::PassContext ctx = c2cuda::plan1(
         project, build_result.job, all_args.hasFlag("verbose"));
 
 	SgFilePtrList &fileList = project->get_fileList();

@@ -112,6 +112,7 @@ private:
  
 // The Pass runner
 struct TranslateJob;
-PassContext run_pass( SgProject* project, const TranslateJob& job, bool isVerbose=false );
+PassContext plan1( SgProject* project, const TranslateJob& job, bool isVerbose=false );
+PassContext plan2(SgProject *project, const TranslateJob &job, bool isVerbose);
 
 } // namespace Pass
