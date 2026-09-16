@@ -141,6 +141,6 @@
       "scenario_golden": "PASS on RTX 5070 (65 records, maximum relative deviation 9.5e-16)",
       "batch_isolation": "PASS on RTX 5070 for N=1/2/8/32/64/128",
       "noise_dropout_fault": "PASS on RTX 5070 for N=1/8/32/128",
-      "terrain_runtime": "PENDING: tools/run_terrain_verification.sh must pass before further feature integration"
+      "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128"
   }
 }

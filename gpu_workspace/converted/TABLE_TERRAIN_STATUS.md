@@ -246,8 +246,8 @@ Fault overhead ~0 kernel time (25.8 vs 23.1 ms for 64 steps N=1 serial,
 within run-to-run noise). Remaining Phase 4 items: terrain dynamics, LOS
 occlusion.
 
-**Phase 4 item 4: terrain dynamics (2026-09-16, CPU golden ready, GPU
-acceptance pending).** earth_model.c and geo_coordinate.c were staged and
+**Phase 4 item 4: terrain dynamics (2026-09-16, COMPLETE).** earth_model.c
+and geo_coordinate.c were staged and
 ROSE-converted (pure math PODs; headers gained C2CUDA_HOST_DEVICE). The
 kernel gained `update_geodetic` (ECEF->LLA via WGS-84 + terrain AGL,
 mirroring env_app.c update_geodetic_state): an initial refresh at instance
@@ -271,8 +271,16 @@ truncated (34 rows); compare_golden_trace.py gained --allow-zero-tail for
 the zero-filled trace records beyond the collision step. `tools/
 run_terrain_verification.sh` verifies the GPU against both goldens (fly-over
 exit_reason=1, collision exit_reason=7 at the same step) plus batch
-isolation on the fly-over tile. GPU acceptance still needs to run outside
-the sandbox. Remaining Phase 4 item: LOS occlusion.
+isolation on the fly-over tile.
+
+**GPU acceptance on RTX 5070 (2026-09-16):** fly-over completed all 64
+steps with `exit_reason=1`; the collision case terminated at CPU-golden
+step 33 with `exit_reason=7` and an accepted zero-filled trace tail.  Batch
+isolation passed for N=1/8/32/128.  The largest recorded terrain-field
+absolute difference was `2.038e-13` (density), within the `1e-9` golden
+comparator tolerance; integer columns matched exactly.  The tracked result
+summary is `validation/terrain_m1.json`. Remaining Phase 4 item: LOS
+occlusion.
 
 **Final mapping selection (sub-warp sweep + lanes=4 large-N, 2026-09-01):**
 
