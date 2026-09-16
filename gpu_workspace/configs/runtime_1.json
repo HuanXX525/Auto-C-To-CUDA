@@ -23,8 +23,8 @@
     "flush_every_steps": 100
   },
   "tools": {
-    "environment_program": "external/Aircraft-Simu/build/environment_sim/environment_sim",
-    "flight_control_program": "external/Aircraft-Simu/build/flight_control_sim/flight_control_sim"
+    "environment_program": "gpu_workspace/build/cpu_baseline/environment_sim",
+    "flight_control_program": "gpu_workspace/build/cpu_baseline/flight_control_sim"
   },
   "instances": [
     {

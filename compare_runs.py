@@ -12,7 +12,41 @@ import sys
 import os
 import math
 import argparse
+import re
 from pathlib import Path
+
+
+INTEGER_TOKEN = re.compile(r"^[+-]?\d+$")
+
+
+def csv_quantum(token):
+    """Return the decimal serialization quantum for a floating CSV token."""
+    text = token.strip().lower()
+    mantissa, separator, exponent_text = text.partition("e")
+    exponent = int(exponent_text) if separator else 0
+    fractional_digits = len(mantissa.partition(".")[2])
+    return 10.0 ** (exponent - fractional_digits)
+
+
+def csv_float_close(text_a, text_b, value_a, value_b, rtol, atol):
+    """Compare serialized floats without rejecting adjacent rounded bins.
+
+    Aircraft-Simu deliberately emits fixed-width decimal CSV fields.  Two
+    underlying values within the requested tolerance can therefore land in
+    adjacent last-digit bins.  Half a serialization quantum from each file
+    is included in the absolute tolerance; the requested numerical tolerance
+    still governs values farther apart than the output precision can explain.
+    """
+    quantum_tolerance = 0.5 * (csv_quantum(text_a) + csv_quantum(text_b))
+    rounding_slack = (
+        4.0 * sys.float_info.epsilon * max(abs(value_a), abs(value_b), 1.0)
+    )
+    return math.isclose(
+        value_a,
+        value_b,
+        rel_tol=rtol,
+        abs_tol=max(atol, quantum_tolerance + rounding_slack),
+    )
 
 
 def load_json(path):
@@ -135,6 +169,18 @@ def compare_csv_files(path_a, path_b, label, rtol, atol):
             va = row_a[col_idx]
             vb = row_b[col_idx]
 
+            if INTEGER_TOKEN.fullmatch(va.strip()) and INTEGER_TOKEN.fullmatch(vb.strip()):
+                if int(va) != int(vb):
+                    col_name = header[col_idx] if col_idx < len(header) else f"col_{col_idx}"
+                    diffs.append(
+                        f"  {label}: row {row_idx} col '{col_name}' "
+                        f"({va} != {vb})"
+                    )
+                    diff_count += 1
+                    if diff_count >= max_diffs_per_file:
+                        break
+                continue
+
             try:
                 fa = float(va)
                 fb = float(vb)
@@ -143,7 +189,7 @@ def compare_csv_files(path_a, path_b, label, rtol, atol):
                 is_float = False
 
             if is_float:
-                if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
+                if not csv_float_close(va, vb, fa, fb, rtol, atol):
                     col_name = header[col_idx] if col_idx < len(header) else f"col_{col_idx}"
                     diffs.append(
                         f"  {label}: row {row_idx} col '{col_name}' "

@@ -20,6 +20,7 @@ enum class DeviceExtrapolationPolicy : std::uint32_t {
 };
 
 constexpr std::uint32_t kDeviceTableFlagExtrapolated = 1u;
+constexpr std::uint32_t kDeviceTerrainFlagMissingTile = 1u;
 
 /* Fixed-capacity, pointer-free representation uploaded once per campaign. */
 struct DeviceAeroTable {

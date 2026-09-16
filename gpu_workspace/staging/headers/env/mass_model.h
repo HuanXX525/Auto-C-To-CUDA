@@ -5,6 +5,7 @@
 #define ENV_MASS_MODEL_H
 
 #include "common/status.h"
+#include "common/device_qualifiers.h"
 
 /** @brief 质量模型参数。 */
 typedef struct MassModel {
@@ -16,8 +17,10 @@ typedef struct MassModel {
 } MassModel;
 
 /** @brief 初始化干质量和推进剂质量。 */
-SimStatus mass_model_init(MassModel *model, double dry_mass_kg, double propellant_mass_kg);
+C2CUDA_HOST_DEVICE SimStatus mass_model_init(
+    MassModel *model, double dry_mass_kg, double propellant_mass_kg);
 /** @brief 按质量流量消耗推进剂并更新总质量。 */
-SimStatus mass_model_step(MassModel *model, double mass_flow_kgps, double dt);
+C2CUDA_HOST_DEVICE SimStatus mass_model_step(
+    MassModel *model, double mass_flow_kgps, double dt);
 
 #endif

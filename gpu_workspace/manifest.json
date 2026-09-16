@@ -67,6 +67,30 @@
         "status": "device-linkable-host-euler-probe-pass"
       },
       {
+        "source": "environment_sim/src/actuator_model.c",
+        "staging": "staging/environment/actuator_model.c",
+        "generated": "converted/environment/actuator_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
+        "source": "environment_sim/src/gravity_model.c",
+        "staging": "staging/environment/gravity_model.c",
+        "generated": "converted/environment/gravity_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
+        "source": "environment_sim/src/mass_model.c",
+        "staging": "staging/environment/mass_model.c",
+        "generated": "converted/environment/mass_model.cu",
+        "status": "device-linkable-in-production-chain; propellant and inertia golden verified"
+      },
+      {
+        "source": "environment_sim/src/propulsion_model.c",
+        "staging": "staging/environment/propulsion_model.c",
+        "generated": "converted/environment/propulsion_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
         "source": "environment_sim/src/sensor_noise.c",
         "staging": "staging/environment/sensor_noise.c",
         "generated": "converted/environment/sensor_noise.cu",
@@ -94,12 +118,12 @@
     "module_inventory": {
       "device_linked_campaign": [
         "common/{vec3,matrix3,quaternion,random,ring_buffer}",
-        "environment/{missile_plant_6dof,atmosphere_model,earth_model,geo_coordinate,fault_injection}",
+        "environment/{missile_plant_6dof,actuator_model,atmosphere_model,earth_model,geo_coordinate,fault_injection,gravity_model,mass_model,propulsion_model}",
         "environment/{sensor_noise,sensor_vector3,sensor_imu,sensor_accel,sensor_speed,sensor_seeker}",
         "flight_control/{autopilot,command_manager,estimator,fc_health,fc_modes,fc_scheduler,fc_state,guidance_manager,guidance_png,navigation,safety_monitor}"
       ],
       "device_buildable_not_yet_integrated": [
-        "environment/{actuator_model,aero_model,gravity_model,mass_model,propulsion_model}"
+        "environment/aero_model (production uses the pointer-free device_force adapter)"
       ],
       "host_only_adapters": [
         "environment/{aero_database,map_tile,terrain_model}",
@@ -124,8 +148,8 @@
   "validation": {
     "host_compile": "gpu_workspace/tools/build_common_probe.sh",
     "host_test": "gpu_workspace/build/common_compare; gpu_workspace/build/plant_compare; gpu_workspace/build/aero_surrogate_compare; gpu_workspace/tools/build_campaign_chain_probe.sh",
-    "last_result": "PASS (common/ring-buffer, plant, sensor/control compile and campaign link)",
-    "device_kernel_link": "PASS (sensor/control/aero/atmosphere/plant/geodetic/fault campaign kernel)",
+    "last_result": "PASS (M3 CPU-equivalent sensor/control/actuator/environment/plant chain)",
+    "device_kernel_link": "PASS (sensor/control/actuator/aero/atmosphere/propulsion/gravity/mass/plant/geodetic/fault campaign kernel)",
     "single_instance_campaign_build": "make -C gpu_workspace",
     "multi_instance_baseline": "gpu_workspace/tools/run_multi_baseline.sh 8 10 2",
     "mapping_baseline": "gpu_workspace/tools/run_mapping_baseline.sh 8 32 20 2",
@@ -142,6 +166,8 @@
       "batch_isolation": "PASS on RTX 5070 for N=1/2/8/32/64/128",
       "noise_dropout_fault": "PASS on RTX 5070 for N=1/8/32/128",
       "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128",
-      "campaign_config_mapping": "PASS: unchanged runtime/scenario/flight-control/fault schema mapped for N=1/2/128; POD/index layout and three prelaunch error cases verified"
+      "campaign_config_mapping": "PASS: unchanged runtime/scenario/flight-control/fault schema mapped for N=1/2/128; POD/index layout and three prelaunch error cases verified",
+      "production_physics_chain": "PASS on RTX 5070: baseline hit at step 978 plus focused actuator, gravity, propulsion/mass/inertia CPU/GPU goldens at rtol=1e-10, atol=1e-12",
+      "production_physics_verification": "gpu_workspace/tools/run_m3_physics_verification.sh"
   }
 }

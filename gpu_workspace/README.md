@@ -34,8 +34,44 @@ not used by the single-process GPU executor.
 
 The probe covers N=1/2/128 and verifies that a missing runtime, a missing
 per-instance reference and an invalid range all fail before any CUDA launch.
-The production `gpu_campaign --config` execution path is connected in the next
-physical-chain milestone; the legacy probe CLI remains unchanged until then.
+The production `gpu_campaign --config` path is now active. It maps each
+instance into independent device configuration/state, runs the copied
+sensor/flight-control/actuator/environment/6DOF chain, and leaves the legacy
+probe CLI unchanged.
+
+```bash
+./build/bin/gpu_campaign \
+  --config configs/runtime_1.json \
+  --trace-mode full \
+  --chunk-steps 256 \
+  --mapping packed \
+  --lanes-per-block 4
+```
+
+M3 qualifies and device-links actuator, gravity, propulsion and mass models.
+The production force adapter follows CPU precedence for table, surrogate and
+quadratic-drag paths, combines virtual control force, propulsion, gravity and
+Earth-rotation terms, then updates propellant, total mass and inertia after the
+configured Euler/RK4 plant step. The initial result writer is present to make
+M3 CPU/GPU trajectory debugging reproducible; the complete output contract is
+still an M6 gate.
+
+Run the focused M3 acceptance matrix with:
+
+```bash
+./tools/run_m3_physics_verification.sh
+```
+
+It builds the CPU baseline without CMake, materializes unchanged-schema test
+configs, and compares independent actuator, gravity and propulsion/mass/
+inertia runs against both the CPU output and the tracked golden at
+`rtol=1e-10, atol=1e-12`. Terrain and faults are disabled in these focused
+cases. The normal baseline additionally passes the complete 978-step hit run.
+Recorded results are in `validation/physics_m3.json`.
+
+M3 does not claim M4 LOS/all-fault completion or M5 asynchronous double-
+buffered chunk execution. The production state is resumable across launches,
+but the current runner synchronously copies each chunk.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:

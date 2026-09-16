@@ -8,6 +8,7 @@
 #define ENV_ACTUATOR_MODEL_H
 
 #include "common/status.h"
+#include "common/device_qualifiers.h"
 
 #include <stdint.h>
 
@@ -35,8 +36,9 @@ typedef struct ActuatorState {
 } ActuatorState;
 
 /** @brief 校验执行机构状态和限幅参数。 */
-SimStatus actuator_model_validate(const ActuatorState *actuator);
+C2CUDA_HOST_DEVICE SimStatus actuator_model_validate(const ActuatorState *actuator);
 /** @brief 按一阶动态、位置限幅和速率限幅推进一个执行机构。 */
-SimStatus actuator_model_step(ActuatorState *actuator, double command, double dt);
+C2CUDA_HOST_DEVICE SimStatus actuator_model_step(
+    ActuatorState *actuator, double command, double dt);
 
 #endif

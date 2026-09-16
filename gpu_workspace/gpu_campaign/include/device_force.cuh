@@ -10,6 +10,7 @@
 #include "common/quaternion.h"
 #include "common/status.h"
 #include "common/vec3.h"
+#include "env/aero_surrogate.h"
 #include "device_environment.cuh"
 
 namespace gpu_campaign {
@@ -73,6 +74,98 @@ C2CUDA_HOST_DEVICE inline SimStatus device_aero_force_evaluate(
             (coefficients.cm + config->control_moment_coefficient * pitch_actuator_rad),
         dynamic_pressure * config->reference_area_m2 * config->reference_length_m *
             (coefficients.cn + config->control_moment_coefficient * yaw_actuator_rad));
+    return SIM_OK;
+}
+
+/* Pointer-free equivalent of aero_model_evaluate. Resource precedence is
+   identical to the CPU implementation: table, surrogate, then quadratic
+   drag. The caller resolves integer resource indexes before invoking it. */
+C2CUDA_HOST_DEVICE inline SimStatus device_aero_force_evaluate_complete(
+    const DeviceAeroForceConfig *config, double drag_coefficient,
+    const DeviceAeroTable *table, const AeroSurrogateModel *surrogate,
+    double density_kgpm3, double mach, Vec3 velocity_air_b_mps,
+    double pitch_actuator_rad, double yaw_actuator_rad, Vec3 *force_b_n,
+    Vec3 *moment_b_nm, std::uint32_t *model_flags) {
+    if (config == nullptr || force_b_n == nullptr || moment_b_nm == nullptr ||
+        !__builtin_isfinite(drag_coefficient) || drag_coefficient < 0.0 ||
+        !__builtin_isfinite(density_kgpm3) || density_kgpm3 < 0.0 ||
+        !__builtin_isfinite(mach) || mach < 0.0 ||
+        !vec3_isfinite(velocity_air_b_mps) ||
+        !__builtin_isfinite(pitch_actuator_rad) ||
+        !__builtin_isfinite(yaw_actuator_rad) ||
+        !__builtin_isfinite(config->reference_area_m2) ||
+        config->reference_area_m2 < 0.0 ||
+        !__builtin_isfinite(config->reference_length_m) ||
+        config->reference_length_m < 0.0 ||
+        !__builtin_isfinite(config->control_force_coefficient) ||
+        !__builtin_isfinite(config->control_moment_coefficient)) {
+        return SIM_ERR_INVALID_ARG;
+    }
+    *force_b_n = vec3_make(0.0, 0.0, 0.0);
+    *moment_b_nm = vec3_make(0.0, 0.0, 0.0);
+    if (model_flags != nullptr) *model_flags = 0u;
+    if (config->enabled == 0u) return SIM_OK;
+    const double speed = vec3_norm(velocity_air_b_mps);
+    if (speed <= 1.0e-9) return SIM_OK;
+    if (table != nullptr) {
+        return device_aero_force_evaluate(
+            config, table, density_kgpm3, mach, velocity_air_b_mps,
+            pitch_actuator_rad, yaw_actuator_rad, force_b_n, moment_b_nm,
+            model_flags);
+    }
+
+    const double dynamic_pressure = 0.5 * density_kgpm3 * speed * speed;
+    if (surrogate != nullptr) {
+        const double alpha_rad = std::atan2(velocity_air_b_mps.z,
+                                            velocity_air_b_mps.x);
+        double beta_ratio = velocity_air_b_mps.y / speed;
+        if (beta_ratio > 1.0) beta_ratio = 1.0;
+        if (beta_ratio < -1.0) beta_ratio = -1.0;
+        const double beta_rad = std::asin(beta_ratio);
+        AeroSurrogateCoefficients coefficients{};
+        const SimStatus status = aero_surrogate_evaluate(
+            surrogate, mach, alpha_rad, beta_rad, &coefficients);
+        if (status != SIM_OK) return status;
+        *force_b_n = vec3_make(
+            dynamic_pressure * config->reference_area_m2 * coefficients.cx,
+            dynamic_pressure * config->reference_area_m2 *
+                (coefficients.cy + config->control_force_coefficient *
+                                       yaw_actuator_rad),
+            dynamic_pressure * config->reference_area_m2 *
+                (coefficients.cz + config->control_force_coefficient *
+                                       pitch_actuator_rad));
+        *moment_b_nm = vec3_make(
+            dynamic_pressure * config->reference_area_m2 *
+                config->reference_length_m * coefficients.cl,
+            dynamic_pressure * config->reference_area_m2 *
+                config->reference_length_m *
+                (coefficients.cm + config->control_moment_coefficient *
+                                       pitch_actuator_rad),
+            dynamic_pressure * config->reference_area_m2 *
+                config->reference_length_m *
+                (coefficients.cn + config->control_moment_coefficient *
+                                       yaw_actuator_rad));
+        return SIM_OK;
+    }
+
+    const Vec3 drag_direction = vec3_scale(velocity_air_b_mps, -1.0 / speed);
+    *force_b_n = vec3_add(
+        vec3_scale(drag_direction, dynamic_pressure *
+            config->reference_area_m2 * drag_coefficient),
+        vec3_make(
+            0.0,
+            dynamic_pressure * config->reference_area_m2 *
+                config->control_force_coefficient * yaw_actuator_rad,
+            dynamic_pressure * config->reference_area_m2 *
+                config->control_force_coefficient * pitch_actuator_rad));
+    *moment_b_nm = vec3_make(
+        0.0,
+        dynamic_pressure * config->reference_area_m2 *
+            config->reference_length_m * config->control_moment_coefficient *
+            pitch_actuator_rad,
+        dynamic_pressure * config->reference_area_m2 *
+            config->reference_length_m * config->control_moment_coefficient *
+            yaw_actuator_rad);
     return SIM_OK;
 }
 

@@ -8,7 +8,7 @@
 #define CUDA_BLOCK_Z 1
 #define AUTOC2CUDATEST
 
-static double clamp_value(double value,double minimum,double maximum)
+C2CUDA_HOST_DEVICE static double clamp_value(double value,double minimum,double maximum)
 {
   return value < minimum?minimum : ((value > maximum?maximum : value));
 }

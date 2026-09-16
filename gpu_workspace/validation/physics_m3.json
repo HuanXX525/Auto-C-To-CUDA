@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-16",
+  "gpu": "NVIDIA GeForce RTX 5070",
+  "cuda": "13.2",
+  "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "result": "PASS",
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-12,
+    "csv_serialization_quantization_aware": true
+  },
+  "baseline_full_chain": {
+    "result": "PASS",
+    "simulation_steps": 978,
+    "exit_reason": "hit",
+    "miss_distance_m": 0.353424,
+    "cpu_gpu_result_directory_match": true
+  },
+  "focused_cases": {
+    "actuator": {
+      "result": "PASS",
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "terrain_enabled": false,
+      "fault_count": 0
+    },
+    "gravity": {
+      "result": "PASS",
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "terrain_enabled": false,
+      "fault_count": 0
+    },
+    "propulsion_mass_inertia": {
+      "result": "PASS",
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "final_mass_kg": 99.75,
+      "final_propellant_mass_kg": 1.75,
+      "minimum_inertia_diagonal_kgm2": 0.9975,
+      "terrain_enabled": false,
+      "fault_count": 0
+    }
+  },
+  "regressions_fixed": [
+    "converted command_manager actuator array copied from index 1 and skipped channel 0",
+    "GPU timeout guard updated closest-approach summary after the CPU loop had ended"
+  ]
+}

@@ -11,6 +11,7 @@
 #include "gpu_types.cuh"
 #include "host_environment_packer.hpp"
 #include "host_scenario_mapper.hpp"
+#include "production_runner.hpp"
 #include "simulate_step.cuh"
 
 namespace {
@@ -153,6 +154,82 @@ CampaignOptions parse_options(int argc, char **argv) {
     return options;
 }
 
+bool has_production_config(int argc, char **argv) {
+    for (int index = 1; index < argc; ++index) {
+        if (std::strcmp(argv[index], "--config") == 0) return true;
+    }
+    return false;
+}
+
+gpu_campaign::ProductionOptions parse_production_options(
+    int argc, char **argv) {
+    gpu_campaign::ProductionOptions options{};
+    options.trace_mode = gpu_campaign::ProductionTraceMode::Full;
+    options.mapping = gpu_campaign::ProductionMapping::Auto;
+    options.chunk_steps = 256u;
+    options.lanes_per_block = 4u;
+    if ((argc - 1) % 2 != 0) {
+        std::fprintf(stderr, "usage: %s --config runtime.json "
+                     "[--output-dir DIR] [--trace-mode full|summary] "
+                     "[--chunk-steps N] [--mapping auto|serial|packed] "
+                     "[--lanes-per-block 4|8|16|32]\n", argv[0]);
+        std::exit(EXIT_FAILURE);
+    }
+    for (int index = 1; index < argc; index += 2) {
+        const char *name = argv[index];
+        const char *value = argv[index + 1];
+        if (std::strcmp(name, "--config") == 0) {
+            options.config_path = value;
+        } else if (std::strcmp(name, "--output-dir") == 0) {
+            options.output_dir = value;
+        } else if (std::strcmp(name, "--trace-mode") == 0) {
+            if (std::strcmp(value, "full") == 0) {
+                options.trace_mode = gpu_campaign::ProductionTraceMode::Full;
+            } else if (std::strcmp(value, "summary") == 0) {
+                options.trace_mode = gpu_campaign::ProductionTraceMode::Summary;
+            } else {
+                std::fprintf(stderr, "gpu_campaign: invalid --trace-mode: %s\n",
+                             value);
+                std::exit(EXIT_FAILURE);
+            }
+        } else if (std::strcmp(name, "--chunk-steps") == 0) {
+            options.chunk_steps = parse_u32(value, "--chunk-steps", 1000000u);
+        } else if (std::strcmp(name, "--mapping") == 0) {
+            if (std::strcmp(value, "auto") == 0) {
+                options.mapping = gpu_campaign::ProductionMapping::Auto;
+            } else if (std::strcmp(value, "serial") == 0) {
+                options.mapping = gpu_campaign::ProductionMapping::Serial;
+            } else if (std::strcmp(value, "packed") == 0) {
+                options.mapping = gpu_campaign::ProductionMapping::Packed;
+            } else {
+                std::fprintf(stderr, "gpu_campaign: invalid --mapping: %s\n",
+                             value);
+                std::exit(EXIT_FAILURE);
+            }
+        } else if (std::strcmp(name, "--lanes-per-block") == 0) {
+            options.lanes_per_block = parse_u32(
+                value, "--lanes-per-block", 32u, 4u);
+            if (options.lanes_per_block != 4u &&
+                options.lanes_per_block != 8u &&
+                options.lanes_per_block != 16u &&
+                options.lanes_per_block != 32u) {
+                std::fprintf(stderr, "gpu_campaign: --lanes-per-block must be "
+                             "4, 8, 16, or 32\n");
+                std::exit(EXIT_FAILURE);
+            }
+        } else {
+            std::fprintf(stderr, "gpu_campaign: option %s cannot be combined "
+                         "with --config\n", name);
+            std::exit(EXIT_FAILURE);
+        }
+    }
+    if (options.config_path == nullptr) {
+        std::fprintf(stderr, "gpu_campaign: --config requires a path\n");
+        std::exit(EXIT_FAILURE);
+    }
+    return options;
+}
+
 /* Retain the old single-instance command-line result format. */
 void print_summary(const gpu_campaign::DeviceInstanceState &state,
                    const gpu_campaign::DeviceTraceRecord *trace) {
@@ -230,6 +307,10 @@ bool dump_instance0_trace(const gpu_campaign::DeviceTraceRecord *trace,
 }  // namespace
 
 int main(int argc, char **argv) {
+    if (has_production_config(argc, argv)) {
+        return gpu_campaign::run_production_campaign(
+            parse_production_options(argc, argv));
+    }
     const CampaignOptions options = parse_options(argc, argv);
     const std::uint32_t steps = options.steps;
     const std::uint32_t instances = options.instances;

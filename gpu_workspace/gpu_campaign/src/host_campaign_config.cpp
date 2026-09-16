@@ -543,7 +543,10 @@ SimStatus load_scenario_config(const std::string &path,
     }
     out->terrain_cache_tile_count = cache_count;
     (void)get_optional_string(&tree, "map.database_path", &host->map_database_path);
-    (void)get_optional_string(&tree, "map.tile_index", &host->map_tile_index_path);
+    /* map.tile_index is catalog metadata in the original schema.  The CPU
+       terrain loader only treats map.tile_index_path as an actual tile-list
+       resource, so keep the two fields distinct. */
+    (void)get_optional_string(&tree, "map.tile_index", &host->map_catalog_index);
 
     std::string resolved;
     bool asset_found = false;
@@ -572,6 +575,7 @@ SimStatus load_scenario_config(const std::string &path,
     if (status != SIM_OK) {
         return finish(status, error == nullptr ? "terrain index error" : *error);
     }
+    host->map_tile_index_path = terrain->index_path;
     terrain->key = terrain->index_path;
     for (const std::string &tile : terrain->tile_paths) terrain->key += "|" + tile;
 
@@ -642,6 +646,7 @@ SimStatus load_campaign_plan(const char *runtime_path, HostCampaignPlan *out,
     if (status != SIM_OK) return finish(status, "invalid runtime schema");
 
     *out = HostCampaignPlan{};
+    out->runtime_display_path = runtime_path;
     out->runtime_path = canonical_runtime;
     out->instance_dir_template = "instance_${instance_id}";
     out->requested_schedule = "PARALLEL";
@@ -731,15 +736,24 @@ SimStatus load_campaign_plan(const char *runtime_path, HostCampaignPlan *out,
             instance.device.random_seed = out->base_random_seed + instance.device.instance_id;
         }
 
-        struct ReferenceField { const char *name; std::string *destination; };
-        ReferenceField refs[] = {{"scenario", &instance.scenario_path},
-                                 {"flight_control", &instance.flight_control_path},
-                                 {"faults", &instance.faults_path}};
+        struct ReferenceField {
+            const char *name;
+            std::string *display;
+            std::string *destination;
+        };
+        ReferenceField refs[] = {
+            {"scenario", &instance.scenario_display_path,
+             &instance.scenario_path},
+            {"flight_control", &instance.flight_control_display_path,
+             &instance.flight_control_path},
+            {"faults", &instance.faults_display_path,
+             &instance.faults_path}};
         for (ReferenceField &ref : refs) {
             char raw[PATH_MAX];
             std::snprintf(key, sizeof(key), "instances[%u].%s",
                           static_cast<unsigned int>(index), ref.name);
             status = config_get_string(&runtime, key, raw, sizeof(raw));
+            if (status == SIM_OK) *ref.display = raw;
             if (status != SIM_OK || !resolve_reference(canonical_runtime, raw, ref.destination)) {
                 return finish(status == SIM_OK ? SIM_ERR_IO : status,
                               "cannot resolve instance reference " + std::string(ref.name));

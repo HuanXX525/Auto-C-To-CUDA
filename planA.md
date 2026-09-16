@@ -32,7 +32,27 @@ runtime.json
 
 原项目的 `common/`、`environment_sim/`、`flight_control_sim/`、`tools/`、`tests/` 目录保持原样。
 
-### 当前实施进度（2026-08-31）
+### 当前里程碑状态（2026-09-16）
+
+- M0 已完成：父仓库 gitlink 与 CPU 基线固定在 Aircraft-Simu
+  `970bdfb`，迁移工作区、忽略规则、工具链和验收配置已固化；
+- M1 已完成：RTX 5070 上的地形飞越、碰撞（第 33 步）和
+  N=1/8/32/128 隔离通过，见 `gpu_workspace/validation/terrain_m1.json`；
+- M2 已完成：不改变原 JSON schema 的 campaign/instance 配置加载、
+  POD 设备数据模型、资源索引去重和 kernel 启动前错误检查通过，见
+  `gpu_workspace/validation/config_m2.json`；
+- M3 已完成：生产入口已经接入
+  `sensor → flight_control → actuator → environment force → plant → trace`，
+  包含 RK4/Euler、气动优先级、重力、地球旋转、推进剂消耗、质量与惯量
+  更新、目标运动及诊断；CPU/GPU baseline 在第 978 步同时命中，并完成
+  执行机构、重力、推进/质量/惯量三个关闭地形和故障的独立 golden，见
+  `gpu_workspace/validation/physics_m3.json`；
+- M3 修复了转换后 `command_manager` 的执行机构数组 1-based 下标问题，
+  并把修正规则固化进 sanitizer，重新转换后不会丢失；
+- 下一阶段为 M4：LOS 16 点采样、多瓦片选择以及全部故障语义。目前未开始，
+  不应把现有 clear-LOS baseline 解释为 M4 已完成。
+
+### 历史实施进度（截至 2026-08-31）
 
 已在 `gpu_workspace/` 完成 Phase 0/Phase 1 的最小垂直切片：
 

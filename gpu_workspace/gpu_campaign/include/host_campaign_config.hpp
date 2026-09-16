@@ -22,16 +22,21 @@ struct HostFaultAsset {
 
 struct HostInstancePlan {
     DeviceInstanceConfig device;
+    std::string scenario_display_path;
     std::string scenario_path;
+    std::string flight_control_display_path;
     std::string flight_control_path;
+    std::string faults_display_path;
     std::string faults_path;
     std::string map_database_path;
+    std::string map_catalog_index;
     std::string map_tile_index_path;
     std::string aero_surrogate_model_version;
     std::string aero_surrogate_training_data_version;
 };
 
 struct HostCampaignPlan {
+    std::string runtime_display_path;
     std::string runtime_path;
     std::string campaign_id;
     std::string output_dir;

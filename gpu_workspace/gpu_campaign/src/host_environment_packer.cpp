@@ -1,5 +1,8 @@
 #include "host_environment_packer.hpp"
 
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 #include <vector>
 
 extern "C" {
@@ -8,6 +11,26 @@ extern "C" {
 }
 
 namespace gpu_campaign {
+
+namespace {
+
+AeroSurrogateLinearTerm *surrogate_term(AeroSurrogateModel *model,
+                                         const char *name) {
+    if (std::strcmp(name, "cx") == 0) return &model->cx;
+    if (std::strcmp(name, "cy") == 0) return &model->cy;
+    if (std::strcmp(name, "cz") == 0) return &model->cz;
+    if (std::strcmp(name, "cl") == 0) return &model->cl;
+    if (std::strcmp(name, "cm") == 0) return &model->cm;
+    if (std::strcmp(name, "cn") == 0) return &model->cn;
+    return nullptr;
+}
+
+bool finite_term(const AeroSurrogateLinearTerm &term) {
+    return std::isfinite(term.offset) && std::isfinite(term.mach) &&
+        std::isfinite(term.alpha_rad) && std::isfinite(term.beta_rad);
+}
+
+}  // namespace
 
 SimStatus pack_aero_database_file(const char *path, DeviceAeroTable *out) {
     if (path == nullptr || out == nullptr) return SIM_ERR_INVALID_ARG;
@@ -58,6 +81,43 @@ SimStatus pack_terrain_tile_file(
     }
     map_tile_unload(&tile);
     return status;
+}
+
+SimStatus pack_aero_surrogate_file(const char *path, AeroSurrogateModel *out) {
+    if (path == nullptr || out == nullptr) return SIM_ERR_INVALID_ARG;
+    std::FILE *file = std::fopen(path, "rb");
+    if (file == nullptr) return SIM_ERR_IO;
+    char magic[64];
+    if (std::fscanf(file, "%63s", magic) != 1 ||
+        std::strcmp(magic, "MISSILE_AERO_SURROGATE_LINEAR_V1") != 0) {
+        std::fclose(file);
+        return SIM_ERR_CONFIG;
+    }
+    *out = AeroSurrogateModel{};
+    std::uint32_t seen = 0u;
+    for (std::uint32_t index = 0u; index < 6u; ++index) {
+        char name[8];
+        AeroSurrogateLinearTerm term{};
+        if (std::fscanf(file, "%7s %lf %lf %lf %lf", name, &term.offset,
+                        &term.mach, &term.alpha_rad, &term.beta_rad) != 5) {
+            std::fclose(file);
+            return SIM_ERR_CONFIG;
+        }
+        AeroSurrogateLinearTerm *target = surrogate_term(out, name);
+        const std::uint32_t bit = std::strcmp(name, "cx") == 0 ? 0x01u :
+            std::strcmp(name, "cy") == 0 ? 0x02u :
+            std::strcmp(name, "cz") == 0 ? 0x04u :
+            std::strcmp(name, "cl") == 0 ? 0x08u :
+            std::strcmp(name, "cm") == 0 ? 0x10u : 0x20u;
+        if (target == nullptr || !finite_term(term) || (seen & bit) != 0u) {
+            std::fclose(file);
+            return SIM_ERR_CONFIG;
+        }
+        *target = term;
+        seen |= bit;
+    }
+    std::fclose(file);
+    return seen == 0x3fu ? SIM_OK : SIM_ERR_CONFIG;
 }
 
 }  // namespace gpu_campaign

@@ -32,6 +32,20 @@ def main() -> None:
         for signature in signatures:
             text = text.replace(signature, "C2CUDA_HOST_DEVICE " + signature, 1)
         if relative.endswith("command_manager.cu"):
+            generated_loop = (
+                "for (index = 1; index <= (((unsigned long )8u) + "
+                "(((long )1) - ((long )(1 + ((size_t )0u))))) / 1; "
+                "index += 1)"
+            )
+            text = text.replace(
+                generated_loop,
+                "for (index = 0u; index < SIM_MAX_ACTUATORS; ++index)",
+                1,
+            )
+            # The converter normally emits ``1 * index + -1LL`` with its
+            # one-based loop.  Older generated trees may already have had
+            # that expression simplified, so the loop normalization above
+            # is deliberately independent of the subscript spelling.
             text = text.replace("1 * index + -1LL", "index")
         path.write_text(text, encoding="utf-8")
 

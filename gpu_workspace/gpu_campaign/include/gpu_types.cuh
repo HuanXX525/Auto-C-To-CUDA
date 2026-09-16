@@ -24,6 +24,7 @@
 namespace gpu_campaign {
 
 constexpr std::uint32_t kInvalidAssetIndex = UINT32_MAX;
+constexpr std::uint32_t kCommunicationDelayCapacity = 17u;
 
 enum class DeviceFailureStrategy : std::uint32_t {
     ContinueOnFailure = 0,
@@ -56,6 +57,27 @@ struct DeviceCampaignConfig {
     std::uint32_t failure_strategy;
     std::uint32_t trace_mode;
     std::uint32_t chunk_steps;
+};
+
+/* Per-launch scheduling metadata. Trace records are chunk-local, while each
+   record's step field and DeviceInstanceState::global_step remain global. */
+struct DeviceChunkLaunch {
+    std::uint32_t instance_count;
+    std::uint32_t max_steps;
+    std::uint32_t trace_capacity;
+    std::uint32_t packed_lanes;
+    std::uint32_t write_initial_state;
+    std::uint32_t trace_enabled;
+};
+
+/* A terrain resource owns a contiguous range in the campaign-wide flat tile
+   array. Individual instance configs reference this descriptor by index. */
+struct DeviceTerrainSet {
+    std::uint32_t first_grid;
+    std::uint32_t grid_count;
+    std::uint32_t missing_policy;
+    std::uint32_t reserved;
+    double flat_fill_height_m;
 };
 
 /* Pointer-free, per-instance configuration produced from runtime.json and
@@ -157,6 +179,10 @@ enum class DeviceExitReason : std::uint32_t {
     AeroError = 5,
     FaultError = 6,
     SurfaceCollision = 7,
+    Hit = 8,
+    Timeout = 9,
+    ConfigError = 10,
+    NumericError = 11,
 };
 
 struct DeviceTraceRecord {
@@ -181,6 +207,31 @@ struct DeviceTraceRecord {
     double mach;
     double density;
     std::uint32_t aero_flags;
+    Vec3 acceleration_ecef;
+    double latitude_rad;
+    double longitude_rad;
+    double height_m;
+    double height_agl_m;
+    double mass_kg;
+    double propellant_mass_kg;
+    Vec3 target_position_ecef;
+    Vec3 target_velocity_ecef;
+    double target_latitude_rad;
+    double target_longitude_rad;
+    double target_height_m;
+    double truth_range_m;
+    double truth_closing_velocity_mps;
+    double actuator_position[3];
+    double actuator_rate[3];
+    double mass_flow_kgps;
+    std::uint32_t fault_started_mask;
+    std::uint32_t fault_ended_mask;
+    std::uint32_t fault_active_mask;
+    std::uint32_t reserved_fault;
+    SensorFrame sensor_frame;
+    ControlCommand control_command;
+    std::uint32_t has_io_frame;
+    std::uint32_t reserved_io;
 };
 
 struct DeviceSensorSuite {
@@ -190,6 +241,39 @@ struct DeviceSensorSuite {
     SeekerSensor seeker;
     Vec3 target_position_ecef;
     Vec3 target_velocity_ecef;
+};
+
+struct DeviceCommunicationDelayLine {
+    SensorFrame frames[kCommunicationDelayCapacity];
+    std::uint32_t head;
+    std::uint32_t count;
+};
+
+struct DeviceCommunicationReorderState {
+    SensorFrame previous;
+    std::uint32_t has_previous;
+};
+
+struct DeviceFaultStats {
+    std::uint32_t configured_fault_count;
+    std::uint32_t fault_start_count;
+    std::uint32_t fault_end_count;
+    std::uint32_t active_step_count;
+    std::uint32_t sensor_affected_step_count;
+    std::uint32_t actuator_affected_step_count;
+    std::uint32_t max_concurrent_active;
+    std::uint32_t reserved;
+};
+
+struct DeviceDiagnosticStats {
+    double max_quat_norm_error;
+    double max_dcm_orthogonality_error;
+    double min_mass_kg;
+    double min_inertia_diag_kgm2;
+    std::uint32_t aero_model_flags_or;
+    std::uint32_t aero_extrapolated_sample_count;
+    std::uint32_t model_degradation_flags_or;
+    std::uint32_t sample_count;
 };
 
 struct DeviceInstanceState {
@@ -211,6 +295,33 @@ struct DeviceInstanceState {
        state; the script itself is shared read-only via the kernel
        argument). planA Phase 4 item 3. */
     FaultInjection faults;
+
+    /* Production runtime state. All mutable history is instance-local so a
+       chunk boundary or another lane cannot reset or contaminate it. */
+    MassModel mass;
+    Matrix3 initial_inertia_b;
+    double initial_mass_kg;
+    ActuatorState acceleration_actuators[3];
+    LlaCoord target_lla;
+    double min_range_m;
+    double time_of_closest_s;
+    double last_mass_flow_kgps;
+    AeroTableSample last_valid_aero_sample;
+    std::uint32_t have_last_valid_aero_sample;
+    std::uint32_t hit;
+    std::uint32_t global_step;
+    std::uint32_t chunk_records_written;
+    std::uint32_t terminal_status;
+    SensorFrame last_sensor;
+    ControlCommand last_command;
+    DeviceCommunicationDelayLine communication_delay;
+    DeviceCommunicationReorderState communication_reorder;
+    DeviceFaultStats fault_stats;
+    DeviceDiagnosticStats diagnostic_stats;
+    std::uint32_t last_fault_started_mask;
+    std::uint32_t last_fault_ended_mask;
+    std::uint32_t last_fault_active_mask;
+    std::uint32_t reserved_production;
 };
 
 static_assert(std::is_trivially_copyable<DeviceConfig>::value,
@@ -229,6 +340,14 @@ static_assert(std::is_trivially_copyable<DeviceCampaignConfig>::value,
               "DeviceCampaignConfig must be trivially copyable");
 static_assert(std::is_standard_layout<DeviceCampaignConfig>::value,
               "DeviceCampaignConfig must use standard layout");
+static_assert(std::is_trivially_copyable<DeviceChunkLaunch>::value,
+              "DeviceChunkLaunch must be trivially copyable");
+static_assert(std::is_standard_layout<DeviceChunkLaunch>::value,
+              "DeviceChunkLaunch must use standard layout");
+static_assert(std::is_trivially_copyable<DeviceTerrainSet>::value,
+              "DeviceTerrainSet must be trivially copyable");
+static_assert(std::is_standard_layout<DeviceTerrainSet>::value,
+              "DeviceTerrainSet must use standard layout");
 static_assert(std::is_trivially_copyable<DeviceInstanceConfig>::value,
               "DeviceInstanceConfig must be trivially copyable");
 static_assert(std::is_standard_layout<DeviceInstanceConfig>::value,

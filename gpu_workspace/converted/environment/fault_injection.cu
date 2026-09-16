@@ -254,8 +254,8 @@ SimStatus fault_injection_update(FaultInjection *faults,double sim_time_s,FaultS
   if (faults -> enabled == 0) {
     return SIM_OK;
   }
-  for (index = 1; index <= (faults -> fault_count + (((long )1) - ((long )(1 + ((size_t )0u))))) / 1; index += 1) {
-    FaultDefinition *fault = &faults -> faults[1 * index + -1LL];
+  for (index = 0u; index < faults -> fault_count; ++index) {
+    FaultDefinition *fault = &faults -> faults[index];
     const int active = fault_is_active(fault,sim_time_s);
     if (active != fault -> was_active) {
 #ifndef __CUDACC__
@@ -324,13 +324,13 @@ void fault_injection_apply_actuators(const FaultStepEffects *effects,ActuatorSta
   if (effects == 0 || actuators == 0 || commands == 0) {
     return ;
   }
-  for (index = 1; index <= (((unsigned long )3u) + (((long )1) - ((long )(1 + ((size_t )0u))))) / 1; index += 1) {
-    commands[1 * index + -1LL] *= effects -> actuator_command_scale[1 * index + -1LL];
-    if (effects -> actuator_stuck[1 * index + -1LL] != 0) {
-      actuators[1 * index + -1LL] . fault_flags |= 0x00000001U;
+  for (index = 0u; index < 3u; ++index) {
+    commands[index] *= effects -> actuator_command_scale[index];
+    if (effects -> actuator_stuck[index] != 0) {
+      actuators[index] . fault_flags |= 0x00000001U;
     }
      else {
-      actuators[1 * index + -1LL] . fault_flags &= ~0x00000001U;
+      actuators[index] . fault_flags &= ~0x00000001U;
     }
   }
 }

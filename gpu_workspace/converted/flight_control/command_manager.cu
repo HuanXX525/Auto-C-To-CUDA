@@ -95,7 +95,7 @@ SimStatus command_manager_build(CommandManager *manager,uint32_t seq,double sim_
     requested_accel = autopilot_cmd -> accel_cmd_ecef;
     command . attitude_cmd = autopilot_cmd -> attitude_cmd;
     command . body_rate_cmd = autopilot_cmd -> body_rate_cmd;
-    for (index = 1; index <= (((unsigned long )8u) + (((long )1) - ((long )(1 + ((size_t )0u))))) / 1; index += 1) {
+    for (index = 0u; index < SIM_MAX_ACTUATORS; ++index) {
       command . actuator_cmd[index] = autopilot_cmd -> actuator_cmd[index];
       if (!__builtin_isfinite(command . actuator_cmd[index])) {
         return SIM_ERR_NUMERIC;
