@@ -5,7 +5,10 @@
   "cuda": "13.2",
   "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
   "steps": 64,
-  "tolerance": 1e-9,
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-12
+  },
   "flyover": {
     "result": "PASS",
     "exit_reason": 1,

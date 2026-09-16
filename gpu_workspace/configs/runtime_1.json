@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "campaign": {
+    "campaign_id": "gpu_acceptance_1",
+    "instance_count": 1,
+    "schedule": "PARALLEL",
+    "max_parallel_instances": 1,
+    "base_random_seed": 12345,
+    "failure_strategy": "CONTINUE_ON_FAILURE"
+  },
+  "network": {
+    "protocol_version_major": 1,
+    "protocol_version_minor": 0,
+    "environment_base_port": 54000,
+    "flight_control_base_port": 54001,
+    "host": "127.0.0.1"
+  },
+  "logging": {
+    "output_dir": "gpu_workspace/output/gpu_acceptance_1",
+    "instance_dir_template": "instance_${instance_id}",
+    "binary_logs": true,
+    "event_log": true,
+    "flush_every_steps": 100
+  },
+  "tools": {
+    "environment_program": "external/Aircraft-Simu/build/environment_sim/environment_sim",
+    "flight_control_program": "external/Aircraft-Simu/build/flight_control_sim/flight_control_sim"
+  },
+  "instances": [
+    {
+      "enabled": true,
+      "instance_id": 0,
+      "scenario": "external/Aircraft-Simu/configs/baseline/scenario.json",
+      "flight_control": "external/Aircraft-Simu/configs/baseline/flight_control.json",
+      "faults": "external/Aircraft-Simu/configs/baseline/faults.json",
+      "random_seed": 12345
+    }
+  ]
+}

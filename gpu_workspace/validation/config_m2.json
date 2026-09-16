@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-16",
+  "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "result": "PASS",
+  "instance_counts": [1, 2, 128],
+  "mapped_sections": [
+    "campaign",
+    "logging",
+    "instances",
+    "simulation",
+    "earth",
+    "plant",
+    "gravity",
+    "atmosphere",
+    "propulsion",
+    "aerodynamics",
+    "missile",
+    "target",
+    "sensors",
+    "flight_control",
+    "map",
+    "faults"
+  ],
+  "accepted_but_host_only": [
+    "network",
+    "tools",
+    "campaign.schedule",
+    "campaign.max_parallel_instances"
+  ],
+  "prelaunch_error_cases": [
+    "missing runtime path",
+    "missing per-instance reference",
+    "invalid instance count"
+  ],
+  "device_layout": {
+    "host_pointers": false,
+    "standard_layout": true,
+    "trivially_copyable": true,
+    "shared_resources_by_integer_index": true
+  }
+}

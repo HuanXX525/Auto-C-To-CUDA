@@ -16,6 +16,7 @@ constexpr std::uint32_t kDeviceTerrainMaxCells = 4096;
 enum class DeviceExtrapolationPolicy : std::uint32_t {
     Error = 0,
     ClampAndWarn = 1,
+    HoldLastValid = 2,
 };
 
 constexpr std::uint32_t kDeviceTableFlagExtrapolated = 1u;
@@ -95,6 +96,13 @@ C2CUDA_HOST_DEVICE inline SimStatus device_aero_table_lookup(
         beta_rad < table->beta_min || beta_rad > table->beta_max;
     if (outside && table->policy == static_cast<std::uint32_t>(DeviceExtrapolationPolicy::Error)) {
         return SIM_ERR_OUT_OF_RANGE;
+    }
+    /* HOLD_LAST_VALID requires per-instance lookup history and is handled by
+       the production force adapter.  The stateless legacy lookup refuses to
+       approximate it with clamp semantics. */
+    if (outside && table->policy ==
+                       static_cast<std::uint32_t>(DeviceExtrapolationPolicy::HoldLastValid)) {
+        return SIM_ERR_CONFIG;
     }
     if (outside && flags != nullptr) *flags |= kDeviceTableFlagExtrapolated;
     if (mach < table->mach_min) mach = table->mach_min;

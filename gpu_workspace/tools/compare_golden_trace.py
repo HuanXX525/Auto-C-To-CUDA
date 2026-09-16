@@ -9,7 +9,7 @@ Both files use the column layout:
 Doubles are compared with a relative+absolute tolerance (nvcc may contract
 multiply-add, so bit-exactness is not required); integers must match exactly.
 
-Usage: compare_golden_trace.py GOLDEN TRACE [--tol 1e-9]
+Usage: compare_golden_trace.py GOLDEN TRACE [--rtol 1e-10] [--atol 1e-12]
 """
 import argparse
 import sys
@@ -46,12 +46,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("golden")
     parser.add_argument("trace")
-    parser.add_argument("--tol", type=float, default=1.0e-9)
+    parser.add_argument("--rtol", type=float, default=1.0e-10)
+    parser.add_argument("--atol", type=float, default=1.0e-12)
+    parser.add_argument(
+        "--tol", type=float, default=None,
+        help="legacy option: set both --rtol and --atol to the same value")
     parser.add_argument(
         "--allow-zero-tail", action="store_true",
         help="trace may have extra rows beyond the golden (surface-collision "
              "early termination) when every extra row is all-zero")
     args = parser.parse_args()
+    if args.tol is not None:
+        args.rtol = args.tol
+        args.atol = args.tol
+    if args.rtol < 0.0 or args.atol < 0.0:
+        parser.error("tolerances must be non-negative")
 
     golden = load(args.golden)
     trace = load(args.trace)
@@ -81,7 +90,7 @@ def main():
             abs_diff = abs(golden_value - trace_value)
             scale = max(abs(golden_value), abs(trace_value))
             rel_diff = abs_diff / scale if scale > 0.0 else abs_diff
-            if rel_diff > args.tol and abs_diff > args.tol:
+            if abs_diff > args.atol + args.rtol * abs(golden_value):
                 print(f"FAIL: row {row_index} column {column}: "
                       f"golden={golden_value!r} trace={trace_value!r} "
                       f"rel={rel_diff:.3e}")
@@ -90,7 +99,7 @@ def main():
                 worst[column] = (abs_diff, rel_diff, golden_value,
                                  trace_value, row_index)
 
-    print(f"rows={len(golden)} tol={args.tol:g} "
+    print(f"rows={len(golden)} rtol={args.rtol:g} atol={args.atol:g} "
           f"max_rel_deviations (worst columns):")
     for column in COLUMNS:
         if column in worst:

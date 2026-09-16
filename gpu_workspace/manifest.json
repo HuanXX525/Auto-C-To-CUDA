@@ -103,7 +103,7 @@
       ],
       "host_only_adapters": [
         "environment/{aero_database,map_tile,terrain_model}",
-        "gpu_campaign/{host_environment_packer,host_scenario_mapper}"
+        "gpu_campaign/{host_environment_packer,host_scenario_mapper,host_campaign_config}"
       ]
     },
     "derived_sources": [
@@ -141,6 +141,7 @@
       "scenario_golden": "PASS on RTX 5070 (65 records, maximum relative deviation 9.5e-16)",
       "batch_isolation": "PASS on RTX 5070 for N=1/2/8/32/64/128",
       "noise_dropout_fault": "PASS on RTX 5070 for N=1/8/32/128",
-      "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128"
+      "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128",
+      "campaign_config_mapping": "PASS: unchanged runtime/scenario/flight-control/fault schema mapped for N=1/2/128; POD/index layout and three prelaunch error cases verified"
   }
 }

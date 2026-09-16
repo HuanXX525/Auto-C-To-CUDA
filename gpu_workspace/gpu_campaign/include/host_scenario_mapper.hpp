@@ -25,8 +25,8 @@ struct DeviceScenarioAero {
 
 /* Parses scenario_path with the original common/config.c reader. Missing
    keys fall back to the env_app.c defaults (disabled, zero coefficients,
-   zero wind). An unknown extrapolation policy, or HOLD_LAST_VALID (the
-   device table does not implement that semantics yet), is a hard error. */
+   zero wind). Unknown extrapolation policies are errors; HOLD_LAST_VALID is
+   preserved explicitly for the stateful production lookup path. */
 SimStatus load_scenario_aero(const char *scenario_path, DeviceScenarioAero *out);
 
 /* Parses the sensors.* section of scenario.json into the pointer-free device
@@ -40,7 +40,7 @@ SimStatus load_scenario_sensors(const char *scenario_path, double simulation_dt_
 /* Parses a faults.json script with the original fault_injection loader and
    applies the GPU-campaign scope guard: actuator targets (STUCK/SCALE) and
    communication faults (COMMUNICATION_DELAY/COMMUNICATION_REORDER) are
-   rejected because the campaign kernel has no actuator model or
+   rejected because the legacy campaign kernel has no actuator model or
    communication layer. Sensor-frame/sensor-target faults (BIAS, DRIFT,
    RAMP_BIAS, HOLD_VALUE, DROPOUT, FORCE_INVALID) are supported. */
 SimStatus load_fault_script(const char *faults_path, FaultInjection *out);

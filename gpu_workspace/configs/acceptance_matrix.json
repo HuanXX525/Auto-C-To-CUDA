@@ -5,6 +5,7 @@
     "scenario": "external/Aircraft-Simu/configs/baseline/scenario.json",
     "flight_control": "external/Aircraft-Simu/configs/baseline/flight_control.json",
     "faults": "external/Aircraft-Simu/configs/baseline/faults.json",
+    "runtime_1": "gpu_workspace/configs/runtime_1.json",
     "runtime_2": "external/Aircraft-Simu/configs/baseline/runtime.json",
     "runtime_128": "external/Aircraft-Simu/configs/baseline/runtime_128.json"
   },

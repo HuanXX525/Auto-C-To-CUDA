@@ -18,6 +18,25 @@ make
 ./build/bin/gpu_campaign --steps 8
 ```
 
+## Production configuration model
+
+M2 adds a host-side loader for the unchanged Aircraft-Simu `runtime.json`
+schema and all referenced scenario, flight-control and fault files. It emits
+pointer-free `DeviceCampaignConfig` and per-instance `DeviceInstanceConfig`
+records, resolves paths independently of the caller's working directory, and
+deduplicates immutable aero, surrogate, terrain and fault resources by integer
+index. Network/process fields are retained as compatibility metadata but are
+not used by the single-process GPU executor.
+
+```bash
+./tools/build_campaign_config_probe.sh
+```
+
+The probe covers N=1/2/128 and verifies that a missing runtime, a missing
+per-instance reference and an invalid range all fail before any CUDA launch.
+The production `gpu_campaign --config` execution path is connected in the next
+physical-chain milestone; the legacy probe CLI remains unchanged until then.
+
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:
 
@@ -93,9 +112,9 @@ The table-backed force calculation is isolated in
 is not enabled by the default campaign yet; force-model activation requires
 explicit scenario/config mapping and a new dynamics regression baseline.
 
-The current container can compile and device-link the executable, but its CUDA
-runtime reports an incompatible/missing driver. A successful `make` therefore
-does not yet constitute a runtime GPU result.
+The RTX 5070/CUDA 13.2 runtime has been verified. Terrain fly-over, collision
+and N=1/8/32/128 isolation results are recorded in
+`validation/terrain_m1.json`.
 
 The probe currently validates host-callable generated functions. Device-callable
 qualification and a kernel device-link test are separate gates; a successful

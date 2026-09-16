@@ -223,9 +223,9 @@ SimStatus load_scenario_aero(const char *scenario_path, DeviceScenarioAero *out)
             out->policy = DeviceExtrapolationPolicy::Error;
         } else if (std::strcmp(policy, "CLAMP_AND_WARN") == 0) {
             out->policy = DeviceExtrapolationPolicy::ClampAndWarn;
+        } else if (std::strcmp(policy, "HOLD_LAST_VALID") == 0) {
+            out->policy = DeviceExtrapolationPolicy::HoldLastValid;
         } else {
-            /* HOLD_LAST_VALID and unknown strings are rejected: the device
-               table lookup does not implement hold-last-valid semantics. */
             return finish(SIM_ERR_CONFIG);
         }
         out->policy_override_enabled = 1u;

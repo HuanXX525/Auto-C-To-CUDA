@@ -10,14 +10,31 @@
 #include "env/sensor_seeker.h"
 #include "env/sensor_speed.h"
 #include "env/atmosphere_model.h"
+#include "env/actuator_model.h"
 #include "env/earth_model.h"
 #include "env/geo_coordinate.h"
+#include "env/gravity_model.h"
+#include "env/mass_model.h"
+#include "env/propulsion_model.h"
 #include "env/fault_injection.h"
 #include "fc/fc_state.h"
 #include "device_environment.cuh"
 #include "device_force.cuh"
 
 namespace gpu_campaign {
+
+constexpr std::uint32_t kInvalidAssetIndex = UINT32_MAX;
+
+enum class DeviceFailureStrategy : std::uint32_t {
+    ContinueOnFailure = 0,
+    StopOnFailure = 1,
+};
+
+enum class DeviceTerrainMissingPolicy : std::uint32_t {
+    FlatFill = 0,
+    Error = 1,
+    Nearest = 2,
+};
 
 /* Scenario-provided sensor configurations (planA Phase 4 item 1/2: sensor
    noise, delay, dropout). The staging config structs are pointer-free POD,
@@ -29,6 +46,73 @@ struct DeviceSensorScenario {
     SensorVector3Config accel;
     SensorVector3Config speed;
     SeekerSensorConfig seeker;
+};
+
+/* Production campaign metadata.  Network ports and process scheduling are
+   deliberately absent: the single-process GPU executor accepts those JSON
+   fields for compatibility but does not use them for device execution. */
+struct DeviceCampaignConfig {
+    std::uint32_t instance_count;
+    std::uint32_t failure_strategy;
+    std::uint32_t trace_mode;
+    std::uint32_t chunk_steps;
+};
+
+/* Pointer-free, per-instance configuration produced from runtime.json and
+   its referenced scenario/flight-control/fault files.  Large immutable
+   assets are referenced by integer indexes into campaign-owned arrays. */
+struct DeviceInstanceConfig {
+    std::uint32_t instance_id;
+    std::uint32_t integrator;
+    std::uint64_t random_seed;
+    double dt;
+    double max_time;
+    double hit_radius_m;
+
+    EarthModel earth;
+    std::uint32_t enable_earth_rotation;
+    double earth_rotation_rate_radps;
+
+    Vec3 initial_missile_position_ecef;
+    Vec3 initial_missile_velocity_ecef;
+    Vec3 initial_target_position_ecef;
+    Vec3 initial_target_velocity_ecef;
+    double initial_mass_kg;
+    double initial_propellant_mass_kg;
+    Matrix3 initial_inertia_b;
+
+    double actuator_time_constant_s;
+    double actuator_position_limit;
+    double actuator_rate_limit;
+
+    GravityModel gravity;
+    AtmosphereModel atmosphere;
+    PropulsionModel propulsion;
+    DeviceAeroForceConfig aero_force;
+    double aero_drag_coefficient;
+    Vec3 wind_velocity_ecef_mps;
+    std::uint32_t aero_table_policy;
+    std::uint32_t aero_height_envelope_enabled;
+    double aero_height_min_m;
+    double aero_height_max_m;
+    std::uint32_t aero_actuator_envelope_enabled;
+    std::uint32_t reserved_aero;
+    double aero_actuator_min_rad;
+    double aero_actuator_max_rad;
+
+    DeviceSensorScenario sensors;
+    FlightControllerConfig flight_control;
+
+    std::uint32_t terrain_enabled;
+    std::uint32_t los_occlusion_enabled;
+    std::uint32_t terrain_missing_policy;
+    std::uint32_t terrain_cache_tile_count;
+    double terrain_flat_fill_height_m;
+
+    std::uint32_t aero_asset_index;
+    std::uint32_t aero_surrogate_asset_index;
+    std::uint32_t terrain_asset_index;
+    std::uint32_t fault_asset_index;
 };
 
 struct DeviceConfig {
@@ -141,6 +225,14 @@ static_assert(std::is_trivially_copyable<DeviceInstanceState>::value,
               "DeviceInstanceState must be trivially copyable");
 static_assert(std::is_standard_layout<DeviceInstanceState>::value,
               "DeviceInstanceState must use standard layout");
+static_assert(std::is_trivially_copyable<DeviceCampaignConfig>::value,
+              "DeviceCampaignConfig must be trivially copyable");
+static_assert(std::is_standard_layout<DeviceCampaignConfig>::value,
+              "DeviceCampaignConfig must use standard layout");
+static_assert(std::is_trivially_copyable<DeviceInstanceConfig>::value,
+              "DeviceInstanceConfig must be trivially copyable");
+static_assert(std::is_standard_layout<DeviceInstanceConfig>::value,
+              "DeviceInstanceConfig must use standard layout");
 
 }  // namespace gpu_campaign
 

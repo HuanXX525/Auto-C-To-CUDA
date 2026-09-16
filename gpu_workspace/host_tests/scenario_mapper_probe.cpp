@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
               "override_policy_error");
     }
 
-    /* 4. HOLD_LAST_VALID is rejected: the device table does not implement
-       that extrapolation semantics yet. */
+    /* 4. HOLD_LAST_VALID is represented explicitly.  Its stateful lookup
+       semantics are supplied by the production per-instance force path. */
     {
         gpu_campaign::DeviceScenarioAero mapped{};
         const SimStatus status = map_scratch(
@@ -133,7 +133,10 @@ int main(int argc, char **argv) {
             "{\"aerodynamics\": {\"table_extrapolation_policy\": "
             "\"HOLD_LAST_VALID\"}}",
             &mapped);
-        check(status == SIM_ERR_CONFIG, "hold_last_valid_rejected");
+        check(status == SIM_OK, "hold_last_valid_status");
+        check(mapped.policy ==
+                  gpu_campaign::DeviceExtrapolationPolicy::HoldLastValid,
+              "hold_last_valid_policy");
     }
 
     /* 5. Unknown policy strings are rejected like env_app.c. */
