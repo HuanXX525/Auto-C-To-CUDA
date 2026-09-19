@@ -395,9 +395,9 @@ int main(int argc, char **argv) {
         config.scene_east = terrain_scene.east;
         config.scene_up = terrain_scene.up;
     }
-    /* planA Phase 4 item 3: fault script, loaded with the original
-       fault_injection parser plus the GPU scope guard (no actuator or
-       communication faults in the campaign kernel). */
+    /* Fault scripts use the original parser. Complete actuator and lockstep
+       communication semantics are exercised by the production --config path;
+       this legacy probe keeps its historical sensor-fault behavior. */
     ::FaultInjection host_faults{};
     if (options.faults_file != nullptr &&
         gpu_campaign::load_fault_script(options.faults_file, &host_faults) != SIM_OK) {

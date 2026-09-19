@@ -289,22 +289,6 @@ SimStatus load_fault_script(const char *faults_path, FaultInjection *out) {
     if (status != SIM_OK) {
         return status;
     }
-    /* GPU-campaign scope guard: the kernel chain has no actuator model and
-       no communication layer, so those fault targets/types are rejected. */
-    for (std::size_t index = 0; index < out->fault_count; ++index) {
-        const FaultDefinition &fault = out->faults[index];
-        if (fault.target == FAULT_TARGET_ACTUATOR_ACCEL_X ||
-            fault.target == FAULT_TARGET_ACTUATOR_ACCEL_Y ||
-            fault.target == FAULT_TARGET_ACTUATOR_ACCEL_Z) {
-            return SIM_ERR_CONFIG;
-        }
-        if (fault.type == FAULT_TYPE_STUCK ||
-            fault.type == FAULT_TYPE_SCALE ||
-            fault.type == FAULT_TYPE_COMMUNICATION_DELAY ||
-            fault.type == FAULT_TYPE_COMMUNICATION_REORDER) {
-            return SIM_ERR_CONFIG;
-        }
-    }
     return SIM_OK;
 }
 

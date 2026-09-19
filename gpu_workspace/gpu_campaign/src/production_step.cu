@@ -66,18 +66,19 @@ __device__ SimStatus terrain_height(
         !__builtin_isfinite(longitude_rad)) return SIM_ERR_INVALID_ARG;
     if (flags != nullptr) *flags = 0u;
     if (config.terrain_enabled == 0u) {
-        *height_m = 0.0;
+        *height_m = config.terrain_flat_fill_height_m;
         return SIM_OK;
     }
 
     if (config.terrain_asset_index != kInvalidAssetIndex) {
-        if (terrain_sets == nullptr || terrain_grids == nullptr ||
+        if (terrain_sets == nullptr ||
             config.terrain_asset_index >= terrain_set_count) {
             return SIM_ERR_CONFIG;
         }
         const DeviceTerrainSet &set = terrain_sets[config.terrain_asset_index];
         if (set.first_grid > terrain_grid_count ||
-            set.grid_count > terrain_grid_count - set.first_grid) {
+            set.grid_count > terrain_grid_count - set.first_grid ||
+            (set.grid_count != 0u && terrain_grids == nullptr)) {
             return SIM_ERR_CONFIG;
         }
         for (std::uint32_t offset = 0u; offset < set.grid_count; ++offset) {
@@ -97,8 +98,79 @@ __device__ SimStatus terrain_height(
         *height_m = config.terrain_flat_fill_height_m;
         return SIM_OK;
     }
-    return policy == DeviceTerrainMissingPolicy::Error
+    if (policy == DeviceTerrainMissingPolicy::Nearest &&
+        config.terrain_asset_index != kInvalidAssetIndex &&
+        terrain_sets != nullptr && terrain_grids != nullptr &&
+        config.terrain_asset_index < terrain_set_count) {
+        const DeviceTerrainSet &set = terrain_sets[config.terrain_asset_index];
+        const DeviceTerrainGrid *nearest = nullptr;
+        double nearest_distance = 1.0e300;
+        for (std::uint32_t offset = 0u; offset < set.grid_count; ++offset) {
+            const DeviceTerrainGrid &grid = terrain_grids[set.first_grid + offset];
+            const double sample_lat = latitude_rad < grid.lat_min ? grid.lat_min :
+                (latitude_rad > grid.lat_max ? grid.lat_max : latitude_rad);
+            const double sample_lon = longitude_rad < grid.lon_min ? grid.lon_min :
+                (longitude_rad > grid.lon_max ? grid.lon_max : longitude_rad);
+            const double dlat = latitude_rad - sample_lat;
+            const double dlon = longitude_rad - sample_lon;
+            const double distance = dlat * dlat + dlon * dlon;
+            if (nearest == nullptr || distance < nearest_distance) {
+                nearest = &grid;
+                nearest_distance = distance;
+            }
+        }
+        if (nearest != nullptr) {
+            const double sample_lat = latitude_rad < nearest->lat_min ?
+                nearest->lat_min : (latitude_rad > nearest->lat_max ?
+                    nearest->lat_max : latitude_rad);
+            const double sample_lon = longitude_rad < nearest->lon_min ?
+                nearest->lon_min : (longitude_rad > nearest->lon_max ?
+                    nearest->lon_max : longitude_rad);
+            if (flags != nullptr) *flags |= kDeviceTerrainFlagMissingTile;
+            return device_terrain_grid_height(
+                nearest, sample_lat, sample_lon, height_m, nullptr);
+        }
+    }
+    return policy == DeviceTerrainMissingPolicy::Error ||
+            policy == DeviceTerrainMissingPolicy::Nearest
         ? SIM_ERR_OUT_OF_RANGE : SIM_ERR_CONFIG;
+}
+
+__device__ SimStatus line_of_sight_occluded(
+    const DeviceInstanceConfig &config,
+    const DeviceTerrainSet *terrain_sets, std::uint32_t terrain_set_count,
+    const DeviceTerrainGrid *terrain_grids, std::uint32_t terrain_grid_count,
+    Vec3 start_ecef_m, Vec3 end_ecef_m, std::uint32_t *terrain_flags,
+    int *occluded) {
+    if (occluded == nullptr || !vec3_isfinite(start_ecef_m) ||
+        !vec3_isfinite(end_ecef_m)) return SIM_ERR_INVALID_ARG;
+    *occluded = 0;
+    if (terrain_flags != nullptr) *terrain_flags = 0u;
+    const Vec3 segment = vec3_sub(end_ecef_m, start_ecef_m);
+    for (std::uint32_t index = 1u; index <= 16u; ++index) {
+        const double fraction = static_cast<double>(index) / 17.0;
+        EcefCoord sample_ecef{};
+        LlaCoord sample_lla{};
+        double terrain_height_m = 0.0;
+        std::uint32_t flags = 0u;
+        sample_ecef.position_m = vec3_add(
+            start_ecef_m, vec3_scale(segment, fraction));
+        SimStatus status = geo_ecef_to_lla(
+            &config.earth, &sample_ecef, &sample_lla);
+        if (status == SIM_OK) {
+            status = terrain_height(
+                config, terrain_sets, terrain_set_count, terrain_grids,
+                terrain_grid_count, sample_lla.lat_rad, sample_lla.lon_rad,
+                &terrain_height_m, &flags);
+        }
+        if (terrain_flags != nullptr) *terrain_flags |= flags;
+        if (status != SIM_OK) return status;
+        if (sample_lla.height_m <= terrain_height_m) {
+            *occluded = 1;
+            return SIM_OK;
+        }
+    }
+    return SIM_OK;
 }
 
 __device__ SimStatus update_geodetic(
@@ -210,12 +282,14 @@ __device__ SimStatus initialize_instance(
                 static_cast<std::uint32_t>(state->faults.fault_count);
         }
     }
+    bool terrain_failed = false;
     if (status == SIM_OK) {
         status = update_geodetic(state, config, terrain_sets,
                                  terrain_set_count, terrain_grids,
                                  terrain_grid_count);
+        terrain_failed = status != SIM_OK;
     }
-    state->initialized = status == SIM_OK ? 1u : 0u;
+    state->initialized = status == SIM_OK ? 1u : (terrain_failed ? 2u : 0u);
     return status;
 }
 
@@ -635,7 +709,9 @@ __global__ void simulate_production_chunk(
             state, config, terrain_sets, terrain_set_count, terrain_grids,
             terrain_grid_count, fault_scripts, fault_script_count);
         if (status != SIM_OK) {
-            terminate(state, DeviceExitReason::ConfigError, status);
+            terminate(state, state->initialized == 2u
+                ? DeviceExitReason::TerrainError : DeviceExitReason::ConfigError,
+                status);
             return;
         }
         communication_reset(state);
@@ -713,6 +789,26 @@ __global__ void simulate_production_chunk(
         if (status != SIM_OK) {
             terminate(state, DeviceExitReason::SensorError, status);
             break;
+        }
+        if (config.los_occlusion_enabled != 0u) {
+            int occluded = 0;
+            std::uint32_t terrain_flags = 0u;
+            status = line_of_sight_occluded(
+                config, terrain_sets, terrain_set_count, terrain_grids,
+                terrain_grid_count, state->plant.pos_ecef,
+                state->sensors.target_position_ecef, &terrain_flags,
+                &occluded);
+            if ((terrain_flags & kDeviceTerrainFlagMissingTile) != 0u) {
+                state->environment_flags |= 1u << 2u;
+            }
+            if (status != SIM_OK) {
+                terminate(state, DeviceExitReason::LosTerrainError, status);
+                break;
+            }
+            if (occluded != 0) {
+                sensor.sensor_valid_flags &= ~SIM_SENSOR_VALID_SEEKER;
+                sensor.sensor_fault_flags |= SIM_SENSOR_FAULT_LOS_OCCLUDED;
+            }
         }
         fault_injection_apply_sensor(&fault_effects, &sensor);
         status = apply_communication_reorder(

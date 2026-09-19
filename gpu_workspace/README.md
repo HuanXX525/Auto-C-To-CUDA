@@ -70,8 +70,22 @@ cases. The normal baseline additionally passes the complete 978-step hit run.
 Recorded results are in `validation/physics_m3.json`.
 
 M3 does not claim M4 LOS/all-fault completion or M5 asynchronous double-
-buffered chunk execution. The production state is resumable across launches,
-but the current runner synchronously copies each chunk.
+buffered chunk execution. M4 is now complete: the production path supports
+16-sample ECEF/LLA LOS checks, ordered multi-tile text/binary index loading,
+FLAT_FILL/ERROR missing-tile policies, all sensor/actuator/lockstep
+communication faults, CPU-compatible metadata, and per-instance fault history.
+Run the complete M4 matrix with:
+
+```bash
+./tools/run_m4_verification.sh
+```
+
+It compares CPU/GPU traces, diagnostics, summaries, event logs and packet
+flags for clear/occluded/borderline terrain, missing-tile policies and every
+fault class. The same overlap-recovery scenario is also run at N=1/8/32/128
+to verify that no mutable fault, communication or LOS state crosses instances.
+M5 (recoverable chunk semantics and asynchronous double buffering) remains the
+next stage and is intentionally not included here.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:

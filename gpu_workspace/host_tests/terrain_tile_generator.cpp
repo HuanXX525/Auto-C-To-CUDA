@@ -15,10 +15,11 @@ extern "C" {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
+    if (argc != 3 && argc != 7) {
         std::fprintf(stderr,
                      "usage: terrain_tile_generator <output.tile> "
-                     "<flat_height_m>\n");
+                     "<flat_height_m> [lat_min_deg lat_max_deg "
+                     "lon_min_deg lon_max_deg]\n");
         return EXIT_FAILURE;
     }
     const double height = std::atof(argv[2]);
@@ -27,11 +28,15 @@ int main(int argc, char **argv) {
     header.version = TERRAIN_TILE_VERSION;
     header.grid_width = 2u;
     header.grid_height = 2u;
-    /* +/-0.01 deg (~2.2 km) around the scene origin. */
-    header.lat_min = (30.0 - 0.01) * SIM_DEG_TO_RAD;
-    header.lat_max = (30.0 + 0.01) * SIM_DEG_TO_RAD;
-    header.lon_min = (120.0 - 0.01) * SIM_DEG_TO_RAD;
-    header.lon_max = (120.0 + 0.01) * SIM_DEG_TO_RAD;
+    /* Default: +/-0.01 deg (~2.2 km) around the M1 scene origin. */
+    header.lat_min = (argc == 7 ? std::atof(argv[3]) : 30.0 - 0.01) *
+        SIM_DEG_TO_RAD;
+    header.lat_max = (argc == 7 ? std::atof(argv[4]) : 30.0 + 0.01) *
+        SIM_DEG_TO_RAD;
+    header.lon_min = (argc == 7 ? std::atof(argv[5]) : 120.0 - 0.01) *
+        SIM_DEG_TO_RAD;
+    header.lon_max = (argc == 7 ? std::atof(argv[6]) : 120.0 + 0.01) *
+        SIM_DEG_TO_RAD;
     header.height_scale = 1.0;
     header.height_offset = height;
     std::int16_t samples[] = {0, 0, 0, 0};

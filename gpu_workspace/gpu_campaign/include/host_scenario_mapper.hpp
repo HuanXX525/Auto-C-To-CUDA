@@ -37,12 +37,10 @@ SimStatus load_scenario_aero(const char *scenario_path, DeviceScenarioAero *out)
 SimStatus load_scenario_sensors(const char *scenario_path, double simulation_dt_s,
                                  DeviceSensorScenario *out);
 
-/* Parses a faults.json script with the original fault_injection loader and
-   applies the GPU-campaign scope guard: actuator targets (STUCK/SCALE) and
-   communication faults (COMMUNICATION_DELAY/COMMUNICATION_REORDER) are
-   rejected because the legacy campaign kernel has no actuator model or
-   communication layer. Sensor-frame/sensor-target faults (BIAS, DRIFT,
-   RAMP_BIAS, HOLD_VALUE, DROPOUT, FORCE_INVALID) are supported. */
+/* Parse the unchanged faults.json schema with the original fault-injection
+   loader. The production kernel supports sensor, actuator and lockstep
+   communication faults; callers of the legacy probe path remain responsible
+   for selecting only semantics exercised by that probe. */
 SimStatus load_fault_script(const char *faults_path, FaultInjection *out);
 
 }  // namespace gpu_campaign

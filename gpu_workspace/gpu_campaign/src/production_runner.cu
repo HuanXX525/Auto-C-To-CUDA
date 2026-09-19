@@ -110,6 +110,9 @@ bool build_resources(
         }
         set.grid_count = static_cast<std::uint32_t>(terrain_grids->size()) -
                          set.first_grid;
+        set.missing_policy = 0u;
+        set.reserved = 0u;
+        set.flat_fill_height_m = 0.0;
     }
     fault_scripts->reserve(plan.fault_assets.size());
     for (const HostFaultAsset &asset : plan.fault_assets) {
@@ -132,6 +135,8 @@ const char *exit_reason_name(std::uint32_t value) {
     case DeviceExitReason::Timeout: return "timeout";
     case DeviceExitReason::ConfigError: return "config_error";
     case DeviceExitReason::NumericError: return "numeric_error";
+    case DeviceExitReason::LosTerrainError: return "los_terrain_query_failed";
+    case DeviceExitReason::TerrainError: return "terrain_initialization_failed";
     }
     return "unknown";
 }

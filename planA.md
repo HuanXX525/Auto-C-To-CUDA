@@ -49,8 +49,13 @@ runtime.json
   `gpu_workspace/validation/physics_m3.json`；
 - M3 修复了转换后 `command_manager` 的执行机构数组 1-based 下标问题，
   并把修正规则固化进 sanitizer，重新转换后不会丢失；
-- 下一阶段为 M4：LOS 16 点采样、多瓦片选择以及全部故障语义。目前未开始，
-  不应把现有 clear-LOS baseline 解释为 M4 已完成。
+- M4 已完成：生产路径实现 16 个内部 ECEF→LLA LOS 采样点、按 CPU 顺序
+  加载文本/二进制多瓦片索引、`FLAT_FILL`/`ERROR` 缺瓦片策略，以及全部
+  传感器、执行机构和锁步通信延迟/乱序/恢复语义；CPU/GPU 轨迹、诊断、摘要、
+  事件和协议标志通过 clear/occluded/borderline、缺瓦片和重叠故障矩阵，见
+  `gpu_workspace/validation/los_fault_m4.json`。N=1/8/32/128 实例隔离也通过。
+- 下一阶段为 M5：可恢复 chunk 全局步号、full/summary 语义和异步双缓冲；
+  M4 不宣称这些调度优化已经完成。
 
 ### 历史实施进度（截至 2026-08-31）
 

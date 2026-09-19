@@ -183,6 +183,8 @@ enum class DeviceExitReason : std::uint32_t {
     Timeout = 9,
     ConfigError = 10,
     NumericError = 11,
+    LosTerrainError = 12,
+    TerrainError = 13,
 };
 
 struct DeviceTraceRecord {

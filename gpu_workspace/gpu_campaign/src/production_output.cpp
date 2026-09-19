@@ -85,6 +85,8 @@ const char *exit_reason_name(std::uint32_t value) {
     case DeviceExitReason::Timeout: return "timeout";
     case DeviceExitReason::ConfigError: return "config_error";
     case DeviceExitReason::NumericError: return "numeric_error";
+    case DeviceExitReason::LosTerrainError: return "los_terrain_query_failed";
+    case DeviceExitReason::TerrainError: return "terrain_initialization_failed";
     }
     return "unknown";
 }
@@ -144,6 +146,7 @@ std::uint32_t degradation_flags(const DeviceTraceRecord &record,
 SimStatus write_manifest(const std::string &directory,
                          const HostCampaignPlan &plan,
                          const HostInstancePlan &instance,
+                         const HostTerrainAsset *terrain,
                          std::string *error) {
     const std::string path = directory + "/run_manifest.json";
     std::FILE *file = std::fopen(path.c_str(), "wb");
@@ -159,6 +162,8 @@ SimStatus write_manifest(const std::string &directory,
     write_json_string(file, plan.runtime_display_path);
     std::fprintf(file, ",\n  \"faults_path\": ");
     write_json_string(file, instance.faults_display_path);
+    const std::size_t terrain_path_count = terrain == nullptr
+        ? 0u : terrain->tile_paths.size();
     std::fprintf(file,
         ",\n  \"dt_s\": %.17g,\n  \"max_time_s\": %.17g,\n"
         "  \"environment_port\": %u,\n  \"flight_control_port\": %u,\n"
@@ -172,10 +177,7 @@ SimStatus write_manifest(const std::string &directory,
         "  \"terrain_missing_policy\": \"%s\",\n"
         "  \"terrain_flat_fill_height_m\": %.17g,\n"
         "  \"terrain_cache_tile_count\": %u,\n"
-        "  \"terrain_tile_index_path_enabled\": %s,\n"
-        "  \"terrain_tile_path_count\": %u,\n"
-        "  \"terrain_tile_paths\": [],\n"
-        "  \"binary_logs\": %s,\n  \"event_log\": %s\n}\n",
+        "  \"terrain_tile_index_path_enabled\": %s,\n",
         cfg.dt, cfg.max_time,
         plan.environment_base_port + 2u * cfg.instance_id,
         plan.flight_control_base_port + 2u * cfg.instance_id,
@@ -192,10 +194,25 @@ SimStatus write_manifest(const std::string &directory,
         cfg.los_occlusion_enabled != 0u ? "true" : "false",
         terrain_policy_name(cfg.terrain_missing_policy),
         cfg.terrain_flat_fill_height_m, cfg.terrain_cache_tile_count,
-        instance.map_tile_index_path.empty() ? "false" : "true",
-        cfg.terrain_asset_index == kInvalidAssetIndex ? 0u : 1u,
-        plan.binary_logs ? "true" : "false",
-        plan.event_log ? "true" : "false");
+        instance.map_tile_index_path.empty() ? "false" : "true");
+    if (instance.map_tile_index_path.empty()) {
+        std::fputs("  \"terrain_tile_index_path\": null,\n", file);
+    } else {
+        std::fputs("  \"terrain_tile_index_path\": ", file);
+        write_json_string(file, instance.map_tile_index_path);
+        std::fputs(",\n", file);
+    }
+    std::fprintf(file, "  \"terrain_tile_path_count\": %u,\n"
+                       "  \"terrain_tile_paths\": [",
+                 static_cast<unsigned int>(terrain_path_count));
+    for (std::size_t index = 0u; index < terrain_path_count; ++index) {
+        if (index != 0u) std::fputs(", ", file);
+        write_json_string(file, terrain->tile_paths[index]);
+    }
+    std::fprintf(file, "],\n  \"binary_logs\": %s,\n"
+                       "  \"event_log\": %s\n}\n",
+                 plan.binary_logs ? "true" : "false",
+                 plan.event_log ? "true" : "false");
     std::fclose(file);
     return SIM_OK;
 }
@@ -358,6 +375,7 @@ SimStatus write_events(
 
 SimStatus write_summary(const std::string &directory,
                         const DeviceInstanceConfig &config,
+                        const HostTerrainAsset *terrain,
                         const DeviceInstanceState &state,
                         std::string *error) {
     const std::string path = directory + "/summary.json";
@@ -374,10 +392,10 @@ SimStatus write_summary(const std::string &directory,
         "  \"fault_sensor_affected_step_count\": %u,\n"
         "  \"fault_actuator_affected_step_count\": %u,\n"
         "  \"fault_max_concurrent_active\": %u,\n"
-        "  \"terrain_cache_path_count\": 0,\n"
+        "  \"terrain_cache_path_count\": %u,\n"
         "  \"terrain_cache_capacity\": %u,\n"
-        "  \"terrain_cache_loaded_count\": 0,\n"
-        "  \"terrain_cache_load_count\": 0,\n"
+        "  \"terrain_cache_loaded_count\": %u,\n"
+        "  \"terrain_cache_load_count\": %u,\n"
         "  \"terrain_cache_eviction_count\": 0,\n"
         "  \"diagnostic_sample_count\": %u,\n"
         "  \"max_quat_norm_error\": %.12e,\n"
@@ -393,7 +411,10 @@ SimStatus write_summary(const std::string &directory,
         faults.fault_start_count, faults.fault_end_count,
         faults.active_step_count, faults.sensor_affected_step_count,
         faults.actuator_affected_step_count, faults.max_concurrent_active,
+        terrain == nullptr ? 0u : static_cast<unsigned int>(terrain->tile_paths.size()),
         config.terrain_cache_tile_count,
+        terrain == nullptr ? 0u : static_cast<unsigned int>(terrain->tile_paths.size()),
+        terrain == nullptr ? 0u : static_cast<unsigned int>(terrain->tile_paths.size()),
         diagnostics.sample_count, diagnostics.max_quat_norm_error,
         diagnostics.max_dcm_orthogonality_error, diagnostics.min_mass_kg,
         diagnostics.min_inertia_diag_kgm2,
@@ -420,33 +441,39 @@ SimStatus write_production_outputs(
     if (status != SIM_OK) return status;
     for (std::size_t index = 0u; index < states.size(); ++index) {
         char name[64];
+        const HostInstancePlan &instance = plan.instances[index];
+        const HostTerrainAsset *terrain = nullptr;
+        if (instance.device.terrain_asset_index != kInvalidAssetIndex &&
+            instance.device.terrain_asset_index < plan.terrain_assets.size()) {
+            terrain = &plan.terrain_assets[instance.device.terrain_asset_index];
+        }
         std::snprintf(name, sizeof(name), "instance_%04u",
-                      plan.instances[index].device.instance_id);
+                      instance.device.instance_id);
         const std::string directory = plan.output_dir + "/" + name;
         status = make_directories(directory, error);
         if (status == SIM_OK) status = write_manifest(
-            directory, plan, plan.instances[index], error);
+            directory, plan, instance, terrain, error);
         if (status == SIM_OK && !traces.empty()) {
             status = write_trajectory(directory, traces[index], error);
         }
         if (status == SIM_OK && !traces.empty()) {
-            status = write_diagnostics(directory, plan.instances[index].device,
+            status = write_diagnostics(directory, instance.device,
                                        traces[index], error);
         }
         if (status == SIM_OK && plan.binary_logs && !traces.empty()) {
             status = write_binary_logs(
-                directory, plan.instances[index].device.instance_id,
+                directory, instance.device.instance_id,
                 traces[index], error);
         }
         if (status == SIM_OK && plan.event_log) {
-            status = write_events(directory, plan, plan.instances[index],
+            status = write_events(directory, plan, instance,
                                   states[index],
                                   traces.empty() ?
                                       std::vector<DeviceTraceRecord>{} :
                                       traces[index], error);
         }
         if (status == SIM_OK) status = write_summary(
-            directory, plan.instances[index].device, states[index], error);
+            directory, instance.device, terrain, states[index], error);
         if (status != SIM_OK) return status;
     }
 

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "name": "los_clear", "terrain": "none", "faults": [] },
+    { "name": "missing_flat", "terrain": "missing_flat", "faults": [] },
+    { "name": "missing_error", "terrain": "missing_error", "faults": [] },
+    { "name": "los_index_clear", "terrain": "index_clear", "faults": [] },
+    { "name": "los_index_occluded", "terrain": "index_occluded", "faults": [] },
+    { "name": "los_borderline", "terrain": "borderline", "faults": [] },
+    { "name": "sensor_faults", "terrain": "none", "faults": [
+      { "id": "frame_invalid", "start_time_s": 0.08, "duration_s": 0.08,
+        "target": "sensor.frame", "type": "FORCE_INVALID" },
+      { "id": "seeker_dropout", "start_time_s": 0.12, "duration_s": 0.12,
+        "target": "sensor.seeker", "type": "DROPOUT" },
+      { "id": "gyro_ramp", "start_time_s": 0.20, "duration_s": 0.20,
+        "ramp_in_s": 0.04, "recovery_ramp_s": 0.04,
+        "target": "sensor.imu.gyro", "type": "RAMP_BIAS",
+        "value_xyz": [0.01, 0.0, 0.0] },
+      { "id": "accel_hold", "start_time_s": 0.28, "duration_s": 0.10,
+        "target": "sensor.accel", "type": "HOLD_VALUE",
+        "value_xyz": [1.0, -2.0, 0.5] },
+      { "id": "speed_bias", "start_time_s": 0.36, "duration_s": 0.12,
+        "target": "sensor.speed", "type": "BIAS",
+        "value_xyz": [2.0, -1.0, 0.0] },
+      { "id": "range_drift", "start_time_s": 0.44, "duration_s": 0.12,
+        "target": "sensor.seeker.range", "type": "DRIFT", "value": 0.5 }
+    ] },
+    { "name": "actuator_faults", "terrain": "none", "faults": [
+      { "id": "scale_x", "start_time_s": 0.10, "duration_s": 0.20,
+        "target": "actuator.accel_x", "type": "SCALE", "value": 0.5 },
+      { "id": "stuck_y", "start_time_s": 0.30, "duration_s": 0.16,
+        "target": "actuator.accel_y", "type": "STUCK" }
+    ] },
+    { "name": "communication_delay", "terrain": "none", "faults": [
+      { "id": "delay", "start_time_s": 0.10, "duration_s": 0.26,
+        "recovery_hold_s": 0.04, "target": "sensor.frame",
+        "type": "COMMUNICATION_DELAY", "value": 2 }
+    ] },
+    { "name": "communication_reorder", "terrain": "none", "faults": [
+      { "id": "reorder", "start_time_s": 0.10, "duration_s": 0.24,
+        "target": "sensor.frame", "type": "COMMUNICATION_REORDER" }
+    ] },
+    { "name": "fault_overlap_recovery", "terrain": "none", "faults": [
+      { "id": "overlap_sensor", "start_time_s": 0.10, "duration_s": 0.28,
+        "recovery_ramp_s": 0.04, "target": "sensor.seeker.los_rate",
+        "type": "RAMP_BIAS", "value_xyz": [0.0, 0.0, 0.001] },
+      { "id": "overlap_actuator", "start_time_s": 0.16, "duration_s": 0.20,
+        "target": "actuator.accel_z", "type": "SCALE", "value": 0.25 },
+      { "id": "overlap_delay", "start_time_s": 0.20, "duration_s": 0.18,
+        "recovery_hold_s": 0.06, "target": "sensor.frame",
+        "type": "COMMUNICATION_DELAY", "value": 1 }
+    ] }
+  ]
+}

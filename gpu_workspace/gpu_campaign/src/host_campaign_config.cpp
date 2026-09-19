@@ -1,6 +1,7 @@
 #include "host_campaign_config.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <climits>
 #include <cmath>
@@ -22,6 +23,9 @@ namespace gpu_campaign {
 namespace {
 
 constexpr double kEarthRotationRadps = 7.2921150e-5;
+constexpr std::size_t kMaximumTerrainTiles = 16u;
+constexpr std::uint32_t kTerrainIndexMagic = UINT32_C(0x54495831);
+constexpr std::uint16_t kTerrainIndexVersion = 1u;
 
 SimStatus fail(SimStatus status, const std::string &message,
                std::string *error) {
@@ -63,6 +67,155 @@ bool resolve_reference(const std::string &owner_path, const std::string &value,
         directory = parent;
     }
     return false;
+}
+
+bool resolve_index_reference(const std::string &index_path,
+                             const std::string &value, std::string *out) {
+    if (value.empty()) return false;
+    if (value[0] == '/') return canonical_existing(value, out);
+    return canonical_existing(join_path(parent_path(index_path), value), out);
+}
+
+bool read_u16_le(std::FILE *file, std::uint16_t *out) {
+    unsigned char bytes[2];
+    if (std::fread(bytes, 1u, sizeof(bytes), file) != sizeof(bytes)) return false;
+    *out = static_cast<std::uint16_t>(bytes[0]) |
+        static_cast<std::uint16_t>(static_cast<std::uint16_t>(bytes[1]) << 8u);
+    return true;
+}
+
+bool read_u32_le(std::FILE *file, std::uint32_t *out) {
+    unsigned char bytes[4];
+    if (std::fread(bytes, 1u, sizeof(bytes), file) != sizeof(bytes)) return false;
+    *out = 0u;
+    for (std::size_t index = 0u; index < sizeof(bytes); ++index) {
+        *out |= static_cast<std::uint32_t>(bytes[index]) << (8u * index);
+    }
+    return true;
+}
+
+bool read_double_le(std::FILE *file, double *out) {
+    unsigned char bytes[8];
+    std::uint64_t bits = 0u;
+    if (std::fread(bytes, 1u, sizeof(bytes), file) != sizeof(bytes)) return false;
+    for (std::size_t index = 0u; index < sizeof(bytes); ++index) {
+        bits |= static_cast<std::uint64_t>(bytes[index]) << (8u * index);
+    }
+    std::memcpy(out, &bits, sizeof(bits));
+    return true;
+}
+
+SimStatus append_index_tile(const std::string &index_path,
+                            const std::string &entry,
+                            std::vector<std::string> *paths,
+                            std::string *error) {
+    if (paths->size() >= kMaximumTerrainTiles) {
+        return fail(SIM_ERR_OUT_OF_RANGE, "too many terrain tiles", error);
+    }
+    std::string resolved;
+    if (!resolve_index_reference(index_path, entry, &resolved)) {
+        return fail(SIM_ERR_IO, "terrain index entry not found: " + entry,
+                    error);
+    }
+    paths->push_back(resolved);
+    return SIM_OK;
+}
+
+SimStatus load_text_terrain_index(const std::string &index_path,
+                                  std::vector<std::string> *paths,
+                                  std::string *error) {
+    std::FILE *file = std::fopen(index_path.c_str(), "r");
+    if (file == nullptr) {
+        return fail(SIM_ERR_IO, "cannot open terrain index: " + index_path,
+                    error);
+    }
+    char line[512];
+    SimStatus status = SIM_OK;
+    while (status == SIM_OK && std::fgets(line, sizeof(line), file) != nullptr) {
+        if (std::strchr(line, '\n') == nullptr && !std::feof(file)) {
+            status = fail(SIM_ERR_OUT_OF_RANGE,
+                          "terrain index line is too long", error);
+            break;
+        }
+        char *start = line;
+        while (*start != '\0' &&
+               std::isspace(static_cast<unsigned char>(*start)) != 0) ++start;
+        if (*start == '\0' || *start == '#') continue;
+        char *end = start + std::strlen(start);
+        while (end > start &&
+               std::isspace(static_cast<unsigned char>(end[-1])) != 0) --end;
+        *end = '\0';
+        status = append_index_tile(index_path, start, paths, error);
+    }
+    if (std::fclose(file) != 0 && status == SIM_OK) {
+        status = fail(SIM_ERR_IO, "cannot close terrain index", error);
+    }
+    return status;
+}
+
+SimStatus load_binary_terrain_index(const std::string &index_path,
+                                    std::vector<std::string> *paths,
+                                    std::string *error) {
+    std::FILE *file = std::fopen(index_path.c_str(), "rb");
+    if (file == nullptr) {
+        return fail(SIM_ERR_IO, "cannot open terrain index: " + index_path,
+                    error);
+    }
+    std::uint32_t magic = 0u;
+    std::uint16_t version = 0u;
+    std::uint16_t entry_count = 0u;
+    SimStatus status = SIM_OK;
+    if (!read_u32_le(file, &magic) || !read_u16_le(file, &version) ||
+        !read_u16_le(file, &entry_count) || magic != kTerrainIndexMagic ||
+        version != kTerrainIndexVersion ||
+        paths->size() + entry_count > kMaximumTerrainTiles) {
+        status = fail(SIM_ERR_CONFIG, "invalid binary terrain index", error);
+    }
+    for (std::uint16_t index = 0u; status == SIM_OK && index < entry_count;
+         ++index) {
+        double lat_min = 0.0;
+        double lat_max = 0.0;
+        double lon_min = 0.0;
+        double lon_max = 0.0;
+        std::uint16_t path_size = 0u;
+        char entry[512];
+        if (!read_double_le(file, &lat_min) ||
+            !read_double_le(file, &lat_max) ||
+            !read_double_le(file, &lon_min) ||
+            !read_double_le(file, &lon_max) ||
+            !read_u16_le(file, &path_size) || path_size == 0u ||
+            path_size >= sizeof(entry) || !std::isfinite(lat_min) ||
+            !std::isfinite(lat_max) || !std::isfinite(lon_min) ||
+            !std::isfinite(lon_max) || lat_min >= lat_max ||
+            lon_min >= lon_max ||
+            std::fread(entry, 1u, path_size, file) != path_size) {
+            status = fail(SIM_ERR_CONFIG,
+                          "invalid binary terrain index entry", error);
+            break;
+        }
+        entry[path_size] = '\0';
+        status = append_index_tile(index_path, entry, paths, error);
+    }
+    if (std::fclose(file) != 0 && status == SIM_OK) {
+        status = fail(SIM_ERR_IO, "cannot close terrain index", error);
+    }
+    return status;
+}
+
+SimStatus load_terrain_index(const std::string &index_path,
+                             std::vector<std::string> *paths,
+                             std::string *error) {
+    std::FILE *file = std::fopen(index_path.c_str(), "rb");
+    if (file == nullptr) {
+        return fail(SIM_ERR_IO, "cannot open terrain index: " + index_path,
+                    error);
+    }
+    std::uint32_t magic = 0u;
+    const bool have_magic = read_u32_le(file, &magic);
+    std::fclose(file);
+    return have_magic && magic == kTerrainIndexMagic
+        ? load_binary_terrain_index(index_path, paths, error)
+        : load_text_terrain_index(index_path, paths, error);
 }
 
 bool get_optional_string(const ConfigTree *tree, const char *path,
@@ -556,7 +709,10 @@ SimStatus load_scenario_config(const std::string &path,
     if (asset_found) terrain->tile_paths.push_back(resolved);
     size_t tile_count = 0u;
     if (config_get_array_count(&tree, "map.tile_paths", &tile_count) == SIM_OK) {
-        if (tile_count > 64u) return finish(SIM_ERR_OUT_OF_RANGE, "too many terrain tiles");
+        if (tile_count > kMaximumTerrainTiles ||
+            terrain->tile_paths.size() + tile_count > kMaximumTerrainTiles) {
+            return finish(SIM_ERR_OUT_OF_RANGE, "too many terrain tiles");
+        }
         for (size_t index = 0u; index < tile_count; ++index) {
             char key[64];
             char raw[PATH_MAX];
@@ -576,6 +732,14 @@ SimStatus load_scenario_config(const std::string &path,
         return finish(status, error == nullptr ? "terrain index error" : *error);
     }
     host->map_tile_index_path = terrain->index_path;
+    if (asset_found) {
+        status = load_terrain_index(terrain->index_path,
+                                    &terrain->tile_paths, error);
+        if (status != SIM_OK) {
+            return finish(status, error == nullptr ?
+                "terrain index error" : *error);
+        }
+    }
     terrain->key = terrain->index_path;
     for (const std::string &tile : terrain->tile_paths) terrain->key += "|" + tile;
 

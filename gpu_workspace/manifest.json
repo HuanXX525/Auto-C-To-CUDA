@@ -168,6 +168,10 @@
       "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128",
       "campaign_config_mapping": "PASS: unchanged runtime/scenario/flight-control/fault schema mapped for N=1/2/128; POD/index layout and three prelaunch error cases verified",
       "production_physics_chain": "PASS on RTX 5070: baseline hit at step 978 plus focused actuator, gravity, propulsion/mass/inertia CPU/GPU goldens at rtol=1e-10, atol=1e-12",
-      "production_physics_verification": "gpu_workspace/tools/run_m3_physics_verification.sh"
+      "production_physics_verification": "gpu_workspace/tools/run_m3_physics_verification.sh",
+      "m4_terrain_los_fault_verification": "gpu_workspace/tools/run_m4_verification.sh",
+      "m4_batch_isolation": "PASS on RTX 5070 for N=1/8/32/128; chunk_steps=17; packed/4",
+      "m4_cases": "LOS clear/index order/occluded/borderline, FLAT_FILL, ERROR, all sensor/actuator/communication and overlap recovery",
+      "m4_result": "PASS CPU/GPU output and protocol/event semantics at rtol=1e-10, atol=1e-12"
   }
 }
