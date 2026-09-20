@@ -692,7 +692,11 @@ __global__ void simulate_production_chunk(
         ? blockIdx.x * blockDim.x + threadIdx.x : blockIdx.x;
     if ((launch.packed_lanes == 0u && threadIdx.x != 0u) ||
         states == nullptr || configs == nullptr ||
-        instance_index >= launch.instance_count || launch.max_steps == 0u) {
+        launch.instance_begin > launch.instance_end ||
+        launch.instance_end > launch.instance_count ||
+        instance_index < launch.instance_begin ||
+        instance_index >= launch.instance_end || launch.max_steps == 0u ||
+        (launch.valid_steps != 0u && launch.valid_steps < launch.max_steps)) {
         return;
     }
     DeviceInstanceState *state = states + instance_index;
@@ -709,7 +713,13 @@ __global__ void simulate_production_chunk(
             state, config, terrain_sets, terrain_set_count, terrain_grids,
             terrain_grid_count, fault_scripts, fault_script_count);
         if (status != SIM_OK) {
-            terminate(state, state->initialized == 2u
+            const bool terrain_failure = state->initialized == 2u;
+            /* Keep a terminal initialization sentinel.  A failed instance is
+               still present in CONTINUE_ON_FAILURE campaigns, so a later
+               chunk must not attempt to initialize it again from the zeroed
+               state buffer. */
+            state->initialized = 3u;
+            terminate(state, terrain_failure
                 ? DeviceExitReason::TerrainError : DeviceExitReason::ConfigError,
                 status);
             return;

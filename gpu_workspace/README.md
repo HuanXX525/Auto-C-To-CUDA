@@ -69,8 +69,8 @@ inertia runs against both the CPU output and the tracked golden at
 cases. The normal baseline additionally passes the complete 978-step hit run.
 Recorded results are in `validation/physics_m3.json`.
 
-M3 does not claim M4 LOS/all-fault completion or M5 asynchronous double-
-buffered chunk execution. M4 is now complete: the production path supports
+M3 does not claim M4 LOS/all-fault completion. M4 is now complete: the
+production path supports
 16-sample ECEF/LLA LOS checks, ordered multi-tile text/binary index loading,
 FLAT_FILL/ERROR missing-tile policies, all sensor/actuator/lockstep
 communication faults, CPU-compatible metadata, and per-instance fault history.
@@ -84,8 +84,28 @@ It compares CPU/GPU traces, diagnostics, summaries, event logs and packet
 flags for clear/occluded/borderline terrain, missing-tile policies and every
 fault class. The same overlap-recovery scenario is also run at N=1/8/32/128
 to verify that no mutable fault, communication or LOS state crosses instances.
-M5 (recoverable chunk semantics and asynchronous double buffering) remains the
-next stage and is intentionally not included here.
+
+M5 adds resumable global-step chunk execution. The production runner now uses
+one nonblocking compute stream, one nonblocking copy stream, two device
+trace/state-snapshot slots, two pinned host slots, and CUDA events to overlap
+chunk `k+1` with the D2H transfer for chunk `k`. Trace records retain their
+global step, the first chunk is the only chunk that emits the initial state,
+and `full`/`summary` output modes share the same final state and fault event
+history. `STOP_ON_FAILURE` marks instances that were not scheduled after the
+failing chunk as `skipped_after_failure`.
+
+Run the M5 acceptance matrix on a host whose CUDA driver supports the runtime:
+
+```bash
+python3 ./tools/run_m5_chunk_verification.py
+```
+
+The matrix covers chunk sizes 1/64/256/all, deterministic repeatability,
+fault/RNG/communication continuity, summary output, and mixed
+early-termination batches. The current development container can compile the
+pipeline but its installed driver reports `CUDA driver version is insufficient
+for CUDA runtime version`; a runtime PASS must therefore be recorded from the
+RTX 5070 validation environment before entering M6.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:

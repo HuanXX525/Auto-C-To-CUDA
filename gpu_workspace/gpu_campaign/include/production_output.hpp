@@ -29,7 +29,7 @@ SimStatus write_production_outputs(
     const HostCampaignPlan &plan,
     const std::vector<DeviceInstanceState> &states,
     const std::vector<std::vector<DeviceTraceRecord>> &traces,
-    const GpuExecutionInfo &execution,
+    GpuExecutionInfo &execution,
     std::string *error);
 
 }  // namespace gpu_campaign

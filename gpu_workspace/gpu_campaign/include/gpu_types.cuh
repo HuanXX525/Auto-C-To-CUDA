@@ -68,6 +68,17 @@ struct DeviceChunkLaunch {
     std::uint32_t packed_lanes;
     std::uint32_t write_initial_state;
     std::uint32_t trace_enabled;
+    /* Monotonic host-side launch metadata.  The kernel does not derive
+       continuation from a reset local counter: these fields make the
+       chunk boundary explicit for diagnostics and future checkpointing. */
+    std::uint32_t chunk_index;
+    std::uint32_t first_global_step;
+    std::uint32_t instance_begin;
+    std::uint32_t instance_end;
+    /* Number of local iterations reserved by this launch.  Per-instance
+       records_written in DeviceInstanceState is the authoritative valid
+       count for short/terminal instances. */
+    std::uint32_t valid_steps;
 };
 
 /* A terrain resource owns a contiguous range in the campaign-wide flat tile
@@ -185,6 +196,7 @@ enum class DeviceExitReason : std::uint32_t {
     NumericError = 11,
     LosTerrainError = 12,
     TerrainError = 13,
+    SkippedAfterFailure = 14,
 };
 
 struct DeviceTraceRecord {

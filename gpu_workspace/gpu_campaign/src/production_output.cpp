@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -87,6 +88,7 @@ const char *exit_reason_name(std::uint32_t value) {
     case DeviceExitReason::NumericError: return "numeric_error";
     case DeviceExitReason::LosTerrainError: return "los_terrain_query_failed";
     case DeviceExitReason::TerrainError: return "terrain_initialization_failed";
+    case DeviceExitReason::SkippedAfterFailure: return "skipped_after_failure";
     }
     return "unknown";
 }
@@ -431,7 +433,7 @@ SimStatus write_production_outputs(
     const HostCampaignPlan &plan,
     const std::vector<DeviceInstanceState> &states,
     const std::vector<std::vector<DeviceTraceRecord>> &traces,
-    const GpuExecutionInfo &execution,
+    GpuExecutionInfo &execution,
     std::string *error) {
     if (states.size() != plan.instances.size() ||
         (!traces.empty() && traces.size() != states.size())) {
@@ -439,6 +441,7 @@ SimStatus write_production_outputs(
     }
     SimStatus status = make_directories(plan.output_dir, error);
     if (status != SIM_OK) return status;
+    const auto output_start = std::chrono::steady_clock::now();
     for (std::size_t index = 0u; index < states.size(); ++index) {
         char name[64];
         const HostInstancePlan &instance = plan.instances[index];
@@ -453,14 +456,15 @@ SimStatus write_production_outputs(
         status = make_directories(directory, error);
         if (status == SIM_OK) status = write_manifest(
             directory, plan, instance, terrain, error);
-        if (status == SIM_OK && !traces.empty()) {
+        const bool full_trace = execution.trace_mode == "full";
+        if (status == SIM_OK && full_trace && !traces.empty()) {
             status = write_trajectory(directory, traces[index], error);
         }
-        if (status == SIM_OK && !traces.empty()) {
+        if (status == SIM_OK && full_trace && !traces.empty()) {
             status = write_diagnostics(directory, instance.device,
                                        traces[index], error);
         }
-        if (status == SIM_OK && plan.binary_logs && !traces.empty()) {
+        if (status == SIM_OK && full_trace && plan.binary_logs && !traces.empty()) {
             status = write_binary_logs(
                 directory, instance.device.instance_id,
                 traces[index], error);
@@ -499,6 +503,8 @@ SimStatus write_production_outputs(
     const std::string gpu_path = plan.output_dir + "/gpu_execution.json";
     std::FILE *gpu = std::fopen(gpu_path.c_str(), "wb");
     if (gpu == nullptr) return fail("cannot write " + gpu_path, error);
+    execution.output_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - output_start).count();
     std::fprintf(gpu, "{\n  \"schema_version\": 1,\n  \"gpu\": ");
     write_json_string(gpu, execution.gpu_name);
     std::fprintf(gpu,

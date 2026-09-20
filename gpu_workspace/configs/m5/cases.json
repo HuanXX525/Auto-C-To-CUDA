@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "description": "Recoverable-chunk acceptance scenarios. The runner materializes these fault scripts on top of the pinned CPU baseline.",
+  "steps": 128,
+  "chunk_steps": [1, 64, 256, "all"],
+  "cases": [
+    {
+      "name": "rng_faults",
+      "faults": [
+        {
+          "id": "sensor_ramp",
+          "start_time_s": 0.21,
+          "duration_s": 0.27,
+          "ramp_in_s": 0.04,
+          "recovery_ramp_s": 0.04,
+          "target": "sensor.seeker.los_rate",
+          "type": "RAMP_BIAS",
+          "value_xyz": [0.0, 0.0, 0.001]
+        },
+        {
+          "id": "actuator_scale",
+          "start_time_s": 0.33,
+          "duration_s": 0.24,
+          "target": "actuator.accel_x",
+          "type": "SCALE",
+          "value": 0.25
+        },
+        {
+          "id": "communication_delay",
+          "start_time_s": 0.45,
+          "duration_s": 0.24,
+          "recovery_hold_s": 0.04,
+          "target": "sensor.frame",
+          "type": "COMMUNICATION_DELAY",
+          "value": 2
+        },
+        {
+          "id": "communication_reorder",
+          "start_time_s": 0.76,
+          "duration_s": 0.20,
+          "target": "sensor.frame",
+          "type": "COMMUNICATION_REORDER"
+        }
+      ]
+    },
+    {
+      "name": "early_termination",
+      "faults": []
+    }
+  ]
+}
