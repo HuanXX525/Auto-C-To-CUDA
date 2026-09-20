@@ -250,8 +250,9 @@ def make_scenario(base: dict[str, Any], max_time: float,
     return scenario
 
 
-def make_runtime(path: Path, campaign_id: str, instances: list[dict[str, Any]],
-                 output_dir: Path, port: int) -> None:
+def make_runtime(path: Path, workspace: Path, campaign_id: str,
+                 instances: list[dict[str, Any]], output_dir: Path,
+                 port: int) -> None:
     runtime = {
         "schema_version": 1,
         "campaign": {
@@ -277,8 +278,10 @@ def make_runtime(path: Path, campaign_id: str, instances: list[dict[str, Any]],
             "flush_every_steps": 100,
         },
         "tools": {
-            "environment_program": "",
-            "flight_control_program": "",
+            "environment_program": str(
+                (workspace / "build/cpu_baseline/environment_sim").resolve()),
+            "flight_control_program": str(
+                (workspace / "build/cpu_baseline/flight_control_sim").resolve()),
         },
         "instances": instances,
     }
@@ -320,24 +323,24 @@ def materialize(workspace: Path, root: Path, case_spec: dict[str, Any],
 
     runtimes: dict[str, Any] = {}
     rng_runtime = root / "runtime_rng_faults.json"
-    make_runtime(rng_runtime, "m5_rng_faults",
+    make_runtime(rng_runtime, workspace, "m5_rng_faults",
                  [instance(0, normal_scenario_path, rng_faults)],
                  root / "cpu_rng_faults", 59100)
     runtimes["rng_faults"] = rng_runtime
 
     normal_runtime = root / "runtime_normal.json"
-    make_runtime(normal_runtime, "m5_normal",
+    make_runtime(normal_runtime, workspace, "m5_normal",
                  [instance(0, normal_scenario_path, rng_faults)],
                  root / "cpu_normal", 59110)
     runtimes["normal"] = normal_runtime
     early_runtime = root / "runtime_early_single.json"
-    make_runtime(early_runtime, "m5_early_single",
+    make_runtime(early_runtime, workspace, "m5_early_single",
                  [instance(0, early_scenario_path, empty_faults)],
                  root / "cpu_early_single", 59120)
     runtimes["early_single"] = early_runtime
     early_batch_runtime = root / "runtime_early_batch.json"
     make_runtime(
-        early_batch_runtime, "m5_early_batch",
+        early_batch_runtime, workspace, "m5_early_batch",
         [instance(0, early_scenario_path, empty_faults),
          instance(1, normal_scenario_path, rng_faults),
          instance(2, normal_scenario_path, rng_faults),

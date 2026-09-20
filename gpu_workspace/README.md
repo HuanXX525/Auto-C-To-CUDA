@@ -102,10 +102,11 @@ python3 ./tools/run_m5_chunk_verification.py
 
 The matrix covers chunk sizes 1/64/256/all, deterministic repeatability,
 fault/RNG/communication continuity, summary output, and mixed
-early-termination batches. The current development container can compile the
-pipeline but its installed driver reports `CUDA driver version is insufficient
-for CUDA runtime version`; a runtime PASS must therefore be recorded from the
-RTX 5070 validation environment before entering M6.
+early-termination batches. It has passed on the NVIDIA GeForce RTX 5070
+Laptop GPU with CUDA runtime 13.2; the recorded result is in
+`validation/chunk_m5.json`. The CPU baseline tools are written as absolute
+paths by the verifier so the test is independent of the caller's working
+directory. M6 production-output work is the next stage and has not started.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:
@@ -223,9 +224,9 @@ make
 ```
 
 The trace summary includes sensor-valid flags, flight-control mode/status and
-the commanded acceleration. Runtime still requires a host with a compatible
-NVIDIA driver; this container reaches compilation/device-link but fails at
-`cudaGetDeviceCount` before launching a kernel.
+the commanded acceleration. This vertical slice was initially validated only
+through compilation/device-link; the later production path and M1--M5 runtime
+matrices have now passed on the RTX 5070 validation host.
 
 ## 6DOF probe
 

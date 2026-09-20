@@ -54,7 +54,7 @@ runtime.json
   传感器、执行机构和锁步通信延迟/乱序/恢复语义；CPU/GPU 轨迹、诊断、摘要、
   事件和协议标志通过 clear/occluded/borderline、缺瓦片和重叠故障矩阵，见
   `gpu_workspace/validation/los_fault_m4.json`。N=1/8/32/128 实例隔离也通过。
-- M5 实现已完成：`DeviceInstanceState` 跨 chunk 保留全局步号和终止状态，
+- M5 已完成并通过运行时验收：`DeviceInstanceState` 跨 chunk 保留全局步号和终止状态，
   chunk 元数据包含序号/实例范围/首步/有效步数；full/summary 共用同一条
   fault event 历史，summary 不生成 full trace 文件；生产 runner 使用显式
   nonblocking compute/copy stream、两份 device snapshot/trace 和两份 pinned
@@ -62,9 +62,10 @@ runtime.json
   `STOP_ON_FAILURE` 的 `skipped_after_failure` 语义。验收脚本为
   `gpu_workspace/tools/run_m5_chunk_verification.py`，场景定义为
   `gpu_workspace/configs/m5/cases.json`，状态摘要见
-  `gpu_workspace/validation/chunk_m5.json`；本 checkout 已通过 nvcc 编译和
-  host/config 探针，但当前容器驱动低于 CUDA runtime，尚未在此环境执行
-  M5 GPU runtime 矩阵，因此 M6 仍需等待 RTX 5070 上的 PASS。
+  `gpu_workspace/validation/chunk_m5.json`；在 NVIDIA GeForce RTX 5070
+  Laptop GPU（CUDA runtime 13.2）上，chunk=1/64/256/all 的 full/summary、
+  RNG/故障/通信连续性、确定性重复和混合提前终止隔离矩阵均 PASS。
+  M6 生产级输出与 CPU 兼容目录仍未开始。
 
 ### 历史实施进度（截至 2026-08-31）
 
@@ -94,8 +95,8 @@ runtime.json
 - 已完成气动表力计算的独立设备适配：`device_force.cuh` 复刻 host `aero_model_evaluate` 的 table 分支，`device_force_probe` 对 host force/moment 逐字段回归并通过 CUDA device-link；该计算器尚未启用到默认 campaign，避免在场景参数尚未映射时改变轨迹；
 - （历史记录）当时容器的 CUDA runtime 返回“driver version is insufficient”，
   因而不能代替用户环境的运行时结果；随后 M4 已完成 terrain/LOS 与故障语义，
-  M5 已完成 chunk 多实例调度。当前仍需在匹配驱动的 RTX 5070 环境执行 M5
-  runtime 矩阵，M6 生产输出与后续性能验收尚未开始。
+  M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
+  通过 runtime 矩阵。M6 生产输出与后续性能验收尚未开始。
 
 ### 可复现性与实现边界
 
