@@ -44,6 +44,12 @@ PACKET_LAYOUT = {
     "sensor_log.bin": (232, 36),
     "command_log.bin": (192, 36),
 }
+WALL_TIME_FIELDS = {
+    "campaign_wall_time_s",
+    "total_instance_wall_time_s",
+    "max_instance_wall_time_s",
+    "wall_time_s",
+}
 
 
 def fail(message: str) -> "NoReturn":
@@ -97,6 +103,8 @@ def compare_json(left_path: Path, right_path: Path, label: str) -> None:
             if set(a) != set(b):
                 fail(f"{path}: keys differ {set(a) ^ set(b)}")
             for key in sorted(a):
+                if key in WALL_TIME_FIELDS:
+                    continue
                 walk(a[key], b[key], f"{path}.{key}")
             return
         if isinstance(a, list) and isinstance(b, list):
