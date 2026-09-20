@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <sys/stat.h>
 
 #include "common/math_constants.h"
@@ -55,6 +56,29 @@ SimStatus make_directories(const std::string &path, std::string *error) {
         cursor = slash + 1u;
     }
     return SIM_OK;
+}
+
+std::string instance_directory_name(const HostCampaignPlan &plan,
+                                    std::uint32_t instance_id) {
+    /* Aircraft-Simu's default template is historically rendered with four
+       digits even though the JSON token itself is unpadded.  Preserve that
+       CPU-compatible spelling, while honoring an explicitly customized
+       template for callers that need one. */
+    if (plan.instance_dir_template.empty() ||
+        plan.instance_dir_template == "instance_${instance_id}") {
+        char name[64];
+        std::snprintf(name, sizeof(name), "instance_%04u", instance_id);
+        return name;
+    }
+    std::string result = plan.instance_dir_template;
+    const std::string token = "${instance_id}";
+    std::size_t offset = 0u;
+    while ((offset = result.find(token, offset)) != std::string::npos) {
+        const std::string replacement = std::to_string(instance_id);
+        result.replace(offset, token.size(), replacement);
+        offset += replacement.size();
+    }
+    return result;
 }
 
 void write_json_string(std::FILE *file, const std::string &value) {
@@ -427,6 +451,141 @@ SimStatus write_summary(const std::string &directory,
     return SIM_OK;
 }
 
+/* Keep the campaign-level deterministic fields in the same shape as the CPU
+   instance_manager summary.  GPU timing is deliberately placed in the
+   separate gpu_execution.json file; the wall-time fields below are retained
+   only for schema compatibility and are ignored by compare_runs.py. */
+SimStatus write_campaign_summary(const HostCampaignPlan &plan,
+                                 const std::vector<DeviceInstanceState> &states,
+                                 const GpuExecutionInfo &execution,
+                                 std::string *error) {
+    const std::string path = plan.output_dir + "/campaign_summary.json";
+    std::FILE *file = std::fopen(path.c_str(), "wb");
+    if (file == nullptr) return fail("cannot write " + path, error);
+
+    std::uint32_t failed = 0u;
+    std::uint32_t hits = 0u;
+    std::uint32_t total_fault_start = 0u;
+    std::uint32_t total_fault_end = 0u;
+    std::uint32_t total_fault_sensor = 0u;
+    std::uint32_t total_fault_actuator = 0u;
+    std::uint32_t total_diagnostic = 0u;
+    std::uint32_t aero_flags = 0u;
+    std::uint32_t degradation_flags = 0u;
+    std::uint32_t total_extrapolated = 0u;
+    double min_miss = std::numeric_limits<double>::infinity();
+    double max_quat = 0.0;
+    double max_dcm = 0.0;
+    double min_mass = std::numeric_limits<double>::infinity();
+    double min_inertia = std::numeric_limits<double>::infinity();
+    for (const DeviceInstanceState &state : states) {
+        if (state.terminal_status != SIM_OK) ++failed;
+        if (state.hit != 0u) ++hits;
+        total_fault_start += state.fault_stats.fault_start_count;
+        total_fault_end += state.fault_stats.fault_end_count;
+        total_fault_sensor += state.fault_stats.sensor_affected_step_count;
+        total_fault_actuator += state.fault_stats.actuator_affected_step_count;
+        total_diagnostic += state.diagnostic_stats.sample_count;
+        aero_flags |= state.diagnostic_stats.aero_model_flags_or;
+        degradation_flags |= state.diagnostic_stats.model_degradation_flags_or;
+        total_extrapolated += state.diagnostic_stats.aero_extrapolated_sample_count;
+        min_miss = std::min(min_miss, state.min_range_m);
+        max_quat = std::max(max_quat, state.diagnostic_stats.max_quat_norm_error);
+        max_dcm = std::max(max_dcm,
+                           state.diagnostic_stats.max_dcm_orthogonality_error);
+        min_mass = std::min(min_mass, state.diagnostic_stats.min_mass_kg);
+        min_inertia = std::min(min_inertia,
+                               state.diagnostic_stats.min_inertia_diag_kgm2);
+    }
+    if (!std::isfinite(min_miss)) min_miss = 0.0;
+    if (!std::isfinite(min_mass)) min_mass = 0.0;
+    if (!std::isfinite(min_inertia)) min_inertia = 0.0;
+
+    const double wall_seconds = execution.wall_ms / 1000.0;
+    std::fprintf(file, "{\n  \"campaign_id\": ");
+    write_json_string(file, plan.campaign_id);
+    std::fprintf(file,
+        ",\n  \"instance_count\": %zu,\n  \"schedule\": ",
+        states.size());
+    write_json_string(file, plan.requested_schedule);
+    std::fprintf(file,
+        ",\n  \"campaign_wall_time_s\": %.6f,\n"
+        "  \"total_instance_wall_time_s\": %.6f,\n"
+        "  \"max_instance_wall_time_s\": %.6f,\n"
+        "  \"completed_count\": %zu,\n  \"failed_count\": %u,\n"
+        "  \"summary_available_count\": %zu,\n  \"hit_count\": %u,\n"
+        "  \"min_miss_distance\": %.6f,\n"
+        "  \"total_fault_start_count\": %u,\n"
+        "  \"total_fault_end_count\": %u,\n"
+        "  \"total_fault_sensor_affected_step_count\": %u,\n"
+        "  \"total_fault_actuator_affected_step_count\": %u,\n"
+        "  \"total_diagnostic_sample_count\": %u,\n"
+        "  \"max_quat_norm_error\": %.12e,\n"
+        "  \"max_dcm_orthogonality_error\": %.12e,\n"
+        "  \"min_mass_kg\": %.9f,\n  \"min_inertia_diag_kgm2\": %.9f,\n"
+        "  \"aero_model_flags_or\": %u,\n"
+        "  \"model_degradation_flags_or\": %u,\n"
+        "  \"total_aero_extrapolated_sample_count\": %u,\n"
+        "  \"instances\": [\n",
+        wall_seconds, wall_seconds, wall_seconds,
+        states.size() - failed, failed, states.size(), hits, min_miss,
+        total_fault_start, total_fault_end, total_fault_sensor,
+        total_fault_actuator, total_diagnostic, max_quat, max_dcm,
+        min_mass, min_inertia, aero_flags, degradation_flags,
+        total_extrapolated);
+    for (std::size_t index = 0u; index < states.size(); ++index) {
+        const DeviceInstanceState &state = states[index];
+        const HostInstancePlan &instance = plan.instances[index];
+        if (index != 0u) std::fputs(",\n", file);
+        const std::uint32_t env_port = plan.environment_base_port +
+            2u * state.instance_id;
+        const std::uint32_t fc_port = plan.flight_control_base_port +
+            2u * state.instance_id;
+        const DeviceDiagnosticStats &diag = state.diagnostic_stats;
+        const DeviceFaultStats &faults = state.fault_stats;
+        std::fprintf(file,
+            "    { \"instance_id\": %u, \"environment_port\": %u, "
+            "\"flight_control_port\": %u, \"random_seed\": %llu, "
+            "\"scenario\": ",
+            state.instance_id, env_port, fc_port,
+            static_cast<unsigned long long>(instance.device.random_seed));
+        write_json_string(file, instance.scenario_path);
+        std::fputs(", \"flight_control\": ", file);
+        write_json_string(file, instance.flight_control_path);
+        std::fputs(", \"faults\": ", file);
+        write_json_string(file, instance.faults_path);
+        std::fprintf(file,
+            ", \"env_status\": %u, \"fc_status\": %u, "
+            "\"wall_time_s\": %.6f, \"summary_available\": true, "
+            "\"hit_flag\": %s, \"miss_distance\": %.6f, "
+            "\"exit_reason\": ",
+            state.terminal_status, state.terminal_status, 0.0,
+            state.hit != 0u ? "true" : "false", state.min_range_m);
+        write_json_string(file, exit_reason_name(state.exit_reason));
+        std::fprintf(file,
+            ", \"fault_start_count\": %u, \"fault_end_count\": %u, "
+            "\"fault_sensor_affected_step_count\": %u, "
+            "\"fault_actuator_affected_step_count\": %u, "
+            "\"diagnostic_sample_count\": %u, "
+            "\"max_quat_norm_error\": %.12e, "
+            "\"max_dcm_orthogonality_error\": %.12e, "
+            "\"min_mass_kg\": %.9f, \"min_inertia_diag_kgm2\": %.9f, "
+            "\"aero_model_flags_or\": %u, "
+            "\"model_degradation_flags_or\": %u, "
+            "\"aero_extrapolated_sample_count\": %u }",
+            faults.fault_start_count, faults.fault_end_count,
+            faults.sensor_affected_step_count,
+            faults.actuator_affected_step_count, diag.sample_count,
+            diag.max_quat_norm_error, diag.max_dcm_orthogonality_error,
+            diag.min_mass_kg, diag.min_inertia_diag_kgm2,
+            diag.aero_model_flags_or, diag.model_degradation_flags_or,
+            diag.aero_extrapolated_sample_count);
+    }
+    std::fputs("\n  ]\n}\n", file);
+    if (std::fclose(file) != 0) return fail("cannot close " + path, error);
+    return SIM_OK;
+}
+
 }  // namespace
 
 SimStatus write_production_outputs(
@@ -443,16 +602,14 @@ SimStatus write_production_outputs(
     if (status != SIM_OK) return status;
     const auto output_start = std::chrono::steady_clock::now();
     for (std::size_t index = 0u; index < states.size(); ++index) {
-        char name[64];
         const HostInstancePlan &instance = plan.instances[index];
         const HostTerrainAsset *terrain = nullptr;
         if (instance.device.terrain_asset_index != kInvalidAssetIndex &&
             instance.device.terrain_asset_index < plan.terrain_assets.size()) {
             terrain = &plan.terrain_assets[instance.device.terrain_asset_index];
         }
-        std::snprintf(name, sizeof(name), "instance_%04u",
-                      instance.device.instance_id);
-        const std::string directory = plan.output_dir + "/" + name;
+        const std::string directory = plan.output_dir + "/" +
+            instance_directory_name(plan, instance.device.instance_id);
         status = make_directories(directory, error);
         if (status == SIM_OK) status = write_manifest(
             directory, plan, instance, terrain, error);
@@ -481,24 +638,8 @@ SimStatus write_production_outputs(
         if (status != SIM_OK) return status;
     }
 
-    const std::string campaign_path = plan.output_dir + "/campaign_summary.json";
-    std::FILE *campaign = std::fopen(campaign_path.c_str(), "wb");
-    if (campaign == nullptr) return fail("cannot write " + campaign_path, error);
-    std::uint32_t failed = 0u;
-    std::uint32_t hits = 0u;
-    for (const DeviceInstanceState &state : states) {
-        if (state.terminal_status != SIM_OK) ++failed;
-        if (state.hit != 0u) ++hits;
-    }
-    std::fprintf(campaign,
-        "{\n  \"campaign_id\": ");
-    write_json_string(campaign, plan.campaign_id);
-    std::fprintf(campaign,
-        ",\n  \"instance_count\": %zu,\n  \"completed_count\": %zu,\n"
-        "  \"failed_count\": %u,\n  \"summary_available_count\": %zu,\n"
-        "  \"hit_count\": %u\n}\n",
-        states.size(), states.size() - failed, failed, states.size(), hits);
-    std::fclose(campaign);
+    status = write_campaign_summary(plan, states, execution, error);
+    if (status != SIM_OK) return status;
 
     const std::string gpu_path = plan.output_dir + "/gpu_execution.json";
     std::FILE *gpu = std::fopen(gpu_path.c_str(), "wb");

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Compare two Aircraft-Simu campaign result directories.
+Compare two Aircraft-Simu campaign result directories using semantic fields.
+
+Full traces compare trajectory/diagnostic CSVs and decoded sensor/command
+packets.  If either directory is summary-only, trajectory and binary files are
+omitted from the comparison while final summaries and event order remain
+strictly checked.  GPU timing and path metadata are intentionally excluded.
 
 Usage:
     python3 compare_runs.py <dir_a> <dir_b> [--rtol 1e-10] [--atol 1e-12] [--verbose]
@@ -9,15 +14,68 @@ Usage:
 import json
 import csv
 import sys
-import os
 import math
 import argparse
 import re
+import struct
 from pathlib import Path
 
 
 INTEGER_TOKEN = re.compile(r"^[+-]?\d+$")
 
+# These are the fields that describe the simulation result, rather than the
+# machine or process that produced it.  Paths, UDP ports, software build
+# labels and wall-clock measurements are intentionally excluded: they are
+# expected to differ between the CPU and CUDA backends.  Keep this list
+# explicit so a newly added metadata field cannot silently become a
+# correctness criterion (or be silently ignored).
+MANIFEST_FIELDS = (
+    "schema_version", "instance_id", "protocol_version",
+    "dt_s", "max_time_s", "random_seed", "initial_mass_kg",
+    "initial_propellant_mass_kg", "gravity_enabled", "atmosphere_enabled",
+    "aerodynamics_enabled", "aero_table_enabled", "aero_surrogate_enabled",
+    "propulsion_enabled", "earth_rotation_enabled", "terrain_enabled",
+    "terrain_los_occlusion_enabled", "terrain_missing_policy",
+    "terrain_flat_fill_height_m", "terrain_cache_tile_count",
+    "terrain_tile_path_count", "binary_logs", "event_log",
+)
+
+SUMMARY_FIELDS = (
+    "hit_flag", "miss_distance", "time_of_closest_approach",
+    "simulation_steps", "exit_reason", "fault_configured_count",
+    "fault_start_count", "fault_end_count", "fault_active_step_count",
+    "fault_sensor_affected_step_count", "fault_actuator_affected_step_count",
+    "fault_max_concurrent_active", "terrain_cache_path_count",
+    "terrain_cache_capacity", "terrain_cache_loaded_count",
+    "terrain_cache_load_count", "terrain_cache_eviction_count",
+    "diagnostic_sample_count", "max_quat_norm_error",
+    "max_dcm_orthogonality_error", "min_mass_kg", "min_inertia_diag_kgm2",
+    "aero_model_flags_or", "model_degradation_flags_or",
+    "aero_extrapolated_sample_count",
+)
+
+CAMPAIGN_FIELDS = (
+    "instance_count", "schedule", "completed_count", "failed_count",
+    "summary_available_count", "hit_count", "min_miss_distance",
+    "total_fault_start_count", "total_fault_end_count",
+    "total_fault_sensor_affected_step_count",
+    "total_fault_actuator_affected_step_count",
+    "total_diagnostic_sample_count", "max_quat_norm_error",
+    "max_dcm_orthogonality_error", "min_mass_kg", "min_inertia_diag_kgm2",
+    "aero_model_flags_or", "model_degradation_flags_or",
+    "total_aero_extrapolated_sample_count",
+)
+
+CAMPAIGN_INSTANCE_FIELDS = (
+    "instance_id", "random_seed", "env_status", "fc_status",
+    "summary_available", "hit_flag", "miss_distance", "exit_reason",
+    "fault_start_count", "fault_end_count",
+    "fault_sensor_affected_step_count", "fault_actuator_affected_step_count",
+    "diagnostic_sample_count", "max_quat_norm_error",
+    "max_dcm_orthogonality_error", "min_mass_kg", "min_inertia_diag_kgm2",
+    "aero_model_flags_or", "model_degradation_flags_or",
+    "aero_extrapolated_sample_count",
+)
 
 def csv_quantum(token):
     """Return the decimal serialization quantum for a floating CSV token."""
@@ -60,54 +118,61 @@ def load_json(path):
         return None
 
 
+def _compare_value(value_a, value_b, label, rtol, atol):
+    """Compare one semantic JSON value and return a mismatch or ``None``."""
+    # bool is a subclass of int in Python; test it first so true != 1.
+    if isinstance(value_a, bool) or isinstance(value_b, bool):
+        if type(value_a) is not type(value_b) or value_a != value_b:
+            return f"  {label}: {value_a!r} != {value_b!r}"
+        return None
+    if isinstance(value_a, (int, float)) and isinstance(value_b, (int, float)):
+        if isinstance(value_a, float) or isinstance(value_b, float):
+            if not math.isclose(float(value_a), float(value_b),
+                               rel_tol=rtol, abs_tol=atol):
+                return (f"  {label}: {value_a!r} != {value_b!r} "
+                        f"(diff={abs(float(value_a) - float(value_b)):.6e})")
+        elif value_a != value_b:
+            return f"  {label}: {value_a!r} != {value_b!r}"
+        return None
+    if type(value_a) is not type(value_b) or value_a != value_b:
+        return f"  {label}: {value_a!r} != {value_b!r}"
+    return None
+
+
 def compare_json_fields(a, b, path_label, fields=None, rtol=None, atol=None):
-    """
-    Compare specified fields in two dicts.
-    If fields is None, compare all common keys.
-    Returns list of mismatch strings.
-    """
+    """Compare an explicit semantic field list from two JSON objects."""
+    if fields is None:
+        fields = tuple(sorted(set(a.keys()) | set(b.keys())))
     mismatches = []
-    keys = fields if fields is not None else set(a.keys()) | set(b.keys())
-
-    for key in keys:
-        if key == "instances":
-            continue
-        va = a.get(key)
-        vb = b.get(key)
-
-        if isinstance(va, float) and isinstance(vb, float):
-            if rtol is not None and atol is not None:
-                if not math.isclose(va, vb, rel_tol=rtol, abs_tol=atol):
-                    mismatches.append(
-                        f"  {path_label}.{key}: {va!r} != {vb!r} "
-                        f"(diff={abs(va - vb):.6e})"
-                    )
-            else:
-                if va != vb:
-                    mismatches.append(
-                        f"  {path_label}.{key}: {va!r} != {vb!r}"
-                    )
-        elif type(va) is not type(vb) or va != vb:
+    for key in fields:
+        in_a = key in a
+        in_b = key in b
+        if not in_a or not in_b:
             mismatches.append(
-                f"  {path_label}.{key}: {va!r} != {vb!r}"
-            )
-
+                f"  {path_label}.{key}: "
+                f"{'missing in A' if not in_a else 'missing in B'}")
+            continue
+        mismatch = _compare_value(a[key], b[key], f"{path_label}.{key}",
+                                  rtol, atol)
+        if mismatch is not None:
+            mismatches.append(mismatch)
     return mismatches
 
 
-def compare_json_files(path_a, path_b, label, rtol=None, atol=None):
-    """Compare two JSON files. Returns (ok, diffs)."""
+def compare_json_files(path_a, path_b, label, fields=None, rtol=None, atol=None):
+    """Compare selected semantic fields in two JSON files."""
     a = load_json(path_a)
     b = load_json(path_b)
 
     if a is None and b is None:
-        return True, []
+        return False, [f"  {label}: missing or invalid in both directories"]
     if a is None:
         return False, [f"  {label}: missing in dir A ({path_a})"]
     if b is None:
         return False, [f"  {label}: missing in dir B ({path_b})"]
 
-    diffs = compare_json_fields(a, b, label, rtol=rtol, atol=atol)
+    diffs = compare_json_fields(a, b, label, fields=fields,
+                                rtol=rtol, atol=atol)
     return (len(diffs) == 0), diffs
 
 
@@ -217,43 +282,127 @@ def compare_csv_files(path_a, path_b, label, rtol, atol):
 
 
 def compare_summary(path_a, path_b, label, rtol, atol):
-    """Compare summary.json with numerical tolerance on float fields."""
+    """Compare the deterministic fields of an instance summary."""
+    return compare_json_files(path_a, path_b, label, fields=SUMMARY_FIELDS,
+                              rtol=rtol, atol=atol)
+
+
+def compare_campaign(path_a, path_b, label, rtol, atol):
+    """Compare campaign-level result fields while ignoring wall-clock data."""
     a = load_json(path_a)
     b = load_json(path_b)
-
     if a is None and b is None:
-        return True, []
+        return False, [f"  {label}: missing or invalid in both directories"]
     if a is None:
         return False, [f"  {label}: missing in dir A"]
     if b is None:
         return False, [f"  {label}: missing in dir B"]
 
-    float_keys = {
-        "miss_distance", "time_of_closest_approach",
-        "max_quat_norm_error", "max_dcm_orthogonality_error",
-        "min_mass_kg", "min_inertia_diag_kgm2",
-    }
-
-    mismatches = []
-    for key in sorted(set(a.keys()) | set(b.keys())):
-        va = a.get(key)
-        vb = b.get(key)
-
-        if isinstance(va, float) and isinstance(vb, float) and key in float_keys:
-            if not math.isclose(va, vb, rel_tol=rtol, abs_tol=atol):
-                mismatches.append(
-                    f"  {label}.{key}: {va!r} != {vb!r} "
-                    f"(diff={abs(va - vb):.6e})"
-                )
-        elif type(va) is not type(vb) or va != vb:
-            mismatches.append(
-                f"  {label}.{key}: {va!r} != {vb!r}"
-            )
-
-    return (len(mismatches) == 0), mismatches
+    mismatches = compare_json_fields(a, b, label, fields=CAMPAIGN_FIELDS,
+                                     rtol=rtol, atol=atol)
+    instances_a = a.get("instances")
+    instances_b = b.get("instances")
+    if not isinstance(instances_a, list) or not isinstance(instances_b, list):
+        mismatches.append(f"  {label}.instances: missing or not an array")
+        return False, mismatches
+    if len(instances_a) != len(instances_b):
+        mismatches.append(
+            f"  {label}.instances: length {len(instances_a)} != "
+            f"{len(instances_b)}")
+    for index, (entry_a, entry_b) in enumerate(zip(instances_a, instances_b)):
+        if not isinstance(entry_a, dict) or not isinstance(entry_b, dict):
+            mismatches.append(f"  {label}.instances[{index}]: not an object")
+            continue
+        mismatches.extend(compare_json_fields(
+            entry_a, entry_b, f"{label}.instances[{index}]",
+            fields=CAMPAIGN_INSTANCE_FIELDS, rtol=rtol, atol=atol))
+    return len(mismatches) == 0, mismatches
 
 
-def compare_instance(dir_a, dir_b, inst_id, rtol, atol, verbose):
+def compare_bytes(path_a, path_b, label):
+    """Compare a required byte log and return a standard result tuple."""
+    if not path_a.exists() or not path_b.exists():
+        missing = "missing in A" if not path_a.exists() else "missing in B"
+        return False, [f"  {label}: {missing}"]
+    if path_a.read_bytes() != path_b.read_bytes():
+        return False, [f"  {label}: byte content differs"]
+    return True, []
+
+
+def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol):
+    """Compare CPU/GPU protocol logs after decoding their stable wire format.
+
+    The packet encoder includes a CRC over floating-point payload bytes.  CPU
+    and GPU math can differ in the last bits while still satisfying the
+    simulation tolerance, so comparing raw CRC/bytes would reject valid
+    results.  Header enums, sequence numbers, flags and packet ordering remain
+    exact; floating-point fields use the requested tolerance.
+    """
+    if not path_a.exists() or not path_b.exists():
+        missing = "missing in A" if not path_a.exists() else "missing in B"
+        return False, [f"  {label}: {missing}"]
+    data_a = path_a.read_bytes()
+    data_b = path_b.read_bytes()
+    header_fmt = "<IHHHHII d II"
+    header_size = struct.calcsize(header_fmt)
+    if packet_kind == "sensor":
+        payload_fmt = "<I" + ("d" * 23) + "II"
+        packet_size = header_size + struct.calcsize(payload_fmt)
+        integer_payload_indexes = {0, 24, 25}
+    else:
+        payload_fmt = "<I" + ("d" * 18) + "II"
+        packet_size = header_size + struct.calcsize(payload_fmt)
+        integer_payload_indexes = {0, 19, 20}
+    diffs = []
+    if len(data_a) % packet_size != 0 or len(data_b) % packet_size != 0:
+        return False, [f"  {label}: invalid packet size"]
+    count_a = len(data_a) // packet_size
+    count_b = len(data_b) // packet_size
+    if count_a != count_b:
+        return False, [f"  {label}: packet count {count_a} != {count_b}"]
+    for index in range(count_a):
+        offset = index * packet_size
+        header_a = struct.unpack_from(header_fmt, data_a, offset)
+        header_b = struct.unpack_from(header_fmt, data_b, offset)
+        for field_index in (0, 1, 2, 3, 4, 5, 6, 8):
+            if header_a[field_index] != header_b[field_index]:
+                diffs.append(
+                    f"  {label}[{index}].header[{field_index}]: "
+                    f"{header_a[field_index]!r} != {header_b[field_index]!r}")
+        if not math.isclose(header_a[7], header_b[7], rel_tol=rtol,
+                            abs_tol=atol):
+            diffs.append(f"  {label}[{index}].header.sim_time differs")
+        payload_a = struct.unpack_from(payload_fmt, data_a, offset + header_size)
+        payload_b = struct.unpack_from(payload_fmt, data_b, offset + header_size)
+        for field_index, (value_a, value_b) in enumerate(zip(payload_a, payload_b)):
+            if field_index in integer_payload_indexes:
+                if value_a != value_b:
+                    diffs.append(
+                        f"  {label}[{index}].payload[{field_index}]: "
+                        f"{value_a!r} != {value_b!r}")
+            elif not math.isclose(value_a, value_b, rel_tol=rtol,
+                                  abs_tol=atol):
+                diffs.append(
+                    f"  {label}[{index}].payload[{field_index}] differs: "
+                    f"{value_a!r} != {value_b!r}")
+            if len(diffs) >= 10:
+                diffs.append(f"  {label}: ... (showing first 10 differences)")
+                return False, diffs
+    return len(diffs) == 0, diffs
+
+
+def trace_mode(directory):
+    """Return ``full`` or ``summary`` from GPU metadata/file presence."""
+    metadata = load_json(Path(directory) / "gpu_execution.json")
+    if isinstance(metadata, dict) and metadata.get("trace_mode") == "summary":
+        return "summary"
+    for instance in Path(directory).glob("instance_[0-9][0-9][0-9][0-9]"):
+        if not (instance / "trajectory.csv").exists():
+            return "summary"
+    return "full"
+
+
+def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full):
     """
     Compare a single instance pair.
     Returns (ok, diffs_list).
@@ -275,6 +424,7 @@ def compare_instance(dir_a, dir_b, inst_id, rtol, atol, verbose):
     manifest_ok, manifest_diffs = compare_json_files(
         path_a / "run_manifest.json", path_b / "run_manifest.json",
         f"{inst_dir}/run_manifest.json",
+        fields=MANIFEST_FIELDS, rtol=rtol, atol=atol,
     )
     if not manifest_ok:
         all_ok = False
@@ -289,24 +439,36 @@ def compare_instance(dir_a, dir_b, inst_id, rtol, atol, verbose):
         all_ok = False
         all_diffs.extend(summary_diffs)
 
-    traj_ok, traj_diffs = compare_csv_files(
-        path_a / "trajectory.csv", path_b / "trajectory.csv",
-        f"{inst_dir}/trajectory.csv",
-        rtol, atol,
-    )
-    if not traj_ok:
-        all_ok = False
-        all_diffs.extend(traj_diffs)
+    if full:
+        for filename in ("trajectory.csv", "trajectory_diagnostics.csv"):
+            csv_ok, csv_diffs = compare_csv_files(
+                path_a / filename, path_b / filename,
+                f"{inst_dir}/{filename}", rtol, atol)
+            if not csv_ok:
+                all_ok = False
+                all_diffs.extend(csv_diffs)
 
-    diag_ok, diag_diffs = compare_csv_files(
-        path_a / "trajectory_diagnostics.csv",
-        path_b / "trajectory_diagnostics.csv",
-        f"{inst_dir}/trajectory_diagnostics.csv",
-        rtol, atol,
-    )
-    if not diag_ok:
-        all_ok = False
-        all_diffs.extend(diag_diffs)
+        # Sensor and command logs use the original CPU packet wire format.
+        # Decode them so last-bit CPU/GPU floating-point differences do not
+        # turn a valid protocol result into a false mismatch.
+        for filename, packet_kind in (("sensor_log.bin", "sensor"),
+                                      ("command_log.bin", "command")):
+            if not (path_a / filename).exists() and not (path_b / filename).exists():
+                continue
+            binary_ok, binary_diffs = compare_packet_file(
+                path_a / filename, path_b / filename,
+                f"{inst_dir}/{filename}", packet_kind, rtol, atol)
+            if not binary_ok:
+                all_ok = False
+                all_diffs.extend(binary_diffs)
+
+    if (path_a / "event_log.txt").exists() or (path_b / "event_log.txt").exists():
+        event_ok, event_diffs = compare_bytes(
+            path_a / "event_log.txt", path_b / "event_log.txt",
+            f"{inst_dir}/event_log.txt")
+        if not event_ok:
+            all_ok = False
+            all_diffs.extend(event_diffs)
 
     return all_ok, all_diffs
 
@@ -350,36 +512,32 @@ def main():
     campaign_a = load_json(dir_a / "campaign_summary.json")
     campaign_b = load_json(dir_b / "campaign_summary.json")
 
+    # A summary run intentionally omits trajectory/diagnostic/binary files.
+    # If either side is summary-only, compare the shared semantic payload
+    # (manifest, summary and event order) and do not mistake omitted files
+    # for a numerical mismatch.
+    full_payload = trace_mode(dir_a) == "full" and trace_mode(dir_b) == "full"
+
     if campaign_a and campaign_b:
         count_a = campaign_a.get("instance_count", 0)
         count_b = campaign_b.get("instance_count", 0)
         print(f"campaign_summary.json: instance_count A={count_a}, B={count_b}")
-        if count_a != count_b and count_a == 0:
-            print("WARNING: instance counts differ or are zero, auto-detecting...")
-        instance_count = max(count_a, count_b)
     else:
         print("WARNING: campaign_summary.json missing, scanning instance directories...")
-        instance_dirs = set()
-        for d in dir_a.iterdir():
-            if d.is_dir() and d.name.startswith("instance_"):
-                try:
-                    instance_dirs.add(int(d.name.split("_")[1]))
-                except ValueError:
-                    pass
-        instance_count = max(instance_dirs) + 1 if instance_dirs else 64
-
-    if instance_count == 0:
-        instance_count = 64
-
-    print(f"Comparing {instance_count} instances...")
+    instance_names = sorted({
+        path.name
+        for directory in (dir_a, dir_b)
+        for path in directory.glob("instance_[0-9][0-9][0-9][0-9]")
+        if path.is_dir()
+    })
+    print(f"Comparing {len(instance_names)} instances...")
     print()
 
     matched = 0
     mismatched = 0
     missing = 0
 
-    for inst_id in range(instance_count):
-        inst_dir = f"instance_{inst_id:04d}"
+    for inst_dir in instance_names:
         path_a = dir_a / inst_dir
         path_b = dir_b / inst_dir
 
@@ -397,7 +555,14 @@ def main():
                 print(f"[{status}] {inst_dir} ... (not found in B)")
             continue
 
-        ok, diffs = compare_instance(dir_a, dir_b, inst_id, args.rtol, args.atol, args.verbose)
+        try:
+            inst_id = int(inst_dir.split("_", 1)[1])
+        except (IndexError, ValueError):
+            mismatched += 1
+            print(f"[MISMATCH] {inst_dir}: invalid instance directory name")
+            continue
+        ok, diffs = compare_instance(
+            dir_a, dir_b, inst_id, args.rtol, args.atol, full_payload)
 
         if ok:
             matched += 1
@@ -413,6 +578,16 @@ def main():
     print("=" * 50)
     print(f"Summary: {matched} matched, {mismatched} mismatched, {missing} missing")
     print("=" * 50)
+
+    campaign_ok, campaign_diffs = compare_campaign(
+        dir_a / "campaign_summary.json", dir_b / "campaign_summary.json",
+        "campaign_summary.json", args.rtol, args.atol)
+    if not campaign_ok:
+        print("[MISMATCH] campaign_summary.json")
+        if args.verbose:
+            for diff in campaign_diffs:
+                print(diff)
+        mismatched += 1
 
     if mismatched > 0:
         sys.exit(1)

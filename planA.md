@@ -65,7 +65,11 @@ runtime.json
   `gpu_workspace/validation/chunk_m5.json`；在 NVIDIA GeForce RTX 5070
   Laptop GPU（CUDA runtime 13.2）上，chunk=1/64/256/all 的 full/summary、
   RNG/故障/通信连续性、确定性重复和混合提前终止隔离矩阵均 PASS。
-  M6 生产级输出与 CPU 兼容目录仍未开始。
+- M6 已完成并通过生产接口验收：`--config` 参数互斥、`auto/serial/packed`
+  映射记录、full/summary 输出目录、CPU 兼容 campaign summary、协议日志
+  语义比较和 full/summary 最终状态一致性均 PASS；验收脚本为
+  `gpu_workspace/tools/run_m6_verification.py`，结果见
+  `gpu_workspace/validation/production_m6.json`。
 
 ### 历史实施进度（截至 2026-08-31）
 
@@ -96,7 +100,8 @@ runtime.json
 - （历史记录）当时容器的 CUDA runtime 返回“driver version is insufficient”，
   因而不能代替用户环境的运行时结果；随后 M4 已完成 terrain/LOS 与故障语义，
   M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
-  通过 runtime 矩阵。M6 生产输出与后续性能验收尚未开始。
+  通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 完整
+  正确性矩阵和后续性能验收尚未开始。
 
 ### 可复现性与实现边界
 

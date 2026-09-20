@@ -53,8 +53,8 @@ The production force adapter follows CPU precedence for table, surrogate and
 quadratic-drag paths, combines virtual control force, propulsion, gravity and
 Earth-rotation terms, then updates propellant, total mass and inertia after the
 configured Euler/RK4 plant step. The initial result writer is present to make
-M3 CPU/GPU trajectory debugging reproducible; the complete output contract is
-still an M6 gate.
+M3 CPU/GPU trajectory debugging reproducible; the production output contract
+is validated by the M6 acceptance script below.
 
 Run the focused M3 acceptance matrix with:
 
@@ -106,7 +106,20 @@ early-termination batches. It has passed on the NVIDIA GeForce RTX 5070
 Laptop GPU with CUDA runtime 13.2; the recorded result is in
 `validation/chunk_m5.json`. The CPU baseline tools are written as absolute
 paths by the verifier so the test is independent of the caller's working
-directory. M6 production-output work is the next stage and has not started.
+directory.
+
+M6 production output and comparison are now implemented. Run the focused
+acceptance script with:
+
+```bash
+python3 ./tools/run_m6_verification.py
+```
+
+It checks the fixed `--config` CLI and legacy-option rejection, `auto` and
+explicit mappings, the CPU-compatible full directory, summary-only omission
+of trajectory/binary files, semantic CPU/GPU comparison (including decoded
+sensor/command protocol packets), and full/summary final-state equivalence.
+The recorded RTX 5070 result is in `validation/production_m6.json`.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:
