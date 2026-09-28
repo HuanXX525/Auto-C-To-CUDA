@@ -37,46 +37,67 @@
         "M6 CPU/GPU/full-summary regression",
         "matrix contract, field tolerance, receipt contract, and output scope guard"
       ]
+    },
+    {
+      "id": "M7-B",
+      "name": "64-step functional semantics and error paths",
+      "status": "PASS",
+      "commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+      "receipt_sha256": "dbd5386d159d1d471de7c2d0f9e688b2eef83b4bf2f19bb98425981976da99e3",
+      "checks": [
+        "16 short CPU/GPU semantic comparisons",
+        "quiet, noise, dropout, fault, terrain, LOS, hit, and timeout semantics",
+        "missing reference, invalid dt, and missing-tile ERROR paths",
+        "source, binary, generated-input, and result fingerprints"
+      ]
     }
   ],
   "current_segment": {
-    "id": "M7-B",
-    "name": "64-step functional semantics and error paths",
+    "id": "M7-C",
+    "name": "mapping and chunk invariance",
     "status": "PASS",
-    "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json",
-    "sections": ["short", "errors"],
-    "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
-    "receipt_sha256": "dbd5386d159d1d471de7c2d0f9e688b2eef83b4bf2f19bb98425981976da99e3",
-    "receipt_created_at_utc": "2026-09-28T14:49:22.668954+00:00",
-    "source_parent_commit": "e037639bb49c6219431a7752c21205674df76765",
-    "implementation_correction": "The error-path runner now accepts an explicit expected process return-code set so terrain_initialization_failed remains a validated nonzero-exit result rather than a harness failure.",
+    "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+    "sections": ["mapping", "chunk"],
+    "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+    "receipt_sha256": "d305eb29aa30c78f45428185d26da551476c0bbb7738a88eff52c78aaa2d1f92",
+    "receipt_created_at_utc": "2026-09-28T15:21:23.418329+00:00",
+    "source_parent_commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd",
     "checks": [
-      "16 short CPU/GPU semantic comparisons",
-      "quiet, noise, dropout, sensor, actuator, communication, terrain, LOS, hit, and timeout semantics",
-      "missing reference and invalid dt rejected without output directories",
-      "missing tile ERROR produced terrain_initialization_failed at step 0",
+      "N=1 and N=128 serial/1, packed/4, and packed/32 CPU/GPU comparisons",
+      "cross-mapping results are invariant for each instance count",
+      "chunk=1/64/256/67(all) full and summary results are invariant",
+      "full chunk=64 deterministic repeat is byte-semantic equivalent",
       "build-local and tracked receipts are byte-identical",
       "source, binary, generated-input, and result fingerprints independently verified"
     ],
     "result_summary": {
-      "timeout_at_step_64": 14,
-      "surface_collision_at_step_33": 1,
-      "hit_at_step_0": 1,
-      "terrain_initialization_failed_at_step_0": 1
+      "mapping": {
+        "instance_counts": [1, 128],
+        "modes": ["serial/1", "packed/4", "packed/32"],
+        "gpu_executions": 6
+      },
+      "chunk": {
+        "requested_sizes": [1, 64, 256, "all"],
+        "all_effective_size": 67,
+        "trace_modes": ["full", "summary"],
+        "deterministic_repeat": "full chunk=64",
+        "gpu_executions": 9
+      }
     },
     "artifacts": {
-      "gpu_execution_count": 17,
-      "cpu_campaign_count": 16,
-      "gpu_campaign_count": 16,
+      "gpu_execution_count": 15,
+      "cpu_campaign_count": 3,
+      "gpu_campaign_count": 15,
       "generated_inputs": {
-        "sha256": "c5c094ba18a511c0c6b1045778b27a8287ddbdb2f8dee6d529213fd267e3fb2a",
-        "file_count": 76,
-        "total_bytes": 177828
+        "sha256": "692b1008b50c40518d3bd07b533c513fa18439641bde43b346cd7dfbea25b6d0",
+        "file_count": 61,
+        "total_bytes": 224010
       },
       "results": {
-        "sha256": "90a8eb588e9b3a13cdc962d26782cda6c77965e68fd5dce6b5b191f1ab1b8c9b",
-        "file_count": 296,
-        "total_bytes": 2003653
+        "sha256": "b0139e0d41461041dcec1f3917eabb93533e4b5112c2a411fca3af4677fde236",
+        "file_count": 3829,
+        "total_bytes": 34531737
       }
     },
     "frozen_sha256": {
@@ -133,14 +154,15 @@
     },
     {
       "id": "M7-C",
-      "status": "NEXT",
+      "status": "PASS",
       "name": "mapping and chunk invariance",
       "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json"
     },
     {
       "id": "M7-D",
-      "status": "PENDING",
-      "name": "mixed multi-instance isolation"
+      "status": "NEXT",
+      "name": "mixed multi-instance isolation",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json"
     },
     {
       "id": "M7-E",
@@ -153,5 +175,5 @@
       "name": "receipt aggregation and M7 closure"
     }
   ],
-  "stop_boundary": "M7-B is complete. Do not start M7-C in the same work session."
+  "stop_boundary": "M7-C is complete. Do not start M7-D in the same work session."
 }

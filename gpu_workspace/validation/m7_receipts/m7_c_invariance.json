@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "phase": "M7",
+  "status": "PASS",
+  "created_at_utc": "2026-09-28T15:21:23.418329+00:00",
+  "sections": [
+    "mapping",
+    "chunk"
+  ],
+  "complete_m7_gate": false,
+  "command": [
+    "/usr/bin/python3",
+    "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/tools/run_m7_correctness_matrix.py",
+    "--skip-build",
+    "--sections",
+    "mapping,chunk",
+    "--output",
+    "gpu_workspace/build/m7_c_invariance",
+    "--receipt",
+    "gpu_workspace/validation/m7_receipts/m7_c_invariance.json"
+  ],
+  "source": {
+    "parent_commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "aircraft_simu_tracked_worktree_clean": true,
+    "sha256": {
+      "runner": "85aa516fc6c2f2fa4c983f51a1090c685c25c0640486d0536274905ecf5bb498",
+      "matrix": "f567d1267e26583841356f3b8485f563a99d2d5ac0674a0221b0285770131cb1",
+      "comparator": "2dddba1607053f6e942c920c4b315a3c941277a646a15f5cd94da6f00217353a",
+      "m4_asset_generator": "7362e2916987acfa212153a92e70f45b694872171ad53086b6b8dbff79f378a0",
+      "m4_case_matrix": "684ed0e1380f83eef4126506b83ed0696f88e9c167bdc8437bd42bac009e5369",
+      "terrain_tile_generator": "f9bb9277008996dc5e6ca9d3c2114f7639a0dbf13efad3b599de22db6f21d07e",
+      "cpu_build_script": "7fa143f3d2cbec0fcad6d21d3db25f8d969a744f63a9ced5c79d82180b8ce867",
+      "gpu_makefile": "9279913502701fa360b8adf76ff1cf4100366c70c4efc93faee3a8cb4fc60fac",
+      "baseline_scenario": "951d2a5133e76922de4c58bcffb9ef54ff815e492ee33a82a1938b205c0ea3b1",
+      "baseline_flight_control": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf"
+    },
+    "binary_sha256": {
+      "gpu_campaign": "7874c30b629ca669148a8552b135f1bc8e252c9ab8f6570a8285fd6f06a9d191",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    }
+  },
+  "tolerance": {
+    "rtol": 1e-10,
+    "atol": 1e-12,
+    "field_calibrations": [
+      {
+        "case": "terrain_collision",
+        "field": "SensorFrame.missile_height_agl_m_meas",
+        "atol": 1e-09,
+        "reason": "ECEF-to-LLA Earth-radius subtraction at the 892 m collision boundary"
+      }
+    ]
+  },
+  "hardware": [
+    "NVIDIA GeForce RTX 5070 Laptop GPU"
+  ],
+  "cuda_runtime_versions": [
+    13020
+  ],
+  "artifacts": {
+    "gpu_execution_count": 15,
+    "cpu_campaign_count": 3,
+    "gpu_campaign_count": 15,
+    "generated_inputs": {
+      "sha256": "692b1008b50c40518d3bd07b533c513fa18439641bde43b346cd7dfbea25b6d0",
+      "file_count": 61,
+      "total_bytes": 224010
+    },
+    "results": {
+      "sha256": "b0139e0d41461041dcec1f3917eabb93533e4b5112c2a411fca3af4677fde236",
+      "file_count": 3829,
+      "total_bytes": 34531737
+    }
+  }
+}
