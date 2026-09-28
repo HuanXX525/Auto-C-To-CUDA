@@ -25,64 +25,62 @@
     "segment_rule": "M7-A uses this tracked harness checkpoint. For M7-B through M7-E, run one segment, publish both build-local and tracked hash-bound PASS receipts, update this checkpoint, commit, and stop.",
     "invalidation_rule": "A changed runner, matrix, comparator, Aircraft-Simu revision, or executable hash invalidates earlier receipts that used the old value. Parent commits may advance only through an auditable ancestry chain of expected progress-record or documentation commits."
   },
+  "completed_segment_history": [
+    {
+      "id": "M7-A",
+      "name": "acceptance harness freeze",
+      "status": "PASS",
+      "commit": "e037639bb49c6219431a7752c21205674df76765",
+      "checks": [
+        "Python and JSON static validation",
+        "CPU baseline and GPU build",
+        "M6 CPU/GPU/full-summary regression",
+        "matrix contract, field tolerance, receipt contract, and output scope guard"
+      ]
+    }
+  ],
   "current_segment": {
-    "id": "M7-A",
-    "name": "acceptance harness freeze",
+    "id": "M7-B",
+    "name": "64-step functional semantics and error paths",
     "status": "PASS",
+    "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+    "sections": ["short", "errors"],
+    "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+    "receipt_sha256": "dbd5386d159d1d471de7c2d0f9e688b2eef83b4bf2f19bb98425981976da99e3",
+    "receipt_created_at_utc": "2026-09-28T14:49:22.668954+00:00",
+    "source_parent_commit": "e037639bb49c6219431a7752c21205674df76765",
+    "implementation_correction": "The error-path runner now accepts an explicit expected process return-code set so terrain_initialization_failed remains a validated nonzero-exit result rather than a harness failure.",
     "checks": [
-      {
-        "name": "python_compile",
-        "status": "PASS",
-        "command": "python3 -m py_compile compare_runs.py gpu_workspace/tools/run_m7_correctness_matrix.py"
-      },
-      {
-        "name": "matrix_json",
-        "status": "PASS",
-        "command": "python3 -m json.tool gpu_workspace/configs/m7/cases.json"
-      },
-      {
-        "name": "matrix_contract",
-        "status": "PASS",
-        "details": "clean pinned gitlink; exact short/long/batch case semantics; horizons, tolerances, N values, mappings, chunks, trace modes, and error cases"
-      },
-      {
-        "name": "cpu_baseline_build",
-        "status": "PASS",
-        "command": "gpu_workspace/tools/build_cpu_baseline.sh"
-      },
-      {
-        "name": "gpu_build",
-        "status": "PASS",
-        "command": "make -C gpu_workspace -j2"
-      },
-      {
-        "name": "collision_field_tolerance",
-        "status": "PASS",
-        "details": "The terrain-collision comparison fails at the default tolerance and passes only when --sensor-agl-atol=1e-9 is applied to decoded SensorFrame payload field 15."
-      },
-      {
-        "name": "receipt_contract",
-        "status": "PASS",
-        "details": "Atomic build-local and tracked receipts are byte-identical and bind source inputs, binaries, generated inputs, result files, GPU/CUDA metadata, and field calibration."
-      },
-      {
-        "name": "output_scope_guard",
-        "status": "PASS",
-        "details": "The runner rejects output paths outside gpu_workspace/build and build children whose basename does not start with m7_ before deleting or generating files."
-      },
-      {
-        "name": "m6_regression",
-        "status": "PASS",
-        "command": "python3 gpu_workspace/tools/run_m6_verification.py --skip-build --output gpu_workspace/build/m7_a_m6_smoke",
-        "checks": [
-          "CPU/GPU full semantic comparison",
-          "GPU full/summary final-state comparison",
-          "production CLI and output contract"
-        ]
-      }
+      "16 short CPU/GPU semantic comparisons",
+      "quiet, noise, dropout, sensor, actuator, communication, terrain, LOS, hit, and timeout semantics",
+      "missing reference and invalid dt rejected without output directories",
+      "missing tile ERROR produced terrain_initialization_failed at step 0",
+      "build-local and tracked receipts are byte-identical",
+      "source, binary, generated-input, and result fingerprints independently verified"
     ],
+    "result_summary": {
+      "timeout_at_step_64": 14,
+      "surface_collision_at_step_33": 1,
+      "hit_at_step_0": 1,
+      "terrain_initialization_failed_at_step_0": 1
+    },
+    "artifacts": {
+      "gpu_execution_count": 17,
+      "cpu_campaign_count": 16,
+      "gpu_campaign_count": 16,
+      "generated_inputs": {
+        "sha256": "c5c094ba18a511c0c6b1045778b27a8287ddbdb2f8dee6d529213fd267e3fb2a",
+        "file_count": 76,
+        "total_bytes": 177828
+      },
+      "results": {
+        "sha256": "90a8eb588e9b3a13cdc962d26782cda6c77965e68fd5dce6b5b191f1ab1b8c9b",
+        "file_count": 296,
+        "total_bytes": 2003653
+      }
+    },
     "frozen_sha256": {
-      "runner": "1c1efcdeac589f594069055516b5fe280c917c9362f8a1c7848814748d23d283",
+      "runner": "85aa516fc6c2f2fa4c983f51a1090c685c25c0640486d0536274905ecf5bb498",
       "matrix": "f567d1267e26583841356f3b8485f563a99d2d5ac0674a0221b0285770131cb1",
       "comparator": "2dddba1607053f6e942c920c4b315a3c941277a646a15f5cd94da6f00217353a",
       "m4_asset_generator": "7362e2916987acfa212153a92e70f45b694872171ad53086b6b8dbff79f378a0",
@@ -129,14 +127,15 @@
     },
     {
       "id": "M7-B",
-      "status": "NEXT",
+      "status": "PASS",
       "name": "64-step functional semantics and error paths",
       "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json"
     },
     {
       "id": "M7-C",
-      "status": "PENDING",
-      "name": "mapping and chunk invariance"
+      "status": "NEXT",
+      "name": "mapping and chunk invariance",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json"
     },
     {
       "id": "M7-D",
@@ -154,5 +153,5 @@
       "name": "receipt aggregation and M7 closure"
     }
   ],
-  "stop_boundary": "M7-A is complete. Do not start M7-B in the same work session."
+  "stop_boundary": "M7-B is complete. Do not start M7-C in the same work session."
 }

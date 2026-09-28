@@ -554,7 +554,8 @@ def execution_metadata(output: Path) -> dict[str, Any]:
 
 
 def run_gpu(workspace: Path, runtime: Path, output: Path, label: str,
-            mode: str, chunk: int, mapping: str, lanes: int) -> Path:
+            mode: str, chunk: int, mapping: str, lanes: int,
+            expected_returncodes: Sequence[int] = (0,)) -> Path:
     if output.exists():
         shutil.rmtree(output)
     # The public CLI keeps one lanes option domain (4/8/16/32) for every
@@ -566,7 +567,12 @@ def run_gpu(workspace: Path, runtime: Path, output: Path, label: str,
          "--output-dir", str(output), "--trace-mode", mode,
          "--chunk-steps", str(chunk), "--mapping", mapping,
          "--lanes-per-block", str(cli_lanes)], Path("/tmp"),
-        f"GPU {label} {mode} {mapping}/{lanes} chunk={chunk}", capture=True)
+        f"GPU {label} {mode} {mapping}/{lanes} chunk={chunk}", capture=True,
+        check=False)
+    if result.returncode not in expected_returncodes:
+        fail(f"GPU {label} {mode} {mapping}/{lanes} chunk={chunk} returned "
+             f"{result.returncode}, expected one of {tuple(expected_returncodes)}"
+             f"\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}")
     if result.stdout:
         print("m7: " + result.stdout.strip().splitlines()[-1])
     metadata = execution_metadata(output)
@@ -891,7 +897,8 @@ def run_error_matrix(workspace: Path, root: Path, profiles: dict[str, Any]) -> N
         campaign_id="missing_tile_error", port=65120)
     output = run_gpu(workspace, missing_tile_runtime,
                      errors / "missing_tile_error_output",
-                     "error missing tile", "summary", 64, "packed", 4)
+                     "error missing tile", "summary", 64, "packed", 4,
+                     expected_returncodes=(1,))
     assert_result(output, "terrain_initialization_failed", 0)
 
 

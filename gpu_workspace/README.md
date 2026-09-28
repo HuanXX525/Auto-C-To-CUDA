@@ -139,12 +139,12 @@ Run exactly one segment per work session, update
 `validation/correctness_m7_progress.json`, commit it, and stop:
 
 ```bash
-# M7-B: short functional semantics and error paths
+# M7-B (PASS): short functional semantics and error paths
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections short,errors --output build/m7_b_functional \
   --receipt validation/m7_receipts/m7_b_functional.json
 
-# M7-C: mapping, chunk, trace-mode and repeatability invariance
+# M7-C (NEXT): mapping, chunk, trace-mode and repeatability invariance
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections mapping,chunk --output build/m7_c_invariance \
   --receipt validation/m7_receipts/m7_c_invariance.json
@@ -160,11 +160,13 @@ python3 tools/run_m7_correctness_matrix.py --skip-build \
   --receipt validation/m7_receipts/m7_e_long.json
 ```
 
-M7-A (harness freeze) is complete. Pre-freeze short, mapping and chunk probes
-passed and are documented as supporting evidence, but must be rerun in M7-B
-and M7-C to obtain hash-bound formal receipts. M7-D, M7-E and final evidence
-aggregation have not run; M7 and M8 must not be marked complete yet. The full
-clean-checkout command remains available as:
+M7-A (harness freeze) and M7-B (short functional/error semantics) are complete.
+The formal M7-B receipt is tracked at
+`validation/m7_receipts/m7_b_functional.json`. Pre-freeze mapping and chunk
+probes passed only as supporting evidence and must be rerun in M7-C, which is
+the next segment. M7-D, M7-E and final evidence aggregation have not run; M7
+and M8 must not be marked complete yet. The full clean-checkout command remains
+available as:
 
 ```bash
 python3 tools/run_m7_correctness_matrix.py

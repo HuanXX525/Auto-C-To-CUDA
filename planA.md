@@ -71,10 +71,10 @@ runtime.json
   `gpu_workspace/tools/run_m6_verification.py`，结果见
   `gpu_workspace/validation/production_m6.json`。
 - M7 正在进行。M7-A 已冻结分段验收框架、矩阵定义和字段级比较规则；
-  每次分段运行只有在全部检查通过后才原子生成包含源码、配置、比较器和
-  二进制哈希的 `m7_pass_receipt.json`。限额中断前的 short、mapping、chunk
-  输出均已复核为 PASS，但它们早于凭据规则，只作为探测证据；M7-B/M7-C
-  仍需在冻结后的框架上正式重跑。当前持久检查点见
+  M7-B 已正式通过 16 个 64 步功能场景和 3 条错误路径，CPU/GPU 语义一致，
+  tracked 凭据为 `gpu_workspace/validation/m7_receipts/m7_b_functional.json`。
+  限额中断前的 mapping/chunk 输出仍只作为探测证据，必须在 M7-C 正式重跑。
+  当前持久检查点见
   `gpu_workspace/validation/correctness_m7_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -94,13 +94,13 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
    - 通过 Python/JSON 静态检查、CPU/GPU 构建和 M6 生产接口回归；
    - 记录已有 short/mapping/chunk 探测证据，但不把它们当作新规则下的
      正式分段凭据。
-2. **M7-B：64 步功能语义与错误路径（下一段）**
+2. **M7-B：64 步功能语义与错误路径（已完成）**
    - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json`；
    - 覆盖 16 个 quiet/noise/dropout/fault/terrain/LOS/hit/timeout 场景及
      missing reference、非法 dt、缺瓦片 ERROR；
    - 门槛：CPU/GPU 默认 `rtol=1e-10, atol=1e-12`，碰撞仅 SensorFrame AGL
      使用已记录的 `atol=1e-9`；退出原因、步数、flags 和事件严格一致。
-3. **M7-C：执行参数不变性**
+3. **M7-C：执行参数不变性（下一段）**
    - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json`；
    - 覆盖 N=1/128 的 serial、packed/4、packed/32，以及 chunk=1/64/256/all、
      full/summary 和确定性重复；CPU/GPU、映射间及 chunk 间必须一致。
@@ -149,7 +149,8 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
   因而不能代替用户环境的运行时结果；随后 M4 已完成 terrain/LOS 与故障语义，
   M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
   通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 已进入
-  分段正确性验收，当前完成 M7-A 框架冻结；M8 性能验收尚未开始。
+  分段正确性验收，当前完成 M7-A 框架冻结和 M7-B 功能/错误路径验收；
+  M8 性能验收尚未开始。
 
 ### 可复现性与实现边界
 
