@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "stage": "M7",
+  "source_gitlink_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-12
+  },
+  "short_steps": 64,
+  "long_steps": 12000,
+  "instance_counts": [1, 2, 8, 32, 64, 128],
+  "mappings": [
+    { "name": "serial", "mapping": "serial", "lanes_per_block": 1 },
+    { "name": "packed-4", "mapping": "packed", "lanes_per_block": 4 },
+    { "name": "packed-32", "mapping": "packed", "lanes_per_block": 32 }
+  ],
+  "chunk_steps": [1, 64, 256, "all"],
+  "trace_modes": ["full", "summary"],
+  "short_cases": [
+    { "name": "quiet", "profile": "quiet", "expected_exit": "timeout" },
+    { "name": "noise", "profile": "noise", "expected_exit": "timeout" },
+    { "name": "dropout", "profile": "dropout", "expected_exit": "timeout" },
+    { "name": "sensor_faults", "m4_case": "sensor_faults", "expected_exit": "timeout" },
+    { "name": "actuator_faults", "m4_case": "actuator_faults", "expected_exit": "timeout" },
+    { "name": "communication_delay", "m4_case": "communication_delay", "expected_exit": "timeout" },
+    { "name": "communication_reorder", "m4_case": "communication_reorder", "expected_exit": "timeout" },
+    { "name": "fault_overlap_recovery", "m4_case": "fault_overlap_recovery", "expected_exit": "timeout" },
+    { "name": "terrain_flyover", "m4_case": "terrain_flyover", "expected_exit": "timeout" },
+    {
+      "name": "terrain_collision",
+      "profile": "terrain_collision",
+      "expected_exit": "surface_collision",
+      "sensor_agl_atol": 1e-9,
+      "tolerance_reason": "ECEF-to-LLA Earth-radius subtraction at the 892 m collision boundary"
+    },
+    { "name": "terrain_missing_tile", "m4_case": "missing_flat", "expected_exit": "timeout" },
+    { "name": "los_clear", "m4_case": "los_clear", "expected_exit": "timeout" },
+    { "name": "los_occluded", "m4_case": "los_index_occluded", "expected_exit": "timeout" },
+    { "name": "los_borderline", "m4_case": "los_borderline", "expected_exit": "timeout" },
+    { "name": "hit", "profile": "hit", "expected_exit": "hit" },
+    { "name": "timeout", "profile": "timeout", "expected_exit": "timeout" }
+  ],
+  "long_cases": ["quiet", "noise", "dropout", "timeout"],
+  "error_cases": ["missing_reference", "invalid_dt", "missing_tile_error"],
+  "batch_profile_cycle": ["quiet", "noise", "dropout", "hit", "timeout", "fault_overlap_recovery"],
+  "coverage": {
+    "short_functional_cpu_gpu": "all short_cases at N=1, full, packed/4, chunk=64",
+    "mapping_invariance": "serial/packed-4/packed-32 at N=1 and N=128",
+    "chunk_invariance": "1/64/256/all in full and summary at N=1",
+    "batch_isolation": "N=1/2/8/32/64/128 mixed profile cycle, CPU/GPU full",
+    "long_regression": "12000 steps, CPU/GPU summary plus N=1 full output",
+    "errors": "all error_cases rejected or reported before simulation steps"
+  }
+}

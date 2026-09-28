@@ -32,7 +32,7 @@ runtime.json
 
 原项目的 `common/`、`environment_sim/`、`flight_control_sim/`、`tools/`、`tests/` 目录保持原样。
 
-### 当前里程碑状态（2026-09-20）
+### 当前里程碑状态（2026-09-28）
 
 - M0 已完成：父仓库 gitlink 与 CPU 基线固定在 Aircraft-Simu
   `970bdfb`，迁移工作区、忽略规则、工具链和验收配置已固化；
@@ -70,6 +70,54 @@ runtime.json
   语义比较和 full/summary 最终状态一致性均 PASS；验收脚本为
   `gpu_workspace/tools/run_m6_verification.py`，结果见
   `gpu_workspace/validation/production_m6.json`。
+- M7 正在进行。M7-A 已冻结分段验收框架、矩阵定义和字段级比较规则；
+  每次分段运行只有在全部检查通过后才原子生成包含源码、配置、比较器和
+  二进制哈希的 `m7_pass_receipt.json`。限额中断前的 short、mapping、chunk
+  输出均已复核为 PASS，但它们早于凭据规则，只作为探测证据；M7-B/M7-C
+  仍需在冻结后的框架上正式重跑。当前持久检查点见
+  `gpu_workspace/validation/correctness_m7_progress.json`。
+
+### M7 分段执行计划（每段完成后立即停止）
+
+M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架检查点
+验收；可执行矩阵段 B～E 必须满足本段门槛、同时生成 build 内凭据和
+`validation/m7_receipts/` 下的 tracked PASS 凭据，再更新进度文件并独立
+提交；完成后不得自动进入下一段。M7-F 聚合这些 tracked 凭据并关闭阶段。
+任一共享 runner、矩阵定义、比较器、执行二进制或 Aircraft-Simu gitlink
+发生变化时，哈希不一致的旧凭据作废，必须重跑受影响段。分段进度提交会使
+父仓库 commit 正常前进；后续聚合必须确认这些 commit 构成祖先链，并审计
+其间差异只涉及验收记录或文档，否则旧凭据同样作废。
+
+1. **M7-A：验收框架冻结（已完成）**
+   - 固化 `configs/m7/cases.json`、分段 runner、碰撞 AGL 字段级容差及
+     原子 PASS 凭据；校验父仓库和 Aircraft-Simu commit；
+   - 通过 Python/JSON 静态检查、CPU/GPU 构建和 M6 生产接口回归；
+   - 记录已有 short/mapping/chunk 探测证据，但不把它们当作新规则下的
+     正式分段凭据。
+2. **M7-B：64 步功能语义与错误路径（下一段）**
+   - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json`；
+   - 覆盖 16 个 quiet/noise/dropout/fault/terrain/LOS/hit/timeout 场景及
+     missing reference、非法 dt、缺瓦片 ERROR；
+   - 门槛：CPU/GPU 默认 `rtol=1e-10, atol=1e-12`，碰撞仅 SensorFrame AGL
+     使用已记录的 `atol=1e-9`；退出原因、步数、flags 和事件严格一致。
+3. **M7-C：执行参数不变性**
+   - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json`；
+   - 覆盖 N=1/128 的 serial、packed/4、packed/32，以及 chunk=1/64/256/all、
+     full/summary 和确定性重复；CPU/GPU、映射间及 chunk 间必须一致。
+4. **M7-D：多实例混合与隔离**
+   - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json`；
+   - 覆盖 N=1/2/8/32/64/128 和不同终止时间；每个 batch 的代表实例必须
+     与相同 instance ID/seed 的独立运行一致，提前终止不得污染其他实例。
+5. **M7-E：12000 步长回归**
+   - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections long --output gpu_workspace/build/m7_e_long --receipt gpu_workspace/validation/m7_receipts/m7_e_long.json`；
+   - quiet/noise/dropout/timeout 均执行 CPU/GPU summary；quiet 额外生成 full，
+     校验 12000 步、120.0 s、完整 trace 以及 full/summary 一致性。
+6. **M7-F：证据聚合与阶段关闭**
+   - 验证 B～E 凭据中的 gitlink、runner、matrix、comparator 和二进制哈希
+     一致，并确认父 commit 构成仅含预期进度提交的祖先链；
+   - 复跑 M5/M6 回归并生成最终 `validation/correctness_m7.json`；
+   - 更新真实项目状态并提交后停止，明确 M8 尚未启动。哈希一致的分段凭据
+     构成完整 M7 验收；默认全量命令仍保留供 clean checkout 复验。
 
 ### 历史实施进度（截至 2026-08-31）
 
@@ -100,8 +148,8 @@ runtime.json
 - （历史记录）当时容器的 CUDA runtime 返回“driver version is insufficient”，
   因而不能代替用户环境的运行时结果；随后 M4 已完成 terrain/LOS 与故障语义，
   M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
-  通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 完整
-  正确性矩阵和后续性能验收尚未开始。
+  通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 已进入
+  分段正确性验收，当前完成 M7-A 框架冻结；M8 性能验收尚未开始。
 
 ### 可复现性与实现边界
 

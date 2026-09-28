@@ -329,7 +329,8 @@ def compare_bytes(path_a, path_b, label):
     return True, []
 
 
-def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol):
+def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol,
+                        sensor_agl_atol=None):
     """Compare CPU/GPU protocol logs after decoding their stable wire format.
 
     The packet encoder includes a CRC over floating-point payload bytes.  CPU
@@ -380,8 +381,20 @@ def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol):
                     diffs.append(
                         f"  {label}[{index}].payload[{field_index}]: "
                         f"{value_a!r} != {value_b!r}")
-            elif not math.isclose(value_a, value_b, rel_tol=rtol,
-                                  abs_tol=atol):
+            else:
+                # ECEF->LLA height subtraction operates on Earth-radius
+                # values.  Near a terrain-collision boundary, the derived AGL
+                # payload can lose a few additional low bits even though the
+                # position, terrain height, collision step and all integer
+                # semantics agree.  Keep any calibration explicit and scoped
+                # to SensorFrame.missile_height_agl_m_meas (payload index 15).
+                field_atol = atol
+                if (packet_kind == "sensor" and field_index == 15 and
+                        sensor_agl_atol is not None):
+                    field_atol = max(field_atol, sensor_agl_atol)
+                if math.isclose(value_a, value_b, rel_tol=rtol,
+                                abs_tol=field_atol):
+                    continue
                 diffs.append(
                     f"  {label}[{index}].payload[{field_index}] differs: "
                     f"{value_a!r} != {value_b!r}")
@@ -402,7 +415,8 @@ def trace_mode(directory):
     return "full"
 
 
-def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full):
+def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full,
+                     sensor_agl_atol=None):
     """
     Compare a single instance pair.
     Returns (ok, diffs_list).
@@ -457,7 +471,8 @@ def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full):
                 continue
             binary_ok, binary_diffs = compare_packet_file(
                 path_a / filename, path_b / filename,
-                f"{inst_dir}/{filename}", packet_kind, rtol, atol)
+                f"{inst_dir}/{filename}", packet_kind, rtol, atol,
+                sensor_agl_atol=sensor_agl_atol)
             if not binary_ok:
                 all_ok = False
                 all_diffs.extend(binary_diffs)
@@ -491,7 +506,14 @@ def main():
         "--verbose", "-v", action="store_true",
         help="Print detailed diffs for all mismatched instances"
     )
+    parser.add_argument(
+        "--sensor-agl-atol", type=float,
+        help=("Optional absolute tolerance used only for the decoded "
+              "SensorFrame missile_height_agl_m_meas field")
+    )
     args = parser.parse_args()
+    if args.sensor_agl_atol is not None and args.sensor_agl_atol < 0.0:
+        parser.error("--sensor-agl-atol must be non-negative")
 
     dir_a = Path(args.dir_a).resolve()
     dir_b = Path(args.dir_b).resolve()
@@ -562,7 +584,8 @@ def main():
             print(f"[MISMATCH] {inst_dir}: invalid instance directory name")
             continue
         ok, diffs = compare_instance(
-            dir_a, dir_b, inst_id, args.rtol, args.atol, full_payload)
+            dir_a, dir_b, inst_id, args.rtol, args.atol, full_payload,
+            sensor_agl_atol=args.sensor_agl_atol)
 
         if ok:
             matched += 1

@@ -16,3 +16,12 @@ assets, missing paths and invalid ranges) before launching a kernel with:
 ```bash
 ./tools/build_campaign_config_probe.sh
 ```
+
+`m7/cases.json` is the frozen definition for the segmented M7 correctness
+gate. It records the functional cases, instance counts, mappings, chunk sizes,
+trace modes, long horizon and field-specific tolerance rationale. The M7
+runner validates this definition against the pinned Aircraft-Simu gitlink
+before executing any section; do not change it without invalidating and
+rerunning every earlier M7 receipt whose matrix hash changes. Formal segment
+receipts are committed under `../validation/m7_receipts/`; build-local copies
+alone are not durable acceptance evidence.

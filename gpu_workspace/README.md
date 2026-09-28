@@ -121,6 +121,55 @@ of trajectory/binary files, semantic CPU/GPU comparison (including decoded
 sensor/command protocol packets), and full/summary final-state equivalence.
 The recorded RTX 5070 result is in `validation/production_m6.json`.
 
+## M7 segmented correctness acceptance
+
+M7 is intentionally split into bounded invocations so a completed result does
+not depend on conversational context. Every successful invocation writes
+`m7_pass_receipt.json` inside its output directory only after all requested
+checks pass. The receipt records the selected sections, parent/submodule
+commits, runner/matrix/comparator hashes, executable hashes, GPU and CUDA
+runtime, generated-input fingerprint and result fingerprint. Formal M7-B～E
+runs also publish the same small receipt under tracked
+`validation/m7_receipts/`. Only that tracked receipt counts as formal segment
+completion; a build-local receipt alone is diagnostic evidence after an
+interruption. M7-A is the tracked harness checkpoint rather than a matrix
+section.
+
+Run exactly one segment per work session, update
+`validation/correctness_m7_progress.json`, commit it, and stop:
+
+```bash
+# M7-B: short functional semantics and error paths
+python3 tools/run_m7_correctness_matrix.py --skip-build \
+  --sections short,errors --output build/m7_b_functional \
+  --receipt validation/m7_receipts/m7_b_functional.json
+
+# M7-C: mapping, chunk, trace-mode and repeatability invariance
+python3 tools/run_m7_correctness_matrix.py --skip-build \
+  --sections mapping,chunk --output build/m7_c_invariance \
+  --receipt validation/m7_receipts/m7_c_invariance.json
+
+# M7-D: heterogeneous N=1/2/8/32/64/128 isolation
+python3 tools/run_m7_correctness_matrix.py --skip-build \
+  --sections batch --output build/m7_d_batch \
+  --receipt validation/m7_receipts/m7_d_batch.json
+
+# M7-E: 12000-step CPU/GPU regression
+python3 tools/run_m7_correctness_matrix.py --skip-build \
+  --sections long --output build/m7_e_long \
+  --receipt validation/m7_receipts/m7_e_long.json
+```
+
+M7-A (harness freeze) is complete. Pre-freeze short, mapping and chunk probes
+passed and are documented as supporting evidence, but must be rerun in M7-B
+and M7-C to obtain hash-bound formal receipts. M7-D, M7-E and final evidence
+aggregation have not run; M7 and M8 must not be marked complete yet. The full
+clean-checkout command remains available as:
+
+```bash
+python3 tools/run_m7_correctness_matrix.py
+```
+
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:
 
