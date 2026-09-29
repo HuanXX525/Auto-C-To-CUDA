@@ -43,6 +43,9 @@ MAPPINGS = (
 SECTION_ORDER = ("short", "mapping", "chunk", "batch", "long", "errors")
 ERROR_CASES = ("missing_reference", "invalid_dt", "missing_tile_error")
 LONG_CASES = ("quiet", "noise", "dropout", "timeout")
+LONG_FIELD_CALIBRATION_CONTRACT = (
+    ("long_quiet", "SensorFrame.missile_vel_ecef_meas.y", 1.0e-10),
+)
 BATCH_PROFILE_CYCLE = (
     "quiet", "noise", "dropout", "hit", "timeout",
     "fault_overlap_recovery",
@@ -230,6 +233,17 @@ def validate_specification(specification: dict[str, Any], repo: Path) -> None:
         fail("terrain_collision field calibration needs a recorded reason")
     if tuple(specification.get("long_cases", ())) != LONG_CASES:
         fail("M7 long-case definition changed unexpectedly")
+    long_calibrations = specification.get("long_field_calibrations", ())
+    long_calibration_contract = tuple(
+        (item.get("case"), item.get("field"), float(item.get("atol", -1.0)))
+        for item in long_calibrations)
+    if long_calibration_contract != LONG_FIELD_CALIBRATION_CONTRACT:
+        fail("M7 long field-calibration definition changed unexpectedly")
+    for calibration in long_calibrations:
+        value = float(calibration["atol"])
+        if (not math.isfinite(value) or value < ATOL or
+                not calibration.get("reason")):
+            fail("M7 long field calibration is invalid or lacks a reason")
     if tuple(specification.get("batch_profile_cycle", ())) != BATCH_PROFILE_CYCLE:
         fail("M7 batch profile cycle changed unexpectedly")
 
@@ -590,11 +604,15 @@ def run_gpu(workspace: Path, runtime: Path, output: Path, label: str,
 
 
 def compare_runs(repo: Path, left: Path, right: Path, label: str,
-                 *, sensor_agl_atol: float | None = None) -> None:
+                 *, sensor_agl_atol: float | None = None,
+                 sensor_velocity_y_atol: float | None = None) -> None:
     command = [sys.executable, str(repo / "compare_runs.py"), str(left),
                str(right), "--rtol", str(RTOL), "--atol", str(ATOL)]
     if sensor_agl_atol is not None:
         command.extend(("--sensor-agl-atol", str(sensor_agl_atol)))
+    if sensor_velocity_y_atol is not None:
+        command.extend(("--sensor-velocity-y-atol",
+                        str(sensor_velocity_y_atol)))
     result = run(command,
                  repo, f"compare {label}", capture=True, check=False)
     if result.returncode != 0:
@@ -830,6 +848,12 @@ def run_long_matrix(workspace: Path, repo: Path, root: Path,
     against the CPU full directory.  This proves both the long state machine
     and the full trace path without multiplying multi-gigabyte batch output.
     """
+    calibrations = {
+        (item["case"], item["field"]): float(item["atol"])
+        for item in specification["long_field_calibrations"]
+    }
+    quiet_velocity_y_atol = calibrations[
+        ("long_quiet", "SensorFrame.missile_vel_ecef_meas.y")]
     for index, profile in enumerate(specification["long_cases"]):
         runtime = make_case_runtime(
             workspace, root, profiles, profile, "long", 1,
@@ -845,7 +869,9 @@ def run_long_matrix(workspace: Path, repo: Path, root: Path,
             gpu_full = run_gpu(
                 workspace, runtime, root / "gpu" / "long_quiet_full",
                 "long quiet full", "full", 256, "packed", 4)
-            compare_runs(repo, cpu, gpu_full, "long quiet CPU/full")
+            compare_runs(
+                repo, cpu, gpu_full, "long quiet CPU/full",
+                sensor_velocity_y_atol=quiet_velocity_y_atol)
             assert_result(gpu_full, "timeout", LONG_STEPS)
             assert_full_trace_steps(gpu_full, LONG_STEPS)
             compare_runs(repo, gpu_full, gpu_summary,
@@ -966,6 +992,14 @@ def write_pass_receipt(workspace: Path, repo: Path, root: Path,
                 }
                 for case in matrix["short_cases"]
                 if "sensor_agl_atol" in case
+            ] + [
+                {
+                    "case": calibration["case"],
+                    "field": calibration["field"],
+                    "atol": calibration["atol"],
+                    "reason": calibration["reason"],
+                }
+                for calibration in matrix["long_field_calibrations"]
             ],
         },
         "hardware": hardware,

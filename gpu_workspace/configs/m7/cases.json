@@ -41,6 +41,14 @@
     { "name": "timeout", "profile": "timeout", "expected_exit": "timeout" }
   ],
   "long_cases": ["quiet", "noise", "dropout", "timeout"],
+  "long_field_calibrations": [
+    {
+      "case": "long_quiet",
+      "field": "SensorFrame.missile_vel_ecef_meas.y",
+      "atol": 1e-10,
+      "reason": "12000-step CPU/CUDA rounding accumulation reaches 9.71e-11 in the near-zero velocity Y window at steps 1523-1548; all other sensor fields and integer semantics pass the default tolerance"
+    }
+  ],
   "error_cases": ["missing_reference", "invalid_dt", "missing_tile_error"],
   "batch_profile_cycle": ["quiet", "noise", "dropout", "hit", "timeout", "fault_overlap_recovery"],
   "coverage": {

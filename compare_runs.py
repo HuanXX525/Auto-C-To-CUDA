@@ -330,7 +330,8 @@ def compare_bytes(path_a, path_b, label):
 
 
 def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol,
-                        sensor_agl_atol=None):
+                        sensor_agl_atol=None,
+                        sensor_velocity_y_atol=None):
     """Compare CPU/GPU protocol logs after decoding their stable wire format.
 
     The packet encoder includes a CRC over floating-point payload bytes.  CPU
@@ -382,16 +383,16 @@ def compare_packet_file(path_a, path_b, label, packet_kind, rtol, atol,
                         f"  {label}[{index}].payload[{field_index}]: "
                         f"{value_a!r} != {value_b!r}")
             else:
-                # ECEF->LLA height subtraction operates on Earth-radius
-                # values.  Near a terrain-collision boundary, the derived AGL
-                # payload can lose a few additional low bits even though the
-                # position, terrain height, collision step and all integer
-                # semantics agree.  Keep any calibration explicit and scoped
-                # to SensorFrame.missile_height_agl_m_meas (payload index 15).
+                # Keep exceptional absolute tolerances explicit and scoped to
+                # one decoded SensorFrame field.  Index 15 is the derived AGL
+                # height; index 4 is the ECEF velocity Y component.
                 field_atol = atol
                 if (packet_kind == "sensor" and field_index == 15 and
                         sensor_agl_atol is not None):
                     field_atol = max(field_atol, sensor_agl_atol)
+                if (packet_kind == "sensor" and field_index == 4 and
+                        sensor_velocity_y_atol is not None):
+                    field_atol = max(field_atol, sensor_velocity_y_atol)
                 if math.isclose(value_a, value_b, rel_tol=rtol,
                                 abs_tol=field_atol):
                     continue
@@ -416,7 +417,8 @@ def trace_mode(directory):
 
 
 def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full,
-                     sensor_agl_atol=None):
+                     sensor_agl_atol=None,
+                     sensor_velocity_y_atol=None):
     """
     Compare a single instance pair.
     Returns (ok, diffs_list).
@@ -472,7 +474,8 @@ def compare_instance(dir_a, dir_b, inst_id, rtol, atol, full,
             binary_ok, binary_diffs = compare_packet_file(
                 path_a / filename, path_b / filename,
                 f"{inst_dir}/{filename}", packet_kind, rtol, atol,
-                sensor_agl_atol=sensor_agl_atol)
+                sensor_agl_atol=sensor_agl_atol,
+                sensor_velocity_y_atol=sensor_velocity_y_atol)
             if not binary_ok:
                 all_ok = False
                 all_diffs.extend(binary_diffs)
@@ -511,9 +514,20 @@ def main():
         help=("Optional absolute tolerance used only for the decoded "
               "SensorFrame missile_height_agl_m_meas field")
     )
+    parser.add_argument(
+        "--sensor-velocity-y-atol", type=float,
+        help=("Optional absolute tolerance used only for the decoded "
+              "SensorFrame missile_vel_ecef_meas.y field")
+    )
     args = parser.parse_args()
-    if args.sensor_agl_atol is not None and args.sensor_agl_atol < 0.0:
+    if (args.sensor_agl_atol is not None and
+            (not math.isfinite(args.sensor_agl_atol) or
+             args.sensor_agl_atol < 0.0)):
         parser.error("--sensor-agl-atol must be non-negative")
+    if (args.sensor_velocity_y_atol is not None and
+            (not math.isfinite(args.sensor_velocity_y_atol) or
+             args.sensor_velocity_y_atol < 0.0)):
+        parser.error("--sensor-velocity-y-atol must be non-negative")
 
     dir_a = Path(args.dir_a).resolve()
     dir_b = Path(args.dir_b).resolve()
@@ -585,7 +599,8 @@ def main():
             continue
         ok, diffs = compare_instance(
             dir_a, dir_b, inst_id, args.rtol, args.atol, full_payload,
-            sensor_agl_atol=args.sensor_agl_atol)
+            sensor_agl_atol=args.sensor_agl_atol,
+            sensor_velocity_y_atol=args.sensor_velocity_y_atol)
 
         if ok:
             matched += 1
