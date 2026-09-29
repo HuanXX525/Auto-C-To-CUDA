@@ -149,23 +149,25 @@ python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections mapping,chunk --output build/m7_c_invariance \
   --receipt validation/m7_receipts/m7_c_invariance.json
 
-# M7-D (NEXT): heterogeneous N=1/2/8/32/64/128 isolation
+# M7-D (PASS): heterogeneous N=1/2/8/32/64/128 isolation
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections batch --output build/m7_d_batch \
   --receipt validation/m7_receipts/m7_d_batch.json
 
-# M7-E: 12000-step CPU/GPU regression
+# M7-E (NEXT): 12000-step CPU/GPU regression
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections long --output build/m7_e_long \
   --receipt validation/m7_receipts/m7_e_long.json
 ```
 
-M7-A (harness freeze), M7-B (short functional/error semantics), and M7-C
-(mapping/chunk invariance) are complete. The formal receipts are tracked at
-`validation/m7_receipts/m7_b_functional.json` and
-`validation/m7_receipts/m7_c_invariance.json`. M7-D is the next segment; M7-D,
-M7-E and final evidence aggregation have not run, so M7 and M8 must not be
-marked complete yet. The full clean-checkout command remains available as:
+M7-A (harness freeze), M7-B (short functional/error semantics), M7-C
+(mapping/chunk invariance), and M7-D (mixed multi-instance isolation) are
+complete. The formal receipts are tracked at
+`validation/m7_receipts/m7_b_functional.json`,
+`validation/m7_receipts/m7_c_invariance.json`, and
+`validation/m7_receipts/m7_d_batch.json`. M7-E is the next segment; M7-E and
+final evidence aggregation have not run, so M7 and M8 must not be marked
+complete yet. The full clean-checkout command remains available as:
 
 ```bash
 python3 tools/run_m7_correctness_matrix.py

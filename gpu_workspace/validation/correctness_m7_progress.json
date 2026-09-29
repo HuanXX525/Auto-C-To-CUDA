@@ -2,7 +2,7 @@
   "schema_version": 1,
   "phase": "M7",
   "status": "IN_PROGRESS",
-  "date": "2026-09-28",
+  "date": "2026-09-29",
   "m7_complete": false,
   "m8_started": false,
   "source": {
@@ -51,53 +51,83 @@
         "missing reference, invalid dt, and missing-tile ERROR paths",
         "source, binary, generated-input, and result fingerprints"
       ]
+    },
+    {
+      "id": "M7-C",
+      "name": "mapping and chunk invariance",
+      "status": "PASS",
+      "commit": "28ae2d33089d3cd708067a35382bbee29c6b4895",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+      "receipt_sha256": "d305eb29aa30c78f45428185d26da551476c0bbb7738a88eff52c78aaa2d1f92",
+      "checks": [
+        "N=1 and N=128 serial/1, packed/4, and packed/32 CPU/GPU comparisons",
+        "cross-mapping and cross-chunk invariance",
+        "full/summary equivalence and deterministic repeat",
+        "source, binary, generated-input, and result fingerprints"
+      ]
     }
   ],
   "current_segment": {
-    "id": "M7-C",
-    "name": "mapping and chunk invariance",
+    "id": "M7-D",
+    "name": "mixed multi-instance isolation",
     "status": "PASS",
-    "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
-    "sections": ["mapping", "chunk"],
-    "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
-    "receipt_sha256": "d305eb29aa30c78f45428185d26da551476c0bbb7738a88eff52c78aaa2d1f92",
-    "receipt_created_at_utc": "2026-09-28T15:21:23.418329+00:00",
-    "source_parent_commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd",
+    "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+    "sections": ["batch"],
+    "receipt": "gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+    "receipt_sha256": "d5b9ee513c33b4f3a593c3af0f85f8cbc1ade5b2e7ecbe37b723eb667bd3f6e4",
+    "receipt_created_at_utc": "2026-09-29T08:25:23.786334+00:00",
+    "source_parent_commit": "28ae2d33089d3cd708067a35382bbee29c6b4895",
     "checks": [
-      "N=1 and N=128 serial/1, packed/4, and packed/32 CPU/GPU comparisons",
-      "cross-mapping results are invariant for each instance count",
-      "chunk=1/64/256/67(all) full and summary results are invariant",
-      "full chunk=64 deterministic repeat is byte-semantic equivalent",
+      "N=1/2/8/32/64/128 mixed-profile CPU/GPU campaign comparisons",
+      "235 mixed instances have contiguous IDs and identical CPU/GPU semantic payloads",
+      "27 representative instances match independent runs with the same instance ID and seed",
+      "hit lanes terminate at step 0 while all other lanes terminate at timeout step 64",
+      "all 12 GPU executions use full, packed/4, and chunk=64",
       "build-local and tracked receipts are byte-identical",
       "source, binary, generated-input, and result fingerprints independently verified"
     ],
     "result_summary": {
-      "mapping": {
-        "instance_counts": [1, 128],
-        "modes": ["serial/1", "packed/4", "packed/32"],
-        "gpu_executions": 6
+      "instance_counts": [1, 2, 8, 32, 64, 128],
+      "profile_cycle": [
+        "quiet",
+        "noise",
+        "dropout",
+        "hit",
+        "timeout",
+        "fault_overlap_recovery"
+      ],
+      "mixed_instance_count_per_backend": 235,
+      "total_instance_count_per_backend": 241,
+      "cpu_gpu_campaign_comparisons": 6,
+      "independent_isolation_comparisons": 27,
+      "execution_mode": {
+        "trace_mode": "full",
+        "mapping": "packed",
+        "lanes_per_block": 4,
+        "chunk_steps": 64
       },
-      "chunk": {
-        "requested_sizes": [1, 64, 256, "all"],
-        "all_effective_size": 67,
-        "trace_modes": ["full", "summary"],
-        "deterministic_repeat": "full chunk=64",
-        "gpu_executions": 9
+      "termination_distribution": {
+        "N1": {"hit_at_step_0": 0, "timeout_at_step_64": 1},
+        "N2": {"hit_at_step_0": 0, "timeout_at_step_64": 2},
+        "N8": {"hit_at_step_0": 1, "timeout_at_step_64": 7},
+        "N32": {"hit_at_step_0": 5, "timeout_at_step_64": 27},
+        "N64": {"hit_at_step_0": 11, "timeout_at_step_64": 53},
+        "N128": {"hit_at_step_0": 21, "timeout_at_step_64": 107}
       }
     },
     "artifacts": {
-      "gpu_execution_count": 15,
-      "cpu_campaign_count": 3,
-      "gpu_campaign_count": 15,
+      "gpu_execution_count": 12,
+      "cpu_campaign_count": 12,
+      "gpu_campaign_count": 12,
       "generated_inputs": {
-        "sha256": "692b1008b50c40518d3bd07b533c513fa18439641bde43b346cd7dfbea25b6d0",
-        "file_count": 61,
-        "total_bytes": 224010
+        "sha256": "026e1d04eea4d30d77e91294a8e20eecfd6cdf2c517a405226fdd33ffbef0f82",
+        "file_count": 70,
+        "total_bytes": 281918
       },
       "results": {
-        "sha256": "b0139e0d41461041dcec1f3917eabb93533e4b5112c2a411fca3af4677fde236",
-        "file_count": 3829,
-        "total_bytes": 34531737
+        "sha256": "ba479257c651cb4a9b29451b59bd5d035b0c68cf8e353caa368316b92a4c9aa0",
+        "file_count": 3651,
+        "total_bytes": 27419831
       }
     },
     "frozen_sha256": {
@@ -160,14 +190,15 @@
     },
     {
       "id": "M7-D",
-      "status": "NEXT",
+      "status": "PASS",
       "name": "mixed multi-instance isolation",
       "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json"
     },
     {
       "id": "M7-E",
-      "status": "PENDING",
-      "name": "12000-step long regression"
+      "status": "NEXT",
+      "name": "12000-step long regression",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections long --output gpu_workspace/build/m7_e_long --receipt gpu_workspace/validation/m7_receipts/m7_e_long.json"
     },
     {
       "id": "M7-F",
@@ -175,5 +206,5 @@
       "name": "receipt aggregation and M7 closure"
     }
   ],
-  "stop_boundary": "M7-C is complete. Do not start M7-D in the same work session."
+  "stop_boundary": "M7-D is complete. Do not start M7-E in the same work session."
 }
