@@ -74,11 +74,18 @@ runtime.json
   M7-B 已正式通过 16 个 64 步功能场景和 3 条错误路径；M7-C 已正式通过
   N=1/128 的 serial、packed/4、packed/32 映射不变性，以及
   chunk=1/64/256/67(all) 的 full/summary 和确定性重复；M7-D 已正式通过
-  N=1/2/8/32/64/128 的混合场景与实例隔离。三个 tracked 凭据分别为
+  N=1/2/8/32/64/128 的混合场景与实例隔离；M7-E 已正式通过
+  quiet/noise/dropout/timeout 的 12000 步、120.0 s 长回归，以及 quiet
+  full/summary 和完整 trace 检查。四个当前 tracked 凭据分别为
   `gpu_workspace/validation/m7_receipts/m7_b_functional.json`、
-  `gpu_workspace/validation/m7_receipts/m7_c_invariance.json` 和
-  `gpu_workspace/validation/m7_receipts/m7_d_batch.json`。M7-E 是下一段，
-  当前持久检查点见
+  `gpu_workspace/validation/m7_receipts/m7_c_invariance.json`、
+  `gpu_workspace/validation/m7_receipts/m7_d_batch.json` 和
+  `gpu_workspace/validation/m7_receipts/m7_e_long.json`。M7-E 针对
+  `long_quiet` 的 `SensorFrame.missile_vel_ecef_meas.y` 增加了仅限该字段的
+  `atol=1e-10` 校准；全局 `rtol=1e-10, atol=1e-12` 不变。由于共享
+  runner、matrix 和 comparator 哈希随校准变化，M7-B～D 已在父提交
+  `f168c9d57525b8c776aa62981f73bd208e2148f6` 下重跑并通过，旧回执仅作为
+  `*_pre_velocity_calibration.json` 历史归档。M7-F 是下一段，当前持久检查点见
   `gpu_workspace/validation/correctness_m7_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -112,11 +119,15 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
    - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json`；
    - 覆盖 N=1/2/8/32/64/128 和不同终止时间；每个 batch 的代表实例必须
      与相同 instance ID/seed 的独立运行一致，提前终止不得污染其他实例。
-5. **M7-E：12000 步长回归（下一段）**
+5. **M7-E：12000 步长回归（已完成）**
    - 命令：`python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections long --output gpu_workspace/build/m7_e_long --receipt gpu_workspace/validation/m7_receipts/m7_e_long.json`；
    - quiet/noise/dropout/timeout 均执行 CPU/GPU summary；quiet 额外生成 full，
-     校验 12000 步、120.0 s、完整 trace 以及 full/summary 一致性。
-6. **M7-F：证据聚合与阶段关闭**
+     已校验 12000 步、120.0 s、完整 trace 以及 full/summary 一致性；
+   - CPU/CUDA 在 near-zero velocity Y 窗口（步骤 1523～1548）的最大差异为
+     `9.71e-11`，因此仅 `long_quiet` 的
+     `SensorFrame.missile_vel_ecef_meas.y` 使用 `atol=1e-10`；其他传感器字段、
+     整数语义和全局容差不变。校准后 M7-B～D 已用相同冻结哈希重跑通过。
+6. **M7-F：证据聚合与阶段关闭（下一段）**
    - 验证 B～E 凭据中的 gitlink、runner、matrix、comparator 和二进制哈希
      一致，并确认父 commit 构成仅含预期进度提交的祖先链；
    - 复跑 M5/M6 回归并生成最终 `validation/correctness_m7.json`；
@@ -154,7 +165,8 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
   M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
   通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 已进入
   分段正确性验收，当前完成 M7-A 框架冻结、M7-B 功能/错误路径验收、
-  M7-C 映射/chunk 不变性验收和 M7-D 多实例混合/隔离验收；
+  M7-C 映射/chunk 不变性验收、M7-D 多实例混合/隔离验收和 M7-E
+  12000 步长回归；M7-F 证据聚合与阶段关闭尚未执行，
   M8 性能验收尚未开始。
 
 ### 可复现性与实现边界

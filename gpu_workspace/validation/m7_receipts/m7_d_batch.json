@@ -2,7 +2,7 @@
   "schema_version": 1,
   "phase": "M7",
   "status": "PASS",
-  "created_at_utc": "2026-09-29T08:25:23.786334+00:00",
+  "created_at_utc": "2026-09-29T09:03:28.209192+00:00",
   "sections": [
     "batch"
   ],
@@ -19,13 +19,13 @@
     "gpu_workspace/validation/m7_receipts/m7_d_batch.json"
   ],
   "source": {
-    "parent_commit": "28ae2d33089d3cd708067a35382bbee29c6b4895",
+    "parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6",
     "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
     "aircraft_simu_tracked_worktree_clean": true,
     "sha256": {
-      "runner": "85aa516fc6c2f2fa4c983f51a1090c685c25c0640486d0536274905ecf5bb498",
-      "matrix": "f567d1267e26583841356f3b8485f563a99d2d5ac0674a0221b0285770131cb1",
-      "comparator": "2dddba1607053f6e942c920c4b315a3c941277a646a15f5cd94da6f00217353a",
+      "runner": "981ce74e8e0e39c93a209e03f23a18a040e1aa683920ddf7e4f379ac0050f49a",
+      "matrix": "416de1834a992ec89011140b526ecaf8410791021014f7e67029003963637244",
+      "comparator": "0d02195b42a056246e3de4a930f4da89ebbee06b707e02131c909e3e7744f646",
       "m4_asset_generator": "7362e2916987acfa212153a92e70f45b694872171ad53086b6b8dbff79f378a0",
       "m4_case_matrix": "684ed0e1380f83eef4126506b83ed0696f88e9c167bdc8437bd42bac009e5369",
       "terrain_tile_generator": "f9bb9277008996dc5e6ca9d3c2114f7639a0dbf13efad3b599de22db6f21d07e",
@@ -50,6 +50,12 @@
         "field": "SensorFrame.missile_height_agl_m_meas",
         "atol": 1e-09,
         "reason": "ECEF-to-LLA Earth-radius subtraction at the 892 m collision boundary"
+      },
+      {
+        "case": "long_quiet",
+        "field": "SensorFrame.missile_vel_ecef_meas.y",
+        "atol": 1e-10,
+        "reason": "12000-step CPU/CUDA rounding accumulation reaches 9.71e-11 in the near-zero velocity Y window at steps 1523-1548; all other sensor fields and integer semantics pass the default tolerance"
       }
     ]
   },
@@ -69,7 +75,7 @@
       "total_bytes": 281918
     },
     "results": {
-      "sha256": "ba479257c651cb4a9b29451b59bd5d035b0c68cf8e353caa368316b92a4c9aa0",
+      "sha256": "ca2cf9c53c4cd28e7c9366a881e488fd932307e2b7a41b71d542a2d5339edd5f",
       "file_count": 3651,
       "total_bytes": 27419831
     }

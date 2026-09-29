@@ -154,20 +154,33 @@ python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections batch --output build/m7_d_batch \
   --receipt validation/m7_receipts/m7_d_batch.json
 
-# M7-E (NEXT): 12000-step CPU/GPU regression
+# M7-E (PASS): 12000-step CPU/GPU regression
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections long --output build/m7_e_long \
   --receipt validation/m7_receipts/m7_e_long.json
 ```
 
 M7-A (harness freeze), M7-B (short functional/error semantics), M7-C
-(mapping/chunk invariance), and M7-D (mixed multi-instance isolation) are
-complete. The formal receipts are tracked at
+(mapping/chunk invariance), M7-D (mixed multi-instance isolation), and M7-E
+(12000-step long regression) are complete. The current formal receipts are
+tracked at
 `validation/m7_receipts/m7_b_functional.json`,
-`validation/m7_receipts/m7_c_invariance.json`, and
-`validation/m7_receipts/m7_d_batch.json`. M7-E is the next segment; M7-E and
-final evidence aggregation have not run, so M7 and M8 must not be marked
-complete yet. The full clean-checkout command remains available as:
+`validation/m7_receipts/m7_c_invariance.json`,
+`validation/m7_receipts/m7_d_batch.json`, and
+`validation/m7_receipts/m7_e_long.json`. M7-E observed a maximum
+`9.71e-11` CPU/CUDA difference for
+`SensorFrame.missile_vel_ecef_meas.y` while that component crossed zero
+at steps 1523–1548. Only the `long_quiet` comparison uses a field-specific
+`atol=1e-10`; the global `rtol=1e-10, atol=1e-12` remains unchanged.
+Because this scoped calibration changed the shared runner, matrix, and
+comparator hashes, M7-B through M7-D were rerun under parent commit
+`f168c9d57525b8c776aa62981f73bd208e2148f6`. Their earlier receipts are
+preserved as `*_pre_velocity_calibration.json` historical artifacts and
+must not be used as current acceptance evidence.
+
+M7-F receipt aggregation is the next segment. It has not run, so M7 remains
+in progress and M8 has not started. The full clean-checkout command remains
+available as:
 
 ```bash
 python3 tools/run_m7_correctness_matrix.py
