@@ -70,7 +70,7 @@ runtime.json
   语义比较和 full/summary 最终状态一致性均 PASS；验收脚本为
   `gpu_workspace/tools/run_m6_verification.py`，结果见
   `gpu_workspace/validation/production_m6.json`。
-- M7 正在进行。M7-A 已冻结分段验收框架、矩阵定义和字段级比较规则；
+- M7 已完成。M7-A 已冻结分段验收框架、矩阵定义和字段级比较规则；
   M7-B 已正式通过 16 个 64 步功能场景和 3 条错误路径；M7-C 已正式通过
   N=1/128 的 serial、packed/4、packed/32 映射不变性，以及
   chunk=1/64/256/67(all) 的 full/summary 和确定性重复；M7-D 已正式通过
@@ -85,7 +85,12 @@ runtime.json
   `atol=1e-10` 校准；全局 `rtol=1e-10, atol=1e-12` 不变。由于共享
   runner、matrix 和 comparator 哈希随校准变化，M7-B～D 已在父提交
   `f168c9d57525b8c776aa62981f73bd208e2148f6` 下重跑并通过，旧回执仅作为
-  `*_pre_velocity_calibration.json` 历史归档。M7-F 是下一段，当前持久检查点见
+  `*_pre_velocity_calibration.json` 历史归档。M7-F 已验证四份回执的
+  section 覆盖、冻结哈希、输出指纹和严格线性祖先链，并在 RTX 5070
+  Laptop GPU 上复跑含 CPU 对照的 M5/M6 回归；最终报告为
+  `gpu_workspace/validation/correctness_m7.json`，SHA-256 为
+  `6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627`。
+  M8 是下一阶段但尚未启动，持久状态见
   `gpu_workspace/validation/correctness_m7_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -127,12 +132,15 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
      `9.71e-11`，因此仅 `long_quiet` 的
      `SensorFrame.missile_vel_ecef_meas.y` 使用 `atol=1e-10`；其他传感器字段、
      整数语义和全局容差不变。校准后 M7-B～D 已用相同冻结哈希重跑通过。
-6. **M7-F：证据聚合与阶段关闭（下一段）**
-   - 验证 B～E 凭据中的 gitlink、runner、matrix、comparator 和二进制哈希
-     一致，并确认父 commit 构成仅含预期进度提交的祖先链；
-   - 复跑 M5/M6 回归并生成最终 `validation/correctness_m7.json`；
-   - 更新真实项目状态并提交后停止，明确 M8 尚未启动。哈希一致的分段凭据
-     构成完整 M7 验收；默认全量命令仍保留供 clean checkout 复验。
+6. **M7-F：证据聚合与阶段关闭（已完成）**
+   - 命令：`python3 gpu_workspace/tools/run_m7_closure.py --output gpu_workspace/build/m7_f_closure --skip-build`；
+   - B～E 凭据中的 gitlink、runner、matrix、comparator、二进制哈希和输出
+     指纹一致，六个 section 精确覆盖一次；`635c5e2 → 900ed4c` 为严格
+     线性提交链，校准后的差异仅包含允许的 M7 文档、进度与回执；
+   - M5 chunk/full/summary/RNG/故障/通信/提前终止回归和 M6 生产接口、
+     CPU/GPU full、full/summary 回归均 PASS；
+   - 最终 `validation/correctness_m7.json` 已发布，M7 正确性阶段关闭。
+     默认全量命令仍保留供 clean checkout 复验；M8 尚未启动。
 
 ### 历史实施进度（截至 2026-08-31）
 
@@ -164,9 +172,9 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
   因而不能代替用户环境的运行时结果；随后 M4 已完成 terrain/LOS 与故障语义，
   M5 已完成 chunk 多实例调度，并已在匹配驱动的 RTX 5070 Laptop GPU 环境
   通过 runtime 矩阵；随后 M6 生产输出与 CPU 兼容比较也已通过。M7 已进入
-  分段正确性验收，当前完成 M7-A 框架冻结、M7-B 功能/错误路径验收、
+  分段正确性验收，现已完成 M7-A 框架冻结、M7-B 功能/错误路径验收、
   M7-C 映射/chunk 不变性验收、M7-D 多实例混合/隔离验收和 M7-E
-  12000 步长回归；M7-F 证据聚合与阶段关闭尚未执行，
+  12000 步长回归，并由 M7-F 完成证据聚合、M5/M6 复验和阶段关闭；
   M8 性能验收尚未开始。
 
 ### 可复现性与实现边界

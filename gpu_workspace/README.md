@@ -158,6 +158,9 @@ python3 tools/run_m7_correctness_matrix.py --skip-build \
 python3 tools/run_m7_correctness_matrix.py --skip-build \
   --sections long --output build/m7_e_long \
   --receipt validation/m7_receipts/m7_e_long.json
+
+# M7-F (PASS): aggregate B-E and rerun the M5/M6 supporting gates
+python3 tools/run_m7_closure.py --output build/m7_f_closure --skip-build
 ```
 
 M7-A (harness freeze), M7-B (short functional/error semantics), M7-C
@@ -178,9 +181,19 @@ comparator hashes, M7-B through M7-D were rerun under parent commit
 preserved as `*_pre_velocity_calibration.json` historical artifacts and
 must not be used as current acceptance evidence.
 
-M7-F receipt aggregation is the next segment. It has not run, so M7 remains
-in progress and M8 has not started. The full clean-checkout command remains
-available as:
+M7-F is complete. `tools/run_m7_closure.py` independently recomputed the
+B–E receipt and artifact hashes, proved exact disjoint coverage of all six
+sections, checked the strict M7 ancestry, and reran M5 and M6 with CPU
+comparisons enabled. The M5 regression covered chunk/full/summary continuity,
+RNG/fault/communication state and mixed early termination; M6 covered the
+production CLI, CPU/GPU full output and full/summary equivalence. Both used
+the same RTX 5070 Laptop GPU and CUDA runtime 13020 as the segment receipts.
+
+The final tracked report is `validation/correctness_m7.json` with SHA-256
+`6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627`.
+Its build-local copy is byte-identical. M7 is complete; M8 has not started.
+The closure command refuses to replace either existing output or the tracked
+report. The full clean-checkout command remains available as:
 
 ```bash
 python3 tools/run_m7_correctness_matrix.py
