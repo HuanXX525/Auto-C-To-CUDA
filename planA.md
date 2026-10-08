@@ -32,7 +32,7 @@ runtime.json
 
 原项目的 `common/`、`environment_sim/`、`flight_control_sim/`、`tools/`、`tests/` 目录保持原样。
 
-### 当前里程碑状态（2026-09-28）
+### 当前里程碑状态（2026-10-08）
 
 - M0 已完成：父仓库 gitlink 与 CPU 基线固定在 Aircraft-Simu
   `970bdfb`，迁移工作区、忽略规则、工具链和验收配置已固化；
@@ -90,8 +90,11 @@ runtime.json
   Laptop GPU 上复跑含 CPU 对照的 M5/M6 回归；最终报告为
   `gpu_workspace/validation/correctness_m7.json`，SHA-256 为
   `6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627`。
-  M8 是下一阶段但尚未启动，持久状态见
-  `gpu_workspace/validation/correctness_m7_progress.json`。
+  M8 已启动并完成 M8-A1：冻结 12000 步多实例输入契约，生成 uniform
+  N=64/128 与 heterogeneous N=128 配置，通过生产 loader、POD ABI、确定性
+  重建和精确资源预算检查。M8-A1 尚未执行 CPU/GPU 长回归，也不作性能声明；
+  M8-A2 是下一段。持久状态见
+  `gpu_workspace/validation/performance_m8_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
 
@@ -140,7 +143,57 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
    - M5 chunk/full/summary/RNG/故障/通信/提前终止回归和 M6 生产接口、
      CPU/GPU full、full/summary 回归均 PASS；
    - 最终 `validation/correctness_m7.json` 已发布，M7 正确性阶段关闭。
-     默认全量命令仍保留供 clean checkout 复验；M8 尚未启动。
+     默认全量命令仍保留供 clean checkout 复验；M8 后续工作不得修改这份
+     M7 最终凭据。
+
+### M8 分段性能验收计划（每个子段完成后停止）
+
+M8 使用 `gpu_workspace/validation/performance_m8_progress.json` 作为活动状态，
+每次只推进一个子段。正确性前置基线未通过时不得开始性能优化；任何优化后都
+必须重跑受保护的 M7 与 M8 长回归。安全的构建、测试和 profiling 命令可自动
+执行，但不得自动删除或覆盖既有回执和结果。
+
+1. **M8-A：长期多实例正确性前置基线**
+   - **A1（已完成）**：`prepare_m8_cases.py --write` 生成并冻结 138 个 JSON：
+     uniform N=64/128 共享场景、heterogeneous N=128 独立物理场景、六个故障
+     文件和三个 runtime。八种 quiet/noise/dropout/fault profile 各 16 个实例；
+     N=64 是 N=128 的精确实例前缀；host loader/ABI 与资源预算均 PASS。
+   - **A2（下一段）**：N=64/128 × 12000 步 × summary，执行 CPU/GPU 语义
+     比较、确定性重复和内存观测，发布独立 PASS 回执后停止。
+   - **A3**：heterogeneous N=128 × 12000 步，验证长期 RNG、fault、chunk、
+     不同状态和实例隔离，关闭 M8-A 后停止。
+2. **M8-B：冻结计时工具并建立未优化基线**
+   - B1 固化计时 schema、环境信息、P95 算法和结果回执；B2 测 CPU sequential
+     与 process-parallel；B3 测未优化 GPU compute/full/summary。
+3. **M8-C：规模与端到端差距**
+   - C1/C2 分别覆盖 N=1/2/8/32/64/128 的 compute-only 与端到端；C3 对
+     N=64/128 给出相对 CPU 基线的验收差距，不以 kernel 时间替代总 wall time。
+4. **M8-D：映射和 auto 阈值**
+   - D1 扫描 serial 与 packed lanes=4/8/16/32；D2 专门扫描 N=640/768/896
+     的 packed/4 与 packed/32；D3 仅按 median 结果冻结 `mapping=auto` 阈值。
+5. **M8-E：profiling 与瓶颈排序**
+   - E1 分解 H2D/kernel/D2H/host encode/I/O；E2 记录寄存器、occupancy、分支
+     和内存指标；E3 发布按证据排序的优化决策。
+6. **M8-F：只实施 profiling 证明必要的优化**
+   - 顺序为寄存器/occupancy、状态布局/只读资源、chunk/双缓冲/写盘；仅当
+     launch overhead 是瓶颈时才进入 CUDA Graph。每个优化单独验收并停止。
+7. **M8-G：优化后正确性回归**
+   - 重跑 M7、uniform/heterogeneous 长基线，以及 mapping/chunk/result
+     invariance；任一失败都撤销该优化的性能结论。
+8. **M8-H：最终性能矩阵与判定**
+   - compute-only 预热 3 次、测量 20 次；端到端预热 1 次、测量 5 次；报告
+     median/P95/min/max。目标为 GPU compute-only 相比 CPU sequential ≥5×，
+     N=64/128 full 优于 CPU process-parallel，full 端到端目标 ≥2×。
+9. **M8-I：固化与关闭**
+   - 更新报告/README/manifest/结构文档，从 clean checkout 复验，并聚合全部
+     回执。若正确性通过但性能门槛未达到，必须明确标记“正确性完成、性能未达标”。
+
+M8-A1 的正式回执为
+`gpu_workspace/validation/m8_receipts/m8_a1_inputs.json`，SHA-256 为
+`c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb`。
+完整 raw trace 的 N=128 参考量为 1,265,769,472 B；这不是现有 chunk runner
+的峰值 device 分配。chunk=256 时双 device trace 加主 state/双 snapshot 的
+trace/state 工作集为 126,358,528 B，尚不含 config、fault 和 CUDA 管理开销。
 
 ### 历史实施进度（截至 2026-08-31）
 
@@ -175,7 +228,7 @@ M7 严格按 `A → B → C → D → E → F` 推进。M7-A 以 tracked 框架�
   分段正确性验收，现已完成 M7-A 框架冻结、M7-B 功能/错误路径验收、
   M7-C 映射/chunk 不变性验收、M7-D 多实例混合/隔离验收和 M7-E
   12000 步长回归，并由 M7-F 完成证据聚合、M5/M6 复验和阶段关闭；
-  M8 性能验收尚未开始。
+  M8 现已开始；上述内容仅作为早期历史。当前以 M8 活动进度文件和分段回执为准。
 
 ### 可复现性与实现边界
 

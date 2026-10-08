@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "faults": [
+    {
+      "id": "overlap_sensor",
+      "start_time_s": 0.1,
+      "duration_s": 0.28,
+      "recovery_ramp_s": 0.04,
+      "target": "sensor.seeker.los_rate",
+      "type": "RAMP_BIAS",
+      "value_xyz": [
+        0.0,
+        0.0,
+        0.001
+      ]
+    },
+    {
+      "id": "overlap_actuator",
+      "start_time_s": 0.16,
+      "duration_s": 0.2,
+      "target": "actuator.accel_z",
+      "type": "SCALE",
+      "value": 0.25
+    },
+    {
+      "id": "overlap_delay",
+      "start_time_s": 0.2,
+      "duration_s": 0.18,
+      "recovery_hold_s": 0.06,
+      "target": "sensor.frame",
+      "type": "COMMUNICATION_DELAY",
+      "value": 1
+    }
+  ]
+}

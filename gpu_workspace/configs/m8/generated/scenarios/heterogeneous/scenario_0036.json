@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "simulation": {
+    "mode": "LOCKSTEP",
+    "dt": 0.01,
+    "max_time": 120.0,
+    "hit_radius_m": 1e-09
+  },
+  "earth": {
+    "model": "WGS84",
+    "enable_rotation_terms": true,
+    "origin": {
+      "lat_deg": 30.0,
+      "lon_deg": 120.0,
+      "height_m": 0.0,
+      "local_frame": "NED"
+    }
+  },
+  "map": {
+    "database_path": "data/maps/internal_tiles",
+    "tile_index": "data/maps/tile_index.bin",
+    "enable_terrain": false,
+    "enable_los_occlusion": false,
+    "missing_tile_policy": "FLAT_FILL",
+    "terrain": {
+      "interpolation": "BILINEAR",
+      "height_reference": "ELLIPSOID",
+      "cache_tile_count": 16,
+      "flat_fill_height_m": 0.0
+    }
+  },
+  "plant": {
+    "model": "SIX_DOF",
+    "integrator": "RK4",
+    "mass_kg": 100.0,
+    "propellant_mass_kg": 0.0,
+    "inertia_diag": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "command_tau_s": 0.25,
+    "acceleration_limit_mps2": 500.0,
+    "acceleration_rate_limit_mps3": 2000.0
+  },
+  "gravity": {
+    "enabled": true
+  },
+  "atmosphere": {
+    "enabled": true,
+    "maximum_model_height_m": 11000.0,
+    "wind_velocity_ecef_mps": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "propulsion": {
+    "enabled": false,
+    "thrust_n": 0.0,
+    "mass_flow_kgps": 0.0,
+    "burn_time_s": 0.0,
+    "thrust_direction_b": [
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  "aerodynamics": {
+    "enabled": true,
+    "reference_area_m2": 0.01,
+    "reference_length_m": 1.0,
+    "drag_coefficient": 0.1,
+    "control_force_coefficient": 0.002,
+    "control_moment_coefficient": 0.001
+  },
+  "missile": {
+    "initial_lla_deg_m": [
+      29.99985,
+      119.99965,
+      990.0
+    ],
+    "initial_velocity_ecef_mps": [
+      -398.0,
+      -679.0,
+      -0.5
+    ]
+  },
+  "target": {
+    "model": "SCRIPTED",
+    "initial_lla_deg_m": [
+      30.00005,
+      120.0797,
+      980.0
+    ],
+    "initial_velocity_ecef_mps": [
+      97.0,
+      167.0,
+      -0.5
+    ]
+  },
+  "sensors": {
+    "imu": {
+      "enabled": true,
+      "sample_period_s": 0.01,
+      "delay_s": 0.0,
+      "dropout_probability": 0.0,
+      "noise": {
+        "bias_xyz": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "white_noise_std": 0.0001,
+        "random_walk_std": 1e-06,
+        "resolution": 1e-06
+      }
+    },
+    "accelerometer": {
+      "enabled": true,
+      "sample_period_s": 0.01,
+      "delay_s": 0.0,
+      "dropout_probability": 0.0,
+      "noise": {
+        "bias_xyz": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "white_noise_std": 0.01,
+        "random_walk_std": 0.0001,
+        "resolution": 0.001
+      }
+    },
+    "speedometer": {
+      "enabled": true,
+      "sample_period_s": 0.01,
+      "delay_s": 0.0,
+      "dropout_probability": 0.0,
+      "noise": {
+        "bias_xyz": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "white_noise_std": 0.05,
+        "random_walk_std": 0.001,
+        "resolution": 0.01
+      }
+    },
+    "seeker": {
+      "enabled": true,
+      "sample_period_s": 0.01,
+      "delay_s": 0.02,
+      "dropout_probability": 0.0,
+      "range_noise": {
+        "bias": 0.0,
+        "white_noise_std": 1.0,
+        "random_walk_std": 0.01,
+        "min_value": 0.0,
+        "max_value": 1000000000.0,
+        "resolution": 0.01
+      },
+      "los_unit_noise": {
+        "bias_xyz": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "white_noise_std": 1e-06,
+        "random_walk_std": 1e-08,
+        "resolution": 0.0
+      },
+      "los_rate_noise": {
+        "bias_xyz": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "white_noise_std": 5e-05,
+        "random_walk_std": 1e-07,
+        "resolution": 1e-07
+      },
+      "closing_velocity_noise": {
+        "bias": 0.0,
+        "white_noise_std": 0.1,
+        "random_walk_std": 0.001,
+        "min_value": -100000.0,
+        "max_value": 100000.0,
+        "resolution": 0.01
+      }
+    }
+  }
+}

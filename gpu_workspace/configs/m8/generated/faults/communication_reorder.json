@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faults": [
+    {
+      "id": "reorder",
+      "start_time_s": 0.1,
+      "duration_s": 0.24,
+      "target": "sensor.frame",
+      "type": "COMMUNICATION_REORDER"
+    }
+  ]
+}

@@ -5,7 +5,8 @@
   "date": "2026-09-29",
   "completed_date": "2026-09-30",
   "m7_complete": true,
-  "m8_started": false,
+  "m8_started": true,
+  "m8_progress": "gpu_workspace/validation/performance_m8_progress.json",
   "source": {
     "baseline_parent_commit": "635c5e28fc113b64e27d0c7a8824fe3c3a19674b",
     "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c"
@@ -172,7 +173,8 @@
       "m5_regression_status": "PASS",
       "m6_regression_status": "PASS",
       "complete_m7_gate": true,
-      "m8_started": false
+      "m8_started": true,
+      "m8_progress": "gpu_workspace/validation/performance_m8_progress.json"
     },
     "artifacts": {
       "closure_receipt": {
@@ -272,5 +274,5 @@
       "command": "python3 gpu_workspace/tools/run_m7_closure.py --output gpu_workspace/build/m7_f_closure --skip-build"
     }
   ],
-  "stop_boundary": "M7 is complete through M7-F. Do not start M8 in the same work session."
+  "stop_boundary": "M7 is complete through M7-F. M8 has since started and is tracked independently in gpu_workspace/validation/performance_m8_progress.json."
 }

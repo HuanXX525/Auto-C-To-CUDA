@@ -191,13 +191,46 @@ the same RTX 5070 Laptop GPU and CUDA runtime 13020 as the segment receipts.
 
 The final tracked report is `validation/correctness_m7.json` with SHA-256
 `6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627`.
-Its build-local copy is byte-identical. M7 is complete; M8 has not started.
+Its build-local copy is byte-identical. M7 is complete and immutable. M8 has
+since started without changing the M7 closure, and M8-A1 is complete.
 The closure command refuses to replace either existing output or the tracked
 report. The full clean-checkout command remains available as:
 
 ```bash
 python3 tools/run_m7_correctness_matrix.py
 ```
+
+## M8 segmented performance acceptance
+
+M8-A1 freezes the inputs used before any performance tuning. It creates a
+uniform 12000-step workload at N=64 and N=128, plus 128 deterministic and
+physically distinct heterogeneous instances. The heterogeneous set cycles
+through quiet, noise, dropout, all sensor faults, actuator faults,
+communication delay, communication reorder, and overlap/recovery; every
+profile occurs 16 times. Terrain and LOS are disabled in this focused long
+baseline, and the hit radius is set to `1e-9` so timeout is the expected exit.
+
+Publish A1 once, or verify the existing publication without replacement:
+
+```bash
+python3 tools/prepare_m8_cases.py --write
+python3 tools/prepare_m8_cases.py --check
+```
+
+The generated configuration root is `configs/m8/generated/`. The formal
+receipt is `validation/m8_receipts/m8_a1_inputs.json`; its byte-identical
+local copy is `build/m8_a1_inputs/m8_a1_input_receipt.json` after `--write`.
+Because `build/` is intentionally ignored, `--check` treats that local copy as
+optional on a clean checkout and validates the tracked receipt directly.
+Active status and the bounded A1 through I3 work queue are in
+`validation/performance_m8_progress.json`.
+
+M8-A1 performs deterministic JSON, loader, ABI, and resource-budget checks;
+it deliberately does not run a 12000-step CPU/GPU campaign and makes no
+performance claim. M8-A2 is the next segment and will run the uniform N=64/128
+summary-mode CPU/GPU semantic baseline. Run from the repository root because
+the unchanged CPU instance manager consumes repository-relative program and
+configuration paths. Complete and record A2 separately before starting A3.
 
 Optional host-loaded environment inputs can now be supplied without changing
 the default deterministic campaign:

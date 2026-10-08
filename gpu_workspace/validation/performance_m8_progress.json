@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "status": "IN_PROGRESS",
+  "date": "2026-10-08",
+  "m7_complete": true,
+  "m8_started": true,
+  "m8_complete": false,
+  "source": {
+    "m8_start_parent_commit": "9761dcecdc4402c9fa5913abb84b72053bc01128",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "m7_closure_report": "gpu_workspace/validation/correctness_m7.json",
+    "m7_closure_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627"
+  },
+  "execution_policy": {
+    "segment_rule": "Complete, validate, record, and stop after exactly one M8 sub-segment unless the user explicitly requests another.",
+    "safety_rule": "Safe build, test, profiling, and read-only commands run automatically. Destructive cleanup or replacement of existing evidence requires separate authorization.",
+    "correctness_before_optimization": "M8-A2 and M8-A3 must pass before performance tuning. Any optimization must preserve the protected M7 and M8 long-run results.",
+    "measurement_rule": "Compute-only uses 3 warmups and 20 measured repeats; end-to-end uses 1 warmup and 5 measured repeats. Report median, P95, min, and max.",
+    "claim_rule": "Kernel-only timing cannot be used to claim end-to-end completion. CPU sequential, CPU process-parallel, GPU compute-only, GPU full, GPU summary, transfer, encoding, I/O, and total wall time are reported separately."
+  },
+  "completed_segment_history": [
+    {
+      "id": "M8-A1",
+      "name": "long multi-instance input contract and resource preflight",
+      "status": "PASS",
+      "command": "python3 gpu_workspace/tools/prepare_m8_cases.py --write",
+      "verification_command": "python3 gpu_workspace/tools/prepare_m8_cases.py --check",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_a1_inputs.json",
+      "local_receipt": "gpu_workspace/build/m8_a1_inputs/m8_a1_input_receipt.json",
+      "receipt_sha256": "c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb",
+      "created_at_utc": "2026-10-08T14:39:38.270468+00:00",
+      "source_parent_commit": "9761dcecdc4402c9fa5913abb84b72053bc01128",
+      "checks": [
+        "generated exactly 138 deterministic JSON files",
+        "uniform N=64 is an exact instance prefix of uniform N=128",
+        "heterogeneous N=128 has 128 unique physical scenarios",
+        "eight quiet/noise/dropout/fault profiles occur exactly 16 times each",
+        "all IDs and seeds are unique and deterministic",
+        "host production loader accepts all three runtimes before kernel launch",
+        "DeviceTraceRecord, DeviceInstanceState, and DeviceInstanceConfig ABI sizes match the frozen contract",
+        "all project-owned source and header dependencies used by the loader probe are fingerprinted",
+        "N=64/128 raw full-trace and chunk=256 working-set budgets match exact byte formulas",
+        "tracked and build-local receipts are byte-identical"
+      ],
+      "result_summary": {
+        "generated_input_sha256": "3818ffec2f07f09b1e96b585b0d185aaf2469a75a6ccf162189af6ca22e780d9",
+        "generated_file_count": 138,
+        "generated_total_bytes": 624499,
+        "uniform_instance_counts": [64, 128],
+        "heterogeneous_instance_count": 128,
+        "raw_full_trace_bytes_n128": 1265769472,
+        "chunk_256_device_trace_and_state_bytes_n128": 126358528,
+        "cpu_or_gpu_long_run_executed": false,
+        "performance_claimed": false
+      }
+    }
+  ],
+  "current_segment": {
+    "id": "M8-A2",
+    "name": "uniform N=64/128 12000-step CPU/GPU summary correctness baseline",
+    "status": "NEXT",
+    "planned_command": "python3 gpu_workspace/tools/run_m8_long_baseline.py --section uniform --output gpu_workspace/build/m8_a2_uniform --receipt gpu_workspace/validation/m8_receipts/m8_a2_uniform.json",
+    "acceptance": [
+      "run N=64 and N=128 for 12000 steps in summary mode",
+      "compare every CPU/GPU instance semantically with the frozen M7 tolerances",
+      "verify timeout step, final time, flags, fault events, RNG continuity, and deterministic repeat",
+      "record peak host/device memory and reject allocation or chunk-state failures",
+      "publish byte-identical local and tracked PASS receipts"
+    ]
+  },
+  "segments": [
+    {"id": "M8-A1", "status": "PASS", "name": "input contract and resource preflight"},
+    {"id": "M8-A2", "status": "NEXT", "name": "uniform N=64/128 long CPU/GPU baseline"},
+    {"id": "M8-A3", "status": "PENDING", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
+    {"id": "M8-B1", "status": "PENDING", "name": "timing schema and benchmark harness freeze"},
+    {"id": "M8-B2", "status": "PENDING", "name": "CPU sequential and process-parallel reference measurements"},
+    {"id": "M8-B3", "status": "PENDING", "name": "untuned GPU compute/full/summary reference measurements"},
+    {"id": "M8-C1", "status": "PENDING", "name": "N=1/2/8/32/64/128 compute-only scaling"},
+    {"id": "M8-C2", "status": "PENDING", "name": "N=1/2/8/32/64/128 end-to-end scaling"},
+    {"id": "M8-C3", "status": "PENDING", "name": "N=64/128 initial acceptance-gap report"},
+    {"id": "M8-D1", "status": "PENDING", "name": "serial and packed lanes=4/8/16/32 sweep"},
+    {"id": "M8-D2", "status": "PENDING", "name": "N=640/768/896 packed-4 versus packed-32 crossover sweep"},
+    {"id": "M8-D3", "status": "PENDING", "name": "freeze evidence-based auto-mapping threshold"},
+    {"id": "M8-E1", "status": "PENDING", "name": "system-level timeline and transfer/I/O profiling"},
+    {"id": "M8-E2", "status": "PENDING", "name": "kernel register, occupancy, branch, and memory profiling"},
+    {"id": "M8-E3", "status": "PENDING", "name": "bottleneck-ranked optimization decision report"},
+    {"id": "M8-F1", "status": "PENDING", "name": "profile-justified register and occupancy optimization"},
+    {"id": "M8-F2", "status": "PENDING", "name": "profile-justified state layout and read-only resource optimization"},
+    {"id": "M8-F3", "status": "PENDING", "name": "profile-justified chunk, overlap, and output optimization"},
+    {"id": "M8-F4", "status": "PENDING", "name": "optional CUDA Graph optimization only if launch-bound"},
+    {"id": "M8-G1", "status": "PENDING", "name": "rerun protected M7 correctness gate"},
+    {"id": "M8-G2", "status": "PENDING", "name": "rerun uniform and heterogeneous long baselines"},
+    {"id": "M8-G3", "status": "PENDING", "name": "prove mapping/chunk/optimization result invariance"},
+    {"id": "M8-H1", "status": "PENDING", "name": "final compute-only benchmark matrix"},
+    {"id": "M8-H2", "status": "PENDING", "name": "final full and summary end-to-end benchmark matrix"},
+    {"id": "M8-H3", "status": "PENDING", "name": "apply performance thresholds and publish verdict"},
+    {"id": "M8-I1", "status": "PENDING", "name": "performance report, README, manifest, and project structure sync"},
+    {"id": "M8-I2", "status": "PENDING", "name": "clean-checkout reproduction"},
+    {"id": "M8-I3", "status": "PENDING", "name": "aggregate receipts and close M8"}
+  ],
+  "stop_boundary": "M8-A1 is complete. Stop before M8-A2; do not run a 12000-step CPU/GPU campaign in this segment."
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "faults": [
+    {
+      "id": "frame_invalid",
+      "start_time_s": 0.08,
+      "duration_s": 0.08,
+      "target": "sensor.frame",
+      "type": "FORCE_INVALID"
+    },
+    {
+      "id": "seeker_dropout",
+      "start_time_s": 0.12,
+      "duration_s": 0.12,
+      "target": "sensor.seeker",
+      "type": "DROPOUT"
+    },
+    {
+      "id": "gyro_ramp",
+      "start_time_s": 0.2,
+      "duration_s": 0.2,
+      "ramp_in_s": 0.04,
+      "recovery_ramp_s": 0.04,
+      "target": "sensor.imu.gyro",
+      "type": "RAMP_BIAS",
+      "value_xyz": [
+        0.01,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "accel_hold",
+      "start_time_s": 0.28,
+      "duration_s": 0.1,
+      "target": "sensor.accel",
+      "type": "HOLD_VALUE",
+      "value_xyz": [
+        1.0,
+        -2.0,
+        0.5
+      ]
+    },
+    {
+      "id": "speed_bias",
+      "start_time_s": 0.36,
+      "duration_s": 0.12,
+      "target": "sensor.speed",
+      "type": "BIAS",
+      "value_xyz": [
+        2.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "id": "range_drift",
+      "start_time_s": 0.44,
+      "duration_s": 0.12,
+      "target": "sensor.seeker.range",
+      "type": "DRIFT",
+      "value": 0.5
+    }
+  ]
+}
