@@ -62,3 +62,6 @@ demos
 # Translated output
 output/
 AGENTS.md
+
+# clangd cache
+.cache/clangd/*
