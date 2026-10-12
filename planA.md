@@ -107,7 +107,15 @@ runtime.json
   与末态投影均精确一致。76 个实例地表碰撞、52 个超时；A2 的固定输入校准不适用，
   A3 没有校准项。回执为 `gpu_workspace/validation/m8_receipts/m8_a3_heterogeneous.json`
   （SHA-256 `e0c77fc674444461857e7a56a9c821c62333dabd37aae00218ae82d51405898d`）。
-  本段只提供正确性证据，不将诊断 wall time 用作性能结论；下一段为 M8-B1。持久状态见
+  本段只提供正确性证据，不将诊断 wall time 用作性能结论。M8-B1 已固化
+  `gpu_workspace/configs/m8/benchmark_contract.json` 与
+  `gpu_workspace/tools/run_m8_benchmark.py`：CPU 顺序/进程并行及 GPU full/summary
+  的端到端指标由进程外单调时钟计量；GPU compute-only 使用生产 kernel 的 CUDA
+  event 总时长，不误用探针 kernel 或把重叠阶段求和。插值 P95、预热/重复次数、
+  硬件/工具链/源码/二进制/输入哈希、命令顺序及不覆盖旧证据的续跑规则已冻结；
+  B1 回执为 `gpu_workspace/validation/m8_receipts/m8_b1_contract.json`
+  （SHA-256 `404e61496c4aee21dda768542279f5e52b14f720867e03a4699254ba705614c9`）。
+  B1 未运行正式性能样本，下一段为 M8-B2。持久状态见
   `gpu_workspace/validation/performance_m8_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -198,8 +206,16 @@ M8 使用 `gpu_workspace/validation/performance_m8_progress.json` 作为活动�
      证据间接覆盖，不声称直接观察设备内部 PRNG 状态或完整 trace 等价。
      A2 的单实例校准因输入指纹不匹配而未应用；完成后停止，M8-B1 下一段。
 2. **M8-B：冻结计时工具并建立未优化基线**
-   - B1 固化计时 schema、环境信息、P95 算法和结果回执；B2 测 CPU sequential
-     与 process-parallel；B3 测未优化 GPU compute/full/summary。
+   - **B1（已通过并停止）**：固化计时 schema、环境/二进制/输入哈希、插值 P95
+     算法、确定性命令顺序和原子回执；11 项合成自检与本地/仓库回执复核通过。
+     `gpu_execution.json` 的 `wall_ms` 排除最终写盘，`d2h_ms` 主要是等待时长，
+     因此外部 wall 才是端到端指标；内部阶段允许重叠，不可相加。计划中的
+     24 个 CPU、70 个 GPU campaign 均未在 B1 执行。
+   - **B2（下一段）**：按冻结协议测 CPU sequential 与 process-parallel；
+     每个 N=64/128、每个模式预热 1 次、测量 5 次，保留原始样本和回执。
+   - **B3（待 B2 通过）**：测未优化 GPU compute/full/summary；compute-only
+     预热 3 次、测量 20 次，full/summary 各预热 1 次、测量 5 次；GPU 完整
+     结果与 B2 CPU 的共享语义比较必须通过。
 3. **M8-C：规模与端到端差距**
    - C1/C2 分别覆盖 N=1/2/8/32/64/128 的 compute-only 与端到端；C3 对
      N=64/128 给出相对 CPU 基线的验收差距，不以 kernel 时间替代总 wall time。

@@ -150,27 +150,58 @@
         "cpu_gpu_correctness_gate": "PASS",
         "performance_claimed": false
       }
+    },
+    {
+      "id": "M8-B1",
+      "name": "timing schema and benchmark harness freeze",
+      "status": "PASS",
+      "command": "python3 gpu_workspace/tools/run_m8_benchmark.py --freeze-contract",
+      "verification_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --check-contract",
+      "contract": "gpu_workspace/configs/m8/benchmark_contract.json",
+      "harness": "gpu_workspace/tools/run_m8_benchmark.py",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_b1_contract.json",
+      "local_receipt": "gpu_workspace/build/m8_b1_contract/m8_b1_receipt.json",
+      "receipt_sha256": "404e61496c4aee21dda768542279f5e52b14f720867e03a4699254ba705614c9",
+      "checks": [
+        "frozen CPU sequential/process-parallel and GPU production-kernel/full/summary measurement definitions",
+        "compute-only 3 warmups plus 20 samples; end-to-end 1 warmup plus 5 samples",
+        "median, interpolated P95 rank 0.95*(n-1), min and max defined in seconds",
+        "external process wall time is separated from non-additive GPU internal event and stage timings",
+        "RTX 5070 Laptop GPU, driver, CUDA runtime/toolkit, CPU, source, binaries, inputs and prior receipt hashes recorded",
+        "24 future CPU campaign commands and 70 future GPU campaign commands frozen; no formal performance campaign executed",
+        "11 synthetic self-tests, B2-before-B1 execution guard, local/tracked receipt equality and independent receipt check passed",
+        "benchmark runner has fresh-output, exclusive receipt, per-run record and validated resume rules"
+      ],
+      "result_summary": {
+        "cpu_planned_campaigns": 24,
+        "gpu_planned_campaigns": 70,
+        "synthetic_self_tests": 11,
+        "formal_performance_campaigns_executed": 0,
+        "performance_claimed": false
+      }
     }
   ],
   "current_segment": {
-    "id": "M8-B1",
-    "name": "timing schema and benchmark harness freeze",
+    "id": "M8-B2",
+    "name": "CPU sequential and process-parallel reference measurements",
     "status": "NEXT",
-    "planned_command": "Freeze a benchmark timing schema, system provenance, P95 calculation, and safe new-output receipt policy before measuring the untuned CPU/GPU baseline.",
+    "planned_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section cpu --output gpu_workspace/build/m8_b2_cpu_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
+    "resume_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section cpu --resume --output gpu_workspace/build/m8_b2_cpu_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
     "acceptance": [
-      "freeze CPU sequential/process-parallel and GPU compute-only/full/summary wall-clock measurement definitions",
-      "freeze 3+20 compute-only and 1+5 end-to-end repetitions with median, P95, min, max",
-      "record hardware, driver, CUDA, build/source/input fingerprints and run ordering",
-      "harness must not overwrite existing evidence and must keep timing separate from correctness results",
-      "do not claim performance from M8-A1/A2/A3 diagnostic wall times"
+      "N=64/128 both CPU schedules use the same frozen uniform input and 12000-step horizon",
+      "each CPU mode/count completes one warmup and five measured full-output campaigns",
+      "each measured sample uses external process monotonic wall time; warmups are excluded",
+      "per-instance semantics are exact across CPU scheduling and repeated campaigns",
+      "publish fresh local/tracked receipt with raw samples, median/P95/min/max, provenance and command order",
+      "stop after B2 without running GPU performance campaigns"
     ]
   },
   "segments": [
     {"id": "M8-A1", "status": "PASS", "name": "input contract and resource preflight"},
     {"id": "M8-A2", "status": "PASS_WITH_SCOPED_CALIBRATION", "name": "uniform N=64/128 long CPU/GPU baseline"},
     {"id": "M8-A3", "status": "PASS", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
-    {"id": "M8-B1", "status": "NEXT", "name": "timing schema and benchmark harness freeze"},
-    {"id": "M8-B2", "status": "PENDING", "name": "CPU sequential and process-parallel reference measurements"},
+    {"id": "M8-B1", "status": "PASS", "name": "timing schema and benchmark harness freeze"},
+    {"id": "M8-B2", "status": "NEXT", "name": "CPU sequential and process-parallel reference measurements"},
     {"id": "M8-B3", "status": "PENDING", "name": "untuned GPU compute/full/summary reference measurements"},
     {"id": "M8-C1", "status": "PENDING", "name": "N=1/2/8/32/64/128 compute-only scaling"},
     {"id": "M8-C2", "status": "PENDING", "name": "N=1/2/8/32/64/128 end-to-end scaling"},
@@ -195,5 +226,5 @@
     {"id": "M8-I2", "status": "PENDING", "name": "clean-checkout reproduction"},
     {"id": "M8-I3", "status": "PENDING", "name": "aggregate receipts and close M8"}
   ],
-  "stop_boundary": "M8-A3 heterogeneous correctness and state-isolation baseline is complete. Stop before M8-B1; no untuned performance measurements or optimization were run in this segment."
+  "stop_boundary": "M8-B1 timing contract and benchmark harness are frozen and checked. Stop before M8-B2; no formal CPU or GPU performance samples were collected in this segment."
 }
