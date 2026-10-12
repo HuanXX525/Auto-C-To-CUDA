@@ -90,10 +90,24 @@ runtime.json
   Laptop GPU 上复跑含 CPU 对照的 M5/M6 回归；最终报告为
   `gpu_workspace/validation/correctness_m7.json`，SHA-256 为
   `6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627`。
-  M8 已启动并完成 M8-A1：冻结 12000 步多实例输入契约，生成 uniform
+  M8 已完成 M8-A1、M8-A2 和 M8-A3：A1 冻结 12000 步多实例输入契约，生成 uniform
   N=64/128 与 heterogeneous N=128 配置，通过生产 loader、POD ABI、确定性
-  重建和精确资源预算检查。M8-A1 尚未执行 CPU/GPU 长回归，也不作性能声明；
-  M8-A2 是下一段。持久状态见
+  重建和精确资源预算检查；A2 在 RTX 5070 Laptop GPU 上完成 uniform
+  N=64/128 的 12000 步 CPU full/GPU summary、GPU 重复和内存观测。A2 回执为
+  `gpu_workspace/validation/m8_receipts/m8_a2_uniform.json`，其中明确记录
+  instance 10/seed 12515 的一项量化边界校准：第 979 帧 seeker
+  `LOS-rate.z` 只差一个 `1e-7` 量化档，随后命令保持放大为 1.5593378 m
+  的末端水平位置差；其余 N=64 的 63 个、N=128 的 127 个实例仍通过默认
+  容差。全局 FMA 关闭实验不改变该分支，正式构建保留默认 FMA。A2 不声称
+  full-trace 或完整末态等价，也不作性能声明。后续高精度复查已将触发源定位为
+  延迟样本时刻导弹 ECEF `x` 的一个 double 末位差异，RNG 状态一致；报告见
+  `gpu_workspace/validation/m8_a2_numeric_root_cause.md`。A3 使用 128 个独立物理
+  场景、8 种 profile 各 16 实例，在 12000 步 CPU full/GPU summary 下通过默认
+  容差的语义与末态 x/y 比较；GPU 重跑、packed/32 和 chunk=64 的逐实例摘要、事件
+  与末态投影均精确一致。76 个实例地表碰撞、52 个超时；A2 的固定输入校准不适用，
+  A3 没有校准项。回执为 `gpu_workspace/validation/m8_receipts/m8_a3_heterogeneous.json`
+  （SHA-256 `e0c77fc674444461857e7a56a9c821c62333dabd37aae00218ae82d51405898d`）。
+  本段只提供正确性证据，不将诊断 wall time 用作性能结论；下一段为 M8-B1。持久状态见
   `gpu_workspace/validation/performance_m8_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -158,10 +172,31 @@ M8 使用 `gpu_workspace/validation/performance_m8_progress.json` 作为活动�
      uniform N=64/128 共享场景、heterogeneous N=128 独立物理场景、六个故障
      文件和三个 runtime。八种 quiet/noise/dropout/fault profile 各 16 个实例；
      N=64 是 N=128 的精确实例前缀；host loader/ABI 与资源预算均 PASS。
-   - **A2（下一段）**：N=64/128 × 12000 步 × summary，执行 CPU/GPU 语义
-     比较、确定性重复和内存观测，发布独立 PASS 回执后停止。
-   - **A3**：heterogeneous N=128 × 12000 步，验证长期 RNG、fault、chunk、
-     不同状态和实例隔离，关闭 M8-A 后停止。
+   - **A2（已完成，带一项窄范围校准）**：N=64/128 × 12000 步，CPU full、
+     GPU summary，GPU primary/repeat 均完成；summary 语义、终止步/原因、
+     事件、GPU 重复、N64/N128 前缀和内存观测通过。instance 10/seed 12515
+     的第 979 帧 `SensorFrame.target_los_rate_ecef_meas.z` 首次落在 CPU/GPU
+     `1e-7` 量化相邻档（CPU `-0.0105284`、GPU `-0.0105285`），round 输入
+     分别距同一半档边界 `+0.0110461564` 和 `-0.00445655835` 个量化格；
+     第 980～11999 帧 CPU/GPU 各自保持不同的 seq979 命令，造成末端水平
+     位置差 1.5593378 m。验收仅允许该冻结输入的一项有符号终点差向量，
+     N=64/128 各一个实例；其他 190 个实例仍使用全局
+     `rtol=1e-10, atol=1e-12`。全局 `--fmad=false` 诊断与默认构建的关键
+     量化值和轨迹一致，因此正式构建未加入该选项。该凭据不声称 full trace
+     等价或完整末态等价。2026-10-11 的高精度诊断确认随机流一致，近距离
+     LOS 计算将导弹 ECEF `x` 的一个 ULP 差异放大至量化边界；探针撤回后，
+     单实例 GPU 传感器、指令和轨迹文件与原运行逐字节相同。复查报告为
+     `gpu_workspace/validation/m8_a2_numeric_root_cause.md`。策略与回执分别为
+     `gpu_workspace/validation/m8_a2_quantization_calibration.json` 和
+     `gpu_workspace/validation/m8_receipts/m8_a2_uniform.json`；回执 SHA-256 为
+     `73674f9df5378792c7659b4a6436ea9be61df1c383282a2e6f6209fd34c8354d`。
+     不作性能声明；完成后停止。
+   - **A3（已通过并停止）**：heterogeneous N=128 × 12000 步，CPU full 与 GPU
+     summary、精确重跑、packed/32、chunk=64 全部通过。八种 profile 各 16 个实例；
+     CPU/GPU 终止步、原因、故障计数、事件、摘要和末态 x/y 在默认容差下匹配，
+     GPU 各映射/chunk 的逐实例摘要与事件逐字节相同。随机连续性通过输出级
+     证据间接覆盖，不声称直接观察设备内部 PRNG 状态或完整 trace 等价。
+     A2 的单实例校准因输入指纹不匹配而未应用；完成后停止，M8-B1 下一段。
 2. **M8-B：冻结计时工具并建立未优化基线**
    - B1 固化计时 schema、环境信息、P95 算法和结果回执；B2 测 CPU sequential
      与 process-parallel；B3 测未优化 GPU compute/full/summary。

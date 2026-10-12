@@ -2,7 +2,7 @@
   "schema_version": 1,
   "phase": "M8",
   "status": "IN_PROGRESS",
-  "date": "2026-10-08",
+  "date": "2026-10-12",
   "m7_complete": true,
   "m8_started": true,
   "m8_complete": false,
@@ -54,26 +54,122 @@
         "cpu_or_gpu_long_run_executed": false,
         "performance_claimed": false
       }
+    },
+    {
+      "id": "M8-A2",
+      "name": "uniform N=64/128 12000-step CPU/GPU summary correctness baseline",
+      "status": "PASS_WITH_SCOPED_CALIBRATION",
+      "command": "python3 gpu_workspace/tools/run_m8_long_baseline.py --skip-build --section uniform --output gpu_workspace/build/m8_a2_calibrated_20261010 --receipt gpu_workspace/validation/m8_receipts/m8_a2_uniform.json",
+      "resume_command": "python3 gpu_workspace/tools/run_m8_long_baseline.py --resume-existing --output gpu_workspace/build/m8_a2_calibrated_20261010 --receipt gpu_workspace/validation/m8_receipts/m8_a2_uniform.json",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_a2_uniform.json",
+      "local_receipt": "gpu_workspace/build/m8_a2_calibrated_20261010/m8_a2_pass_receipt.json",
+      "receipt_sha256": "73674f9df5378792c7659b4a6436ea9be61df1c383282a2e6f6209fd34c8354d",
+      "created_at_utc": "2026-10-10T14:35:35.769714+00:00",
+      "source_parent_commit": "e4c229421f5d854c05b610b70075b28480d8350a",
+      "calibration_policy": "gpu_workspace/validation/m8_a2_quantization_calibration.json",
+      "calibration_id": "uniform_seed12515_seeker_los_rate_z_adjacent_bin",
+      "numeric_root_cause_review": {
+        "date": "2026-10-11",
+        "report": "gpu_workspace/validation/m8_a2_numeric_root_cause.md",
+        "source_sample_time_s": 9.769999999999836,
+        "gpu_minus_cpu_missile_x_m": 4.656612873077393e-10,
+        "gpu_minus_cpu_los_rate_truth_z_radps": -1.5502714788978578e-9,
+        "rng_state_before_and_after_equal": true,
+        "restored_gpu_single_instance_outputs_byte_equal": true,
+        "historical_receipt_unchanged": true
+      },
+      "checks": [
+        "CPU full and GPU summary completed at N=64 and N=128 for 12000 steps where the instance remained active",
+        "CPU/GPU semantic summaries, terminal step/reason/flags, and event logs matched under the frozen default tolerances",
+        "N=64 termination counts: 31 timeout, 33 surface collision; N=128: 48 timeout, 80 surface collision",
+        "GPU primary/repeat outputs matched exactly after timing metadata normalization",
+        "N=64 is an exact prefix of N=128 for CPU full output and GPU summary projections",
+        "N=64 terminal x/y projection: 63 instances pass default tolerance; instance 10 seed 12515 matches the one frozen signed-delta calibration",
+        "N=128 terminal x/y projection: 127 instances pass default tolerance; instance 10 seed 12515 matches the same one frozen signed-delta calibration",
+        "full single-instance diagnostics verify the unique first sensor mismatch at seq 979 is LOS-rate.z by exactly one 1e-7 bin, followed by command divergence and HOLD seq 980 through 11999",
+        "round input probes quantify opposite offsets from the same half-bin: CPU +0.011046156432712451, GPU -0.004456558352103457",
+        "global --fmad=false diagnostic yields the same critical bin and trajectory as default; formal Makefile retains default FMA behavior",
+        "2026-10-11 high-precision replay traces the boundary crossing to one ULP of missile ECEF x at the delayed seeker sample; CPU/GPU RNG states match",
+        "temporary probes were removed; restored GPU sensor, command, trajectory, diagnostics, and event files match the original single-instance result byte for byte",
+        "historical receipt check now reports current checker/binary provenance drift after an unseeded NVCC rebuild without rewriting the historical receipt",
+        "host RSS and device-wide WDDM memory were observed; allocation and all chunks completed",
+        "full-trace equivalence and complete terminal-state equivalence are not claimed; no performance claim is made"
+      ],
+      "result_summary": {
+        "instance_counts": [64, 128],
+        "steps": 12000,
+        "default_tolerance_matches": {"n64": 63, "n128": 127},
+        "scoped_calibration_matches": {"n64": 1, "n128": 1},
+        "calibrated_instance_id": 10,
+        "calibrated_random_seed": 12515,
+        "first_divergent_sensor_packet": 979,
+        "first_divergent_sensor_field": "SensorFrame.target_los_rate_ecef_meas.z",
+        "cpu_quantized_value": -0.0105284,
+        "gpu_quantized_value": -0.0105285,
+        "horizontal_terminal_delta_m": 1.5593378286782649,
+        "gpu_memory_peak_delta_mib": {"n64_primary": 268, "n128_primary": 346},
+        "cpu_gpu_correctness_gate": "PASS_WITH_SCOPED_CALIBRATION",
+        "performance_claimed": false
+      },
+      "artifact_sha256": {
+        "results": "61252ff9f966d7ab46ef2de35a6d440112f26a1e5d5f084d19f489db858bbd60",
+        "logs": "2a6c7f7f8d8b608b931803d9b4658d4e644ff8a32ea8515ddb5cd4e56e21144e"
+      }
+    },
+    {
+      "id": "M8-A3",
+      "name": "heterogeneous N=128 12000-step correctness and state-isolation baseline",
+      "status": "PASS",
+      "command": "python3 gpu_workspace/tools/run_m8_heterogeneous_baseline.py --skip-build --output gpu_workspace/build/m8_a3_heterogeneous_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_a3_heterogeneous.json",
+      "verification_command": "python3 gpu_workspace/tools/run_m8_heterogeneous_baseline.py --check --output gpu_workspace/build/m8_a3_heterogeneous_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_a3_heterogeneous.json",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_a3_heterogeneous.json",
+      "local_receipt": "gpu_workspace/build/m8_a3_heterogeneous_20261012/m8_a3_pass_receipt.json",
+      "receipt_sha256": "e0c77fc674444461857e7a56a9c821c62333dabd37aae00218ae82d51405898d",
+      "created_at_utc": "2026-10-12T06:13:12.594329+00:00",
+      "checks": [
+        "128 distinct physical scenarios and eight profiles with 16 instances each were validated against the frozen M8-A1 input contract",
+        "CPU full and GPU summary completed at N=128 up to 12000 steps; 76 surface collisions and 52 timeouts match exactly",
+        "all five fault-bearing profiles exercised 16 instances each and CPU/GPU summary counters and event logs agree",
+        "GPU primary, exact repeat, packed/32, and chunk=64 compare to CPU using default rtol=1e-10, atol=1e-12",
+        "all 128 GPU per-instance summaries and event logs are byte-identical across repeat, packed/32 and chunk=64",
+        "all 128 final time and missile ECEF x/y projections match CPU under default tolerance and are exact across GPU variants",
+        "A2 scoped calibration does not apply: no heterogeneous scenario has its frozen input fingerprint",
+        "tracked and build-local PASS receipts are byte-identical; saved outputs and artifact hashes revalidated",
+        "host process-tree RSS and device-wide WDDM memory were sampled; neither timing nor internal PRNG state equivalence is claimed"
+      ],
+      "result_summary": {
+        "instance_count": 128,
+        "steps": 12000,
+        "profile_count": 8,
+        "instances_per_profile": 16,
+        "surface_collision_count": 76,
+        "timeout_count": 52,
+        "gpu_variants": ["primary", "repeat", "packed32", "chunk64"],
+        "scoped_calibration_applied": false,
+        "gpu_primary_device_wide_memory_peak_delta_mib": 341,
+        "cpu_gpu_correctness_gate": "PASS",
+        "performance_claimed": false
+      }
     }
   ],
   "current_segment": {
-    "id": "M8-A2",
-    "name": "uniform N=64/128 12000-step CPU/GPU summary correctness baseline",
+    "id": "M8-B1",
+    "name": "timing schema and benchmark harness freeze",
     "status": "NEXT",
-    "planned_command": "python3 gpu_workspace/tools/run_m8_long_baseline.py --section uniform --output gpu_workspace/build/m8_a2_uniform --receipt gpu_workspace/validation/m8_receipts/m8_a2_uniform.json",
+    "planned_command": "Freeze a benchmark timing schema, system provenance, P95 calculation, and safe new-output receipt policy before measuring the untuned CPU/GPU baseline.",
     "acceptance": [
-      "run N=64 and N=128 for 12000 steps in summary mode",
-      "compare every CPU/GPU instance semantically with the frozen M7 tolerances",
-      "verify timeout step, final time, flags, fault events, RNG continuity, and deterministic repeat",
-      "record peak host/device memory and reject allocation or chunk-state failures",
-      "publish byte-identical local and tracked PASS receipts"
+      "freeze CPU sequential/process-parallel and GPU compute-only/full/summary wall-clock measurement definitions",
+      "freeze 3+20 compute-only and 1+5 end-to-end repetitions with median, P95, min, max",
+      "record hardware, driver, CUDA, build/source/input fingerprints and run ordering",
+      "harness must not overwrite existing evidence and must keep timing separate from correctness results",
+      "do not claim performance from M8-A1/A2/A3 diagnostic wall times"
     ]
   },
   "segments": [
     {"id": "M8-A1", "status": "PASS", "name": "input contract and resource preflight"},
-    {"id": "M8-A2", "status": "NEXT", "name": "uniform N=64/128 long CPU/GPU baseline"},
-    {"id": "M8-A3", "status": "PENDING", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
-    {"id": "M8-B1", "status": "PENDING", "name": "timing schema and benchmark harness freeze"},
+    {"id": "M8-A2", "status": "PASS_WITH_SCOPED_CALIBRATION", "name": "uniform N=64/128 long CPU/GPU baseline"},
+    {"id": "M8-A3", "status": "PASS", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
+    {"id": "M8-B1", "status": "NEXT", "name": "timing schema and benchmark harness freeze"},
     {"id": "M8-B2", "status": "PENDING", "name": "CPU sequential and process-parallel reference measurements"},
     {"id": "M8-B3", "status": "PENDING", "name": "untuned GPU compute/full/summary reference measurements"},
     {"id": "M8-C1", "status": "PENDING", "name": "N=1/2/8/32/64/128 compute-only scaling"},
@@ -99,5 +195,5 @@
     {"id": "M8-I2", "status": "PENDING", "name": "clean-checkout reproduction"},
     {"id": "M8-I3", "status": "PENDING", "name": "aggregate receipts and close M8"}
   ],
-  "stop_boundary": "M8-A1 is complete. Stop before M8-A2; do not run a 12000-step CPU/GPU campaign in this segment."
+  "stop_boundary": "M8-A3 heterogeneous correctness and state-isolation baseline is complete. Stop before M8-B1; no untuned performance measurements or optimization were run in this segment."
 }
