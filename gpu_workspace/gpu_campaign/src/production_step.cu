@@ -200,8 +200,10 @@ __device__ SimStatus update_geodetic(
     state->plant.lat_rad = missile_lla.lat_rad;
     state->plant.lon_rad = missile_lla.lon_rad;
     state->plant.height_m = missile_lla.height_m;
-    state->plant.height_agl_m = config.terrain_enabled != 0u
-        ? missile_lla.height_m - terrain_height_m : missile_lla.height_m;
+    /* CPU terrain_get_height() still returns flat_fill_height_m when tile
+       terrain is disabled.  Disabling tiles therefore does not disable the
+       physical surface or its AGL/collision semantics. */
+    state->plant.height_agl_m = missile_lla.height_m - terrain_height_m;
     if ((terrain_flags & kDeviceTerrainFlagMissingTile) != 0u) {
         state->environment_flags |= 1u << 2u;
     }
@@ -746,7 +748,10 @@ __global__ void simulate_production_chunk(
             terminate(state, DeviceExitReason::Timeout, SIM_OK);
             break;
         }
-        if (config.terrain_enabled != 0u && state->plant.height_agl_m <= 0.0) {
+        /* Match env_app: surface collision is always evaluated from AGL.
+           terrain_enabled controls tile lookup, while disabled terrain uses
+           the configured flat-fill surface. */
+        if (state->plant.height_agl_m <= 0.0) {
             terminate(state, DeviceExitReason::SurfaceCollision, SIM_OK);
             break;
         }
