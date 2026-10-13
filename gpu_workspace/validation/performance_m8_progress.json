@@ -2,7 +2,7 @@
   "schema_version": 1,
   "phase": "M8",
   "status": "IN_PROGRESS",
-  "date": "2026-10-12",
+  "date": "2026-10-13",
   "m7_complete": true,
   "m8_started": true,
   "m8_complete": false,
@@ -159,9 +159,13 @@
       "verification_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --check-contract",
       "contract": "gpu_workspace/configs/m8/benchmark_contract.json",
       "harness": "gpu_workspace/tools/run_m8_benchmark.py",
-      "receipt": "gpu_workspace/validation/m8_receipts/m8_b1_contract.json",
-      "local_receipt": "gpu_workspace/build/m8_b1_contract/m8_b1_receipt.json",
-      "receipt_sha256": "404e61496c4aee21dda768542279f5e52b14f720867e03a4699254ba705614c9",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_b1_contract_v3.json",
+      "local_receipt": "gpu_workspace/build/m8_b1_contract_v3/m8_b1_receipt.json",
+      "receipt_sha256": "22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21",
+      "superseded_receipts": [
+        {"path": "gpu_workspace/validation/m8_receipts/m8_b1_contract.json", "sha256": "404e61496c4aee21dda768542279f5e52b14f720867e03a4699254ba705614c9"},
+        {"path": "gpu_workspace/validation/m8_receipts/m8_b1_contract_v2.json", "sha256": "a50e678a91d598ded18e105f5efba9e61c00da4f785f1ac01631a3d349705d94"}
+      ],
       "checks": [
         "frozen CPU sequential/process-parallel and GPU production-kernel/full/summary measurement definitions",
         "compute-only 3 warmups plus 20 samples; end-to-end 1 warmup plus 5 samples",
@@ -169,31 +173,66 @@
         "external process wall time is separated from non-additive GPU internal event and stage timings",
         "RTX 5070 Laptop GPU, driver, CUDA runtime/toolkit, CPU, source, binaries, inputs and prior receipt hashes recorded",
         "24 future CPU campaign commands and 70 future GPU campaign commands frozen; no formal performance campaign executed",
-        "11 synthetic self-tests, B2-before-B1 execution guard, local/tracked receipt equality and independent receipt check passed",
-        "benchmark runner has fresh-output, exclusive receipt, per-run record and validated resume rules"
+        "13 synthetic self-tests, N=8 CPU nested-output functional smoke, B2-before-B1 execution guard, local/tracked receipt equality and independent receipt check passed",
+        "benchmark runner has fresh-output, exclusive receipt, per-run record and validated resume rules",
+        "CPU campaign output parents are pre-created; derived CPU transport ports 62000..62255 are outside observed host ephemeral range 32768..60999",
+        "two earlier failed B2 attempts and v1/v2 B1 receipts are preserved; their samples are excluded from v3 statistics"
       ],
       "result_summary": {
         "cpu_planned_campaigns": 24,
         "gpu_planned_campaigns": 70,
-        "synthetic_self_tests": 11,
+        "synthetic_self_tests": 13,
+        "functional_smoke_instance_count": 8,
         "formal_performance_campaigns_executed": 0,
         "performance_claimed": false
+      }
+    },
+    {
+      "id": "M8-B2",
+      "name": "CPU sequential and process-parallel reference measurements",
+      "status": "PASS",
+      "command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section cpu --output gpu_workspace/build/m8_b2_cpu_20261013_v3 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
+      "verification_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --check-run-section cpu --output gpu_workspace/build/m8_b2_cpu_20261013_v3 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
+      "output": "gpu_workspace/build/m8_b2_cpu_20261013_v3",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
+      "receipt_sha256": "8c8f8745d56d830e656930af7ead750fbdd0222daa4f2d0da95f57bb0e329bb7",
+      "m8_b1_receipt_sha256": "22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21",
+      "checks": [
+        "24 campaigns completed: N=64/128 by CPU sequential/process-parallel, one warmup and five measured campaigns per cell",
+        "all 20 measured campaigns have complete full-output results and zero failed instances",
+        "warmups excluded; external monotonic process wall time used for all CPU samples",
+        "per-instance semantic SHA-256 identical across repeats and CPU schedules for each N",
+        "local and tracked receipts are byte-identical; independent check-run validates logs, outputs, samples and statistics",
+        "v1/v2 failed or partial outputs are retained but contribute zero samples to this receipt"
+      ],
+      "result_summary": {
+        "receipt_status": "MEASURED_NO_VERDICT",
+        "warmup_campaigns": 4,
+        "measured_campaigns": 20,
+        "cpu_sequential_n64_median_s": 237.743946232,
+        "cpu_process_parallel_n64_median_s": 37.861191788,
+        "cpu_sequential_n128_median_s": 490.051233292,
+        "cpu_process_parallel_n128_median_s": 73.66068087,
+        "cpu_n64_semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "cpu_n128_semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "cpu_gpu_compared_in_this_segment": false,
+        "performance_threshold_claimed": false
       }
     }
   ],
   "current_segment": {
-    "id": "M8-B2",
-    "name": "CPU sequential and process-parallel reference measurements",
+    "id": "M8-B3",
+    "name": "untuned GPU compute/full/summary reference measurements",
     "status": "NEXT",
-    "planned_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section cpu --output gpu_workspace/build/m8_b2_cpu_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
-    "resume_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section cpu --resume --output gpu_workspace/build/m8_b2_cpu_20261012 --receipt gpu_workspace/validation/m8_receipts/m8_b2_cpu.json",
+    "planned_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section gpu --cpu-reference gpu_workspace/build/m8_b2_cpu_20261013_v3 --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
+    "resume_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section gpu --resume --cpu-reference gpu_workspace/build/m8_b2_cpu_20261013_v3 --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
     "acceptance": [
-      "N=64/128 both CPU schedules use the same frozen uniform input and 12000-step horizon",
-      "each CPU mode/count completes one warmup and five measured full-output campaigns",
-      "each measured sample uses external process monotonic wall time; warmups are excluded",
-      "per-instance semantics are exact across CPU scheduling and repeated campaigns",
-      "publish fresh local/tracked receipt with raw samples, median/P95/min/max, provenance and command order",
-      "stop after B2 without running GPU performance campaigns"
+      "N=64/128 use the same frozen uniform input and 12000-step horizon as M8-B2",
+      "production-kernel compute-only uses three warmups and 20 measured samples per N",
+      "GPU full and summary each use one warmup and five measured campaigns per N",
+      "all GPU outputs match the B2 CPU reference in shared semantics and remain deterministic across repeats/modes",
+      "compute-only kernel event time is reported separately from external full/summary wall time",
+      "publish fresh local/tracked receipt with raw samples and independently verify it; stop before M8-C1"
     ]
   },
   "segments": [
@@ -201,8 +240,8 @@
     {"id": "M8-A2", "status": "PASS_WITH_SCOPED_CALIBRATION", "name": "uniform N=64/128 long CPU/GPU baseline"},
     {"id": "M8-A3", "status": "PASS", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
     {"id": "M8-B1", "status": "PASS", "name": "timing schema and benchmark harness freeze"},
-    {"id": "M8-B2", "status": "NEXT", "name": "CPU sequential and process-parallel reference measurements"},
-    {"id": "M8-B3", "status": "PENDING", "name": "untuned GPU compute/full/summary reference measurements"},
+    {"id": "M8-B2", "status": "PASS", "name": "CPU sequential and process-parallel reference measurements"},
+    {"id": "M8-B3", "status": "NEXT", "name": "untuned GPU compute/full/summary reference measurements"},
     {"id": "M8-C1", "status": "PENDING", "name": "N=1/2/8/32/64/128 compute-only scaling"},
     {"id": "M8-C2", "status": "PENDING", "name": "N=1/2/8/32/64/128 end-to-end scaling"},
     {"id": "M8-C3", "status": "PENDING", "name": "N=64/128 initial acceptance-gap report"},
@@ -226,5 +265,5 @@
     {"id": "M8-I2", "status": "PENDING", "name": "clean-checkout reproduction"},
     {"id": "M8-I3", "status": "PENDING", "name": "aggregate receipts and close M8"}
   ],
-  "stop_boundary": "M8-B1 timing contract and benchmark harness are frozen and checked. Stop before M8-B2; no formal CPU or GPU performance samples were collected in this segment."
+  "stop_boundary": "M8-B2 CPU reference measurement and independent receipt verification are complete. Stop before M8-B3; no formal GPU performance campaigns were run in this segment."
 }

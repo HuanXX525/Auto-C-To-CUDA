@@ -113,9 +113,21 @@ runtime.json
   的端到端指标由进程外单调时钟计量；GPU compute-only 使用生产 kernel 的 CUDA
   event 总时长，不误用探针 kernel 或把重叠阶段求和。插值 P95、预热/重复次数、
   硬件/工具链/源码/二进制/输入哈希、命令顺序及不覆盖旧证据的续跑规则已冻结；
-  B1 回执为 `gpu_workspace/validation/m8_receipts/m8_b1_contract.json`
-  （SHA-256 `404e61496c4aee21dda768542279f5e52b14f720867e03a4699254ba705614c9`）。
-  B1 未运行正式性能样本，下一段为 M8-B2。持久状态见
+  B2 预检暴露两个测试框架问题：CPU 环境程序不会递归创建输出目录；原测试端口
+  `55000` 段落在系统 UDP 临时端口范围内，N=128 并行轮次发生一次绑定失败。
+  B1 因此以 v3 合同重新冻结：预建输出目录的父目录，仅在 CPU 基准的派生 runtime
+  中使用 `62000–62255` 端口，并在启动前检查其不与本机临时端口范围重叠；场景、
+  种子、物理参数及 12000 步工作负载保持不变。v1/v2 回执及失败输出均保留，
+  不并入正式统计。13 项合成自检、N=8 CPU 嵌套输出预检通过；当前 B1 回执为
+  `gpu_workspace/validation/m8_receipts/m8_b1_contract_v3.json`
+  （SHA-256 `22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21`）。
+  B2 已按该合同完成 N=64/128 的 CPU sequential/process-parallel 各 1 次预热、
+  5 次测量，共 24 轮；逐实例结果在重复轮次与调度方式之间精确一致。外部 wall
+  中位数分别为 N=64 顺序 `237.744 s`、并行 `37.861 s`，N=128 顺序
+  `490.051 s`、并行 `73.661 s`；这是 CPU 参考数据，不是 GPU 加速结论。
+  B2 回执为 `gpu_workspace/validation/m8_receipts/m8_b2_cpu.json`
+  （SHA-256 `8c8f8745d56d830e656930af7ead750fbdd0222daa4f2d0da95f57bb0e329bb7`），
+  已独立复核全部输出、原始样本和统计。下一段为 M8-B3；持久状态见
   `gpu_workspace/validation/performance_m8_progress.json`。
 
 ### M7 分段执行计划（每段完成后立即停止）
@@ -206,14 +218,18 @@ M8 使用 `gpu_workspace/validation/performance_m8_progress.json` 作为活动�
      证据间接覆盖，不声称直接观察设备内部 PRNG 状态或完整 trace 等价。
      A2 的单实例校准因输入指纹不匹配而未应用；完成后停止，M8-B1 下一段。
 2. **M8-B：冻结计时工具并建立未优化基线**
-   - **B1（已通过并停止）**：固化计时 schema、环境/二进制/输入哈希、插值 P95
-     算法、确定性命令顺序和原子回执；11 项合成自检与本地/仓库回执复核通过。
+   - **B1（v3 已通过并停止）**：固化计时 schema、环境/二进制/输入哈希、插值 P95
+     算法、确定性命令顺序和原子回执；13 项合成自检、N=8 CPU 实际预检与本地/仓库
+     回执复核通过。CPU 测试输出父目录预建，派生 runtime 使用与系统临时端口不重叠的
+     `62000–62255`；v1/v2 回执和两次失败输出保留、不混用样本。
      `gpu_execution.json` 的 `wall_ms` 排除最终写盘，`d2h_ms` 主要是等待时长，
      因此外部 wall 才是端到端指标；内部阶段允许重叠，不可相加。计划中的
      24 个 CPU、70 个 GPU campaign 均未在 B1 执行。
-   - **B2（下一段）**：按冻结协议测 CPU sequential 与 process-parallel；
-     每个 N=64/128、每个模式预热 1 次、测量 5 次，保留原始样本和回执。
-   - **B3（待 B2 通过）**：测未优化 GPU compute/full/summary；compute-only
+   - **B2（已通过并停止）**：按 v3 冻结协议完成 CPU sequential 与 process-parallel；
+     每个 N=64/128、每个模式预热 1 次、测量 5 次，共 24 轮。20 个正式样本及
+     median/P95/min/max、输出哈希与命令顺序均在回执中；各 N 的逐实例语义在重复轮次
+     和调度方式之间精确一致。尚未进行 CPU/GPU 性能阈值判定。
+   - **B3（下一段）**：测未优化 GPU compute/full/summary；compute-only
      预热 3 次、测量 20 次，full/summary 各预热 1 次、测量 5 次；GPU 完整
      结果与 B2 CPU 的共享语义比较必须通过。
 3. **M8-C：规模与端到端差距**

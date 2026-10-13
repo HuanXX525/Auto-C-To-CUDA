@@ -1,0 +1,934 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-B2",
+  "status": "MEASURED_NO_VERDICT",
+  "created_at_utc": "2026-10-13T06:16:57.438062+00:00",
+  "m8_b1_receipt_sha256": "22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21",
+  "source": {
+    "parent_commit": "79545e258efb77ecc96034c95c5f87afa35c8691",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "m7_report_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "m8_a1_receipt_sha256": "c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb",
+    "m8_a2_receipt_sha256": "73674f9df5378792c7659b4a6436ea9be61df1c383282a2e6f6209fd34c8354d",
+    "m8_a3_receipt_sha256": "e0c77fc674444461857e7a56a9c821c62333dabd37aae00218ae82d51405898d",
+    "contract_sha256": "f2e8f3552f6c220f30a14bf38083cb5b436d0420bf325c97b3f1d297913440b6",
+    "harness_sha256": "25931609970211a8ff0d9310b07647b64e8aef0249e78651152aed46db69cab4",
+    "input_sha256": {
+      "64": "d454b7ae9c99895e359fc5f6882b9d93a8a979df660b663084d4d1acb25d94cf",
+      "128": "7144f17bba8b839025e0486ce539a012852edddc765041f0954e355cfb34de96"
+    },
+    "binary_sha256": {
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd",
+      "gpu_campaign": "2b5da610f75b785637a3975ab29dbd00298c127479d341dbb22546914df3aedb"
+    },
+    "gpu_source_tree_sha256": "4f775fc1e89ba0d4141d533d7ab6c792314df9321418956f50b861bafc621d08",
+    "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+    "cpu_model": "Intel(R) Core(TM) i9-14900HX",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "udp_ephemeral_port_range": [
+      32768,
+      60999
+    ],
+    "cpu_benchmark_port_range": [
+      62000,
+      62255
+    ],
+    "gpu_model": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "gpu_driver": "582.05",
+    "gpu_memory_mib": 8151,
+    "cuda_runtime_version": 13020,
+    "cuda_toolkit": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Mon_Mar_02_09:52:23_PM_PST_2026\nCuda compilation tools, release 13.2, V13.2.51\nBuild cuda_13.2.r13.2/compiler.37434383_0",
+    "gcc_version": "gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0",
+    "cuda_visible_devices": null
+  },
+  "section": "cpu",
+  "contract": {
+    "schema_version": 1,
+    "revision": 3,
+    "phase": "M8",
+    "segment": "M8-B1",
+    "purpose": "Frozen untuned benchmark protocol; this document contains no performance results.",
+    "workload": {
+      "dataset": "uniform",
+      "instance_counts": [
+        64,
+        128
+      ],
+      "steps": 12000,
+      "dt_s": 0.01,
+      "runtimes": {
+        "64": "gpu_workspace/configs/m8/generated/runtimes/uniform_n64.json",
+        "128": "gpu_workspace/configs/m8/generated/runtimes/uniform_n128.json"
+      },
+      "cpu_parallel_processes": 6,
+      "cpu_benchmark_environment_base_port": 62000,
+      "cpu_benchmark_flight_control_base_port": 62001,
+      "cpu_port_policy": "Derived CPU-only transport ports 62000..62255 are outside the observed Linux UDP ephemeral allocation range; physical/scenario/seed inputs are unchanged. Abort if the host ephemeral range overlaps these ports.",
+      "gpu_mapping": "packed",
+      "gpu_lanes_per_block": 4,
+      "gpu_chunk_steps": 256
+    },
+    "modes": {
+      "cpu_sequential": {
+        "section": "cpu",
+        "metric": "external_wall_s",
+        "warmup": 1,
+        "repeats": 5,
+        "trace_mode": "full"
+      },
+      "cpu_process_parallel": {
+        "section": "cpu",
+        "metric": "external_wall_s",
+        "warmup": 1,
+        "repeats": 5,
+        "trace_mode": "full"
+      },
+      "gpu_compute_only": {
+        "section": "gpu",
+        "metric": "production_kernel_event_ms",
+        "warmup": 3,
+        "repeats": 20,
+        "trace_mode": "summary"
+      },
+      "gpu_full": {
+        "section": "gpu",
+        "metric": "external_wall_s",
+        "warmup": 1,
+        "repeats": 5,
+        "trace_mode": "full"
+      },
+      "gpu_summary": {
+        "section": "gpu",
+        "metric": "external_wall_s",
+        "warmup": 1,
+        "repeats": 5,
+        "trace_mode": "summary"
+      }
+    },
+    "statistics": {
+      "median": "arithmetic mean of the two central sorted samples when n is even; central sample when n is odd",
+      "p95": "sorted samples, zero-based rank 0.95*(n-1), linear interpolation between adjacent ranks",
+      "other": [
+        "min",
+        "max"
+      ],
+      "unit": "seconds"
+    },
+    "timing_semantics": {
+      "external_wall_s": "host monotonic clock around process creation, execution and successful exit, including config load, allocation, transfers, encoding and disk output",
+      "production_kernel_event_ms": "sum of per-chunk CUDA event elapsed milliseconds in gpu_execution.json; production physics/control kernel only, not the probe kernel or a complete campaign wall time",
+      "gpu_execution_h2d_ms": "existing production initialization/allocation/upload interval; not pure PCIe transfer time",
+      "gpu_execution_d2h_ms": "existing host waits for state/trace copy events; not pure D2H transfer time",
+      "gpu_execution_host_encode_ms": "existing trace-slot host copy/record preparation, not complete output serialization",
+      "gpu_execution_output_ms": "existing CPU-compatible result writing interval, excluding final gpu_execution.json close",
+      "gpu_execution_wall_ms": "existing device-loop interval after initialization and before result writing; not end-to-end",
+      "stage_fields_are_additive": false,
+      "stage_overlap_note": "GPU chunk copies and kernels overlap; h2d/d2h/encode/output/wall fields must not be summed to reconstruct external wall time."
+    },
+    "run_order": "for each count ascending: all applicable warmup rounds interleaved by fixed mode order, then all measured rounds interleaved by fixed mode order; every command and ordinal recorded",
+    "mode_order": [
+      "cpu_sequential",
+      "cpu_process_parallel",
+      "gpu_compute_only",
+      "gpu_full",
+      "gpu_summary"
+    ],
+    "provenance": [
+      "parent_commit",
+      "aircraft_simu_commit",
+      "m7_report_sha256",
+      "m8_a1_receipt_sha256",
+      "m8_a2_receipt_sha256",
+      "m8_a3_receipt_sha256",
+      "contract_sha256",
+      "harness_sha256",
+      "input_sha256",
+      "binary_sha256",
+      "gpu_source_tree_sha256",
+      "os",
+      "cpu_model",
+      "cpu_affinity",
+      "gpu_model",
+      "gpu_driver",
+      "gpu_memory_mib",
+      "cuda_toolkit",
+      "cuda_runtime_version",
+      "command_order"
+    ],
+    "correctness_policy": "Each successful campaign must complete every instance without failure; its semantic result is checked before a measured sample is accepted. Formal CPU/GPU parity remains guarded by M8-A2/A3 and later M8-G.",
+    "output_policy": "New build/m8_b2_* or build/m8_b3_* root and new tracked receipt only; pre-create the parent directory of each campaign output because the pinned CPU environment does not recursively create it; CPU-derived runtimes also use a fixed port range outside the host ephemeral range; never overwrite a previous run, partial output or PASS receipt.",
+    "performance_claim_policy": "M8-B2/B3 publish raw untuned samples and statistics only; speedup and threshold verdicts belong to M8-C3/M8-H3. M8-A diagnostic wall times are not benchmark samples."
+  },
+  "cpu_reference": null,
+  "command_order": [
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "warmup",
+      "ordinal": 0
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "warmup",
+      "ordinal": 0
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 0
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 0
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 1
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 1
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 2
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 2
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 3
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 3
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 4
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 4
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "warmup",
+      "ordinal": 0
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "warmup",
+      "ordinal": 0
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 0
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 0
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 1
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 1
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 2
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 2
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 3
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 3
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 4
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 4
+    }
+  ],
+  "records": [
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "warmup",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/warmup_00.json"
+      ],
+      "output": "runs/n64/cpu_sequential/warmup_00",
+      "log": "logs/000_n64_cpu_sequential_warmup_00.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/warmup_00.json",
+      "external_wall_s": 238.406296727,
+      "metric": "external_wall_s",
+      "sample_s": 238.406296727,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "f7e4dfd12db3d621ecfc0efeef35ac5b5d4decc440665046545cb550dd975bf9"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "warmup",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/warmup_00.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/warmup_00",
+      "log": "logs/001_n64_cpu_process_parallel_warmup_00.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/warmup_00.json",
+      "external_wall_s": 38.217773078,
+      "metric": "external_wall_s",
+      "sample_s": 38.217773078,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "0f7258d33d20f041f7e57330f302d5adaa146c4e7de28d00f766f864531349d9"
+      },
+      "log_sha256": "157ece561a5bf40197b563db0215535fe7ea169f7775c1678de1463c4e6ae3cc"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/measure_00.json"
+      ],
+      "output": "runs/n64/cpu_sequential/measure_00",
+      "log": "logs/002_n64_cpu_sequential_measure_00.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/measure_00.json",
+      "external_wall_s": 238.445507716,
+      "metric": "external_wall_s",
+      "sample_s": 238.445507716,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "e7145bf0f2b68fcb6fe6140da97043fa13bfc1ada20c010e6ee9b2738c9c4bb1"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/measure_00.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/measure_00",
+      "log": "logs/003_n64_cpu_process_parallel_measure_00.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/measure_00.json",
+      "external_wall_s": 38.163470028,
+      "metric": "external_wall_s",
+      "sample_s": 38.163470028,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "208d4c2428a3f9436c182733e0e94f0697b138552c36fdd0de0a1d8cb1f3e6cf"
+      },
+      "log_sha256": "30e750e783e717bf50b9dbca1f2aa6802005e0718ede30360c082790c0455970"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 1,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/measure_01.json"
+      ],
+      "output": "runs/n64/cpu_sequential/measure_01",
+      "log": "logs/004_n64_cpu_sequential_measure_01.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/measure_01.json",
+      "external_wall_s": 235.867394819,
+      "metric": "external_wall_s",
+      "sample_s": 235.867394819,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "bda059637b4dd5c2a8cbc072fc1b5503b4736f41c263d38c143cd88f415ce7d4"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 1,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/measure_01.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/measure_01",
+      "log": "logs/005_n64_cpu_process_parallel_measure_01.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/measure_01.json",
+      "external_wall_s": 37.861191788,
+      "metric": "external_wall_s",
+      "sample_s": 37.861191788,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "858540721b45e51de364b6a9c0735a0d077458d2452c7972479fc55e73a81104"
+      },
+      "log_sha256": "bfaf8d5279493d38f6746e8533d5d16293b0a9cf2a9bf0c3e773e1132f7224ab"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 2,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/measure_02.json"
+      ],
+      "output": "runs/n64/cpu_sequential/measure_02",
+      "log": "logs/006_n64_cpu_sequential_measure_02.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/measure_02.json",
+      "external_wall_s": 237.743946232,
+      "metric": "external_wall_s",
+      "sample_s": 237.743946232,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "0190b1c1e917ec4e0f2128815aee61fc03a82f7b7f8d32f4b020e962a8264480"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 2,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/measure_02.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/measure_02",
+      "log": "logs/007_n64_cpu_process_parallel_measure_02.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/measure_02.json",
+      "external_wall_s": 37.964901166,
+      "metric": "external_wall_s",
+      "sample_s": 37.964901166,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "c34a8ec57c913119f6691c701d2249a1964abca7bf51e526aaab4518fd4507e4"
+      },
+      "log_sha256": "e479c90578d42ee3d4d85403057eccac7cdc4bea5fbe01d6a9eeac356de0f2ef"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 3,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/measure_03.json"
+      ],
+      "output": "runs/n64/cpu_sequential/measure_03",
+      "log": "logs/008_n64_cpu_sequential_measure_03.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/measure_03.json",
+      "external_wall_s": 235.718796949,
+      "metric": "external_wall_s",
+      "sample_s": 235.718796949,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "9fd454cf6ddc7ab7c89f72644b068917c0905db4f43ff0d1db53518b40ec87a5"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 3,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/measure_03.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/measure_03",
+      "log": "logs/009_n64_cpu_process_parallel_measure_03.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/measure_03.json",
+      "external_wall_s": 37.514009692,
+      "metric": "external_wall_s",
+      "sample_s": 37.514009692,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "d0ecd1bcf0a76ca4b7736b1a89f7cea8acc7a8d0d9070daa44e404785e48f232"
+      },
+      "log_sha256": "35ca64ef3c08d255d34d1b917b3112169884f5caace96a9b7e82f85f92481ec7"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 4,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_sequential/measure_04.json"
+      ],
+      "output": "runs/n64/cpu_sequential/measure_04",
+      "log": "logs/010_n64_cpu_sequential_measure_04.log",
+      "derived_runtime": "runtimes/n64/cpu_sequential/measure_04.json",
+      "external_wall_s": 241.216081208,
+      "metric": "external_wall_s",
+      "sample_s": 241.216081208,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "59ee6a70180ccc863cb5cbbae550a38b8647039ac553cfb502f58d8177380102"
+      },
+      "log_sha256": "c49bd41c86dd998110990d31d58b5b5e209d8ac58998a44d61092529c1adf745"
+    },
+    {
+      "count": 64,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 4,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n64/cpu_process_parallel/measure_04.json"
+      ],
+      "output": "runs/n64/cpu_process_parallel/measure_04",
+      "log": "logs/011_n64_cpu_process_parallel_measure_04.log",
+      "derived_runtime": "runtimes/n64/cpu_process_parallel/measure_04.json",
+      "external_wall_s": 37.325187338,
+      "metric": "external_wall_s",
+      "sample_s": 37.325187338,
+      "semantics": {
+        "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46",
+        "campaign_summary_sha256": "6acc24b9c894d1b5ef1c8d0c4630e08424aff923212981057732a2ee8d125c02"
+      },
+      "log_sha256": "6436fcfec89385cd4b2c0a172703e9f137a548512493132d78e5cc3418c6e1b7"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "warmup",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/warmup_00.json"
+      ],
+      "output": "runs/n128/cpu_sequential/warmup_00",
+      "log": "logs/012_n128_cpu_sequential_warmup_00.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/warmup_00.json",
+      "external_wall_s": 488.858862424,
+      "metric": "external_wall_s",
+      "sample_s": 488.858862424,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "eaf94da3fadcaca8738b81420c53c54f46d725ed534094e26710824836af98f6"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "warmup",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/warmup_00.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/warmup_00",
+      "log": "logs/013_n128_cpu_process_parallel_warmup_00.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/warmup_00.json",
+      "external_wall_s": 74.256640178,
+      "metric": "external_wall_s",
+      "sample_s": 74.256640178,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "b300d307ce22054c5028cdbe38341c96b0988bc91d041e7f29d4f5ed09301df0"
+      },
+      "log_sha256": "2197f838c9306e0ba2031dcf795404bc0fac37976cf2c104a75bd6d8acf810b2"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/measure_00.json"
+      ],
+      "output": "runs/n128/cpu_sequential/measure_00",
+      "log": "logs/014_n128_cpu_sequential_measure_00.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/measure_00.json",
+      "external_wall_s": 504.911394521,
+      "metric": "external_wall_s",
+      "sample_s": 504.911394521,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "012de9753b7341daabf2ed85cb6989eca3a17da568298128f4e8df727ee7ee8a"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 0,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/measure_00.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/measure_00",
+      "log": "logs/015_n128_cpu_process_parallel_measure_00.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/measure_00.json",
+      "external_wall_s": 74.228555397,
+      "metric": "external_wall_s",
+      "sample_s": 74.228555397,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "e4f9306e3d35bbd10cdd0cf75efc9b28e11daa2c24f02493615da5be7ee312b2"
+      },
+      "log_sha256": "7aa7941ad991a5add89e4da72baede7f46487a68bb1d58e25e3ed2d9e5a124ab"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 1,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/measure_01.json"
+      ],
+      "output": "runs/n128/cpu_sequential/measure_01",
+      "log": "logs/016_n128_cpu_sequential_measure_01.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/measure_01.json",
+      "external_wall_s": 494.626291453,
+      "metric": "external_wall_s",
+      "sample_s": 494.626291453,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "683ecef5cca59c330d1865f17dff71784c67e95475ccde4f6709ecedbd72c3f6"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 1,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/measure_01.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/measure_01",
+      "log": "logs/017_n128_cpu_process_parallel_measure_01.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/measure_01.json",
+      "external_wall_s": 73.955072066,
+      "metric": "external_wall_s",
+      "sample_s": 73.955072066,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "dd5040085f1c496969307bf86d0b5db91efc97a8842d18753d9438298823d46e"
+      },
+      "log_sha256": "9521f7d2677615b0c5f7d3b76dd3ad918f5e48ef05c77179e557ac6200e5ab8e"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 2,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/measure_02.json"
+      ],
+      "output": "runs/n128/cpu_sequential/measure_02",
+      "log": "logs/018_n128_cpu_sequential_measure_02.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/measure_02.json",
+      "external_wall_s": 490.051233292,
+      "metric": "external_wall_s",
+      "sample_s": 490.051233292,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "d820e61193efa28aec6721d0025d9eb98f5830db8a3a78f9c9f960b3150776a6"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 2,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/measure_02.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/measure_02",
+      "log": "logs/019_n128_cpu_process_parallel_measure_02.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/measure_02.json",
+      "external_wall_s": 72.363054813,
+      "metric": "external_wall_s",
+      "sample_s": 72.363054813,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "4739a26176839f0a3ae32b09be67f6807fd89c32dd75fd364a355f8a399b017a"
+      },
+      "log_sha256": "d51897250c779a6ca6d3238b6953d436a07bca182e24f216d8ceb6fd1ce791b5"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 3,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/measure_03.json"
+      ],
+      "output": "runs/n128/cpu_sequential/measure_03",
+      "log": "logs/020_n128_cpu_sequential_measure_03.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/measure_03.json",
+      "external_wall_s": 487.273011989,
+      "metric": "external_wall_s",
+      "sample_s": 487.273011989,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "5463422aaed909af6f6e8832c63c3ea8afe5400f4bae2e12477fd6c78468b023"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 3,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/measure_03.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/measure_03",
+      "log": "logs/021_n128_cpu_process_parallel_measure_03.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/measure_03.json",
+      "external_wall_s": 73.66068087,
+      "metric": "external_wall_s",
+      "sample_s": 73.66068087,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "b4450f8bd1773095bf701c767d7be0ae84208981cf4aa33e0b9e424d1a4438b4"
+      },
+      "log_sha256": "a5ad07edae7c29288c1dd1fd41841b823b0d5e39588a4934478aefd222dbddd4"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_sequential",
+      "phase": "measure",
+      "ordinal": 4,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_sequential/measure_04.json"
+      ],
+      "output": "runs/n128/cpu_sequential/measure_04",
+      "log": "logs/022_n128_cpu_sequential_measure_04.log",
+      "derived_runtime": "runtimes/n128/cpu_sequential/measure_04.json",
+      "external_wall_s": 484.657648568,
+      "metric": "external_wall_s",
+      "sample_s": 484.657648568,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "7b9f6322a2d163a1e1886cfbe46415950ff0c57503670ede831019976b47f358"
+      },
+      "log_sha256": "55745fa2ba39e49c82188cc358dc418291c61a9a6ff9b8311769f9cd3e8e4ffb"
+    },
+    {
+      "count": 128,
+      "mode": "cpu_process_parallel",
+      "phase": "measure",
+      "ordinal": 4,
+      "command": [
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/cpu_baseline/instance_manager",
+        "--runtime",
+        "/home/yzypromax/.document/project/c2cuda/Auto-C-To-CUDA/gpu_workspace/build/m8_b2_cpu_20261013_v3/runtimes/n128/cpu_process_parallel/measure_04.json"
+      ],
+      "output": "runs/n128/cpu_process_parallel/measure_04",
+      "log": "logs/023_n128_cpu_process_parallel_measure_04.log",
+      "derived_runtime": "runtimes/n128/cpu_process_parallel/measure_04.json",
+      "external_wall_s": 70.664542923,
+      "metric": "external_wall_s",
+      "sample_s": 70.664542923,
+      "semantics": {
+        "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475",
+        "campaign_summary_sha256": "d1a4bbe5b29cbaae62c1c40a8d49507c0d50c8696587d2a052aa5ebf21e7c48c"
+      },
+      "log_sha256": "723d161c67d9c321eb7ca324afd1df4d75ff78a17dbf2e50d5c2a3bbefc89f4d"
+    }
+  ],
+  "measurements": {
+    "n64_cpu_sequential": {
+      "metric": "external_wall_s",
+      "warmup_count": 1,
+      "statistics": {
+        "n": 5,
+        "median_s": 237.743946232,
+        "p95_s": 240.6619665096,
+        "min_s": 235.718796949,
+        "max_s": 241.216081208
+      },
+      "samples_s": [
+        238.445507716,
+        235.867394819,
+        237.743946232,
+        235.718796949,
+        241.216081208
+      ],
+      "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46"
+    },
+    "n64_cpu_process_parallel": {
+      "metric": "external_wall_s",
+      "warmup_count": 1,
+      "statistics": {
+        "n": 5,
+        "median_s": 37.861191788,
+        "p95_s": 38.1237562556,
+        "min_s": 37.325187338,
+        "max_s": 38.163470028
+      },
+      "samples_s": [
+        38.163470028,
+        37.861191788,
+        37.964901166,
+        37.514009692,
+        37.325187338
+      ],
+      "semantic_sha256": "91de6e2a2cd3fd370d926cb2c9924cbdbabcb02401dc6f724891fd484c800a46"
+    },
+    "n128_cpu_sequential": {
+      "metric": "external_wall_s",
+      "warmup_count": 1,
+      "statistics": {
+        "n": 5,
+        "median_s": 490.051233292,
+        "p95_s": 502.8543739074,
+        "min_s": 484.657648568,
+        "max_s": 504.911394521
+      },
+      "samples_s": [
+        504.911394521,
+        494.626291453,
+        490.051233292,
+        487.273011989,
+        484.657648568
+      ],
+      "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475"
+    },
+    "n128_cpu_process_parallel": {
+      "metric": "external_wall_s",
+      "warmup_count": 1,
+      "statistics": {
+        "n": 5,
+        "median_s": 73.66068087,
+        "p95_s": 74.17385873079999,
+        "min_s": 70.664542923,
+        "max_s": 74.228555397
+      },
+      "samples_s": [
+        74.228555397,
+        73.955072066,
+        72.363054813,
+        73.66068087,
+        70.664542923
+      ],
+      "semantic_sha256": "0a270c3bf9707c56911b525b4cabdc045523c1fae73eeeed3935a7bbe6b61475"
+    }
+  },
+  "validation": {
+    "all_campaigns_completed": true,
+    "within_mode_semantics_exact": true,
+    "across_mode_semantics_exact": true,
+    "cpu_gpu_shared_semantics": false,
+    "performance_threshold_claimed": false
+  }
+}
