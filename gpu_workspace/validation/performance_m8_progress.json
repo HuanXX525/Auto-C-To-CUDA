@@ -201,7 +201,7 @@
         "24 campaigns completed: N=64/128 by CPU sequential/process-parallel, one warmup and five measured campaigns per cell",
         "all 20 measured campaigns have complete full-output results and zero failed instances",
         "warmups excluded; external monotonic process wall time used for all CPU samples",
-        "per-instance semantic SHA-256 identical across repeats and CPU schedules for each N",
+        "per-instance summary.json plus event_log.txt semantic SHA-256 identical across repeats and CPU schedules for each N; full trajectories were not byte-compared in this segment",
         "local and tracked receipts are byte-identical; independent check-run validates logs, outputs, samples and statistics",
         "v1/v2 failed or partial outputs are retained but contribute zero samples to this receipt"
       ],

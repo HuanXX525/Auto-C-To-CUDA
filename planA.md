@@ -122,7 +122,8 @@ runtime.json
   `gpu_workspace/validation/m8_receipts/m8_b1_contract_v3.json`
   （SHA-256 `22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21`）。
   B2 已按该合同完成 N=64/128 的 CPU sequential/process-parallel 各 1 次预热、
-  5 次测量，共 24 轮；逐实例结果在重复轮次与调度方式之间精确一致。外部 wall
+  5 次测量，共 24 轮；逐实例 `summary.json` 与事件日志的语义哈希在重复轮次
+  与调度方式之间精确一致（本段未逐字节比较完整轨迹）。外部 wall
   中位数分别为 N=64 顺序 `237.744 s`、并行 `37.861 s`，N=128 顺序
   `490.051 s`、并行 `73.661 s`；这是 CPU 参考数据，不是 GPU 加速结论。
   B2 回执为 `gpu_workspace/validation/m8_receipts/m8_b2_cpu.json`
@@ -227,8 +228,9 @@ M8 使用 `gpu_workspace/validation/performance_m8_progress.json` 作为活动�
      24 个 CPU、70 个 GPU campaign 均未在 B1 执行。
    - **B2（已通过并停止）**：按 v3 冻结协议完成 CPU sequential 与 process-parallel；
      每个 N=64/128、每个模式预热 1 次、测量 5 次，共 24 轮。20 个正式样本及
-     median/P95/min/max、输出哈希与命令顺序均在回执中；各 N 的逐实例语义在重复轮次
-     和调度方式之间精确一致。尚未进行 CPU/GPU 性能阈值判定。
+     median/P95/min/max、摘要/事件语义哈希与命令顺序均在回执中；各 N 的逐实例
+     摘要和事件语义在重复轮次、调度方式之间精确一致，完整轨迹未在本段逐字节比较。
+     尚未进行 CPU/GPU 性能阈值判定。
    - **B3（下一段）**：测未优化 GPU compute/full/summary；compute-only
      预热 3 次、测量 20 次，full/summary 各预热 1 次、测量 5 次；GPU 完整
      结果与 B2 CPU 的共享语义比较必须通过。
