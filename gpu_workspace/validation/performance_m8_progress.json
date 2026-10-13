@@ -218,21 +218,54 @@
         "cpu_gpu_compared_in_this_segment": false,
         "performance_threshold_claimed": false
       }
+    },
+    {
+      "id": "M8-B3",
+      "name": "untuned GPU compute/full/summary reference measurements",
+      "status": "PASS",
+      "command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section gpu --cpu-reference gpu_workspace/build/m8_b2_cpu_20261013_v3 --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
+      "verification_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --check-run-section gpu --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
+      "output": "gpu_workspace/build/m8_b3_gpu_20261013",
+      "receipt": "gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
+      "receipt_sha256": "5815c2891d56dc1c9c95351989cdd5ecf4ca98c9b3f7da9d06f30f306ac8d21e",
+      "m8_b1_receipt_sha256": "22c8de2f3a05635e3752c1bfa1a905b26f9b3344c0744ec5a7d7a03794236e21",
+      "m8_b2_receipt_sha256": "8c8f8745d56d830e656930af7ead750fbdd0222daa4f2d0da95f57bb0e329bb7",
+      "checks": [
+        "70 campaigns completed: N=64/128 by GPU production-kernel compute-only, full and summary",
+        "10 warmups excluded; 60 formal samples comprise 40 compute-only, 10 full and 10 summary campaigns",
+        "compute-only samples use summed production-kernel CUDA event time; full/summary use external monotonic process wall time",
+        "all campaigns completed every instance without failure; per-instance summary.json plus event_log.txt semantic SHA-256 is exact across GPU repeats and modes for each N",
+        "all GPU outputs pass the frozen B2 CPU shared summary/event semantic field comparison at rtol=1e-10, atol=1e-12",
+        "local and tracked receipts are byte-identical; independent check-run validates logs, outputs, samples, statistics and CPU/GPU shared semantics",
+        "full trajectory and A2 calibrated terminal x/y are outside this B3 shared-field comparison; no performance threshold verdict is claimed"
+      ],
+      "result_summary": {
+        "receipt_status": "MEASURED_NO_VERDICT",
+        "warmup_campaigns": 10,
+        "measured_campaigns": 60,
+        "gpu_compute_only_n64_median_s": 3.493991518,
+        "gpu_full_n64_median_s": 33.905920978,
+        "gpu_summary_n64_median_s": 4.836931501,
+        "gpu_compute_only_n128_median_s": 3.5117804145,
+        "gpu_full_n128_median_s": 60.847249255,
+        "gpu_summary_n128_median_s": 5.741641182,
+        "gpu_n64_semantic_sha256": "8e5d36b4963b68223ad8110547d397e3cdef6798581cab7e5f5c27e2bbe318d4",
+        "gpu_n128_semantic_sha256": "c50eeee2916d67f5c3e0ead73d1f8f5c479ea32bb921539e31159a962c1f1edc",
+        "cpu_gpu_shared_semantics": true,
+        "performance_threshold_claimed": false
+      }
     }
   ],
   "current_segment": {
-    "id": "M8-B3",
-    "name": "untuned GPU compute/full/summary reference measurements",
+    "id": "M8-C1",
+    "name": "N=1/2/8/32/64/128 compute-only scaling",
     "status": "NEXT",
-    "planned_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section gpu --cpu-reference gpu_workspace/build/m8_b2_cpu_20261013_v3 --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
-    "resume_command": "python3 gpu_workspace/tools/run_m8_benchmark.py --run-section gpu --resume --cpu-reference gpu_workspace/build/m8_b2_cpu_20261013_v3 --output gpu_workspace/build/m8_b3_gpu_20261013 --receipt gpu_workspace/validation/m8_receipts/m8_b3_gpu.json",
+    "planned_work": "Freeze a separate compute-only scaling protocol for N=1/2/8/32/64/128 against the same production kernel, 12000-step workload and hardware; do not mutate the M8-B1 v3 contract or B3 receipt.",
     "acceptance": [
-      "N=64/128 use the same frozen uniform input and 12000-step horizon as M8-B2",
-      "production-kernel compute-only uses three warmups and 20 measured samples per N",
-      "GPU full and summary each use one warmup and five measured campaigns per N",
-      "all GPU outputs match the B2 CPU reference in shared semantics and remain deterministic across repeats/modes",
-      "compute-only kernel event time is reported separately from external full/summary wall time",
-      "publish fresh local/tracked receipt with raw samples and independently verify it; stop before M8-C1"
+      "N=1/2/8/32/64/128 each uses the production kernel with 12000 steps, three warmups and 20 measured event-time samples",
+      "retain per-count raw samples, median/P95/min/max, resource/hardware fingerprints and per-instance summary/event hashes",
+      "N=64/128 results remain traceable to B3 or are explicitly remeasured without mixing incompatible protocols",
+      "publish and independently verify a new C1 receipt; stop before M8-C2"
     ]
   },
   "segments": [
@@ -241,8 +274,8 @@
     {"id": "M8-A3", "status": "PASS", "name": "heterogeneous N=128 long correctness and state-isolation baseline"},
     {"id": "M8-B1", "status": "PASS", "name": "timing schema and benchmark harness freeze"},
     {"id": "M8-B2", "status": "PASS", "name": "CPU sequential and process-parallel reference measurements"},
-    {"id": "M8-B3", "status": "NEXT", "name": "untuned GPU compute/full/summary reference measurements"},
-    {"id": "M8-C1", "status": "PENDING", "name": "N=1/2/8/32/64/128 compute-only scaling"},
+    {"id": "M8-B3", "status": "PASS", "name": "untuned GPU compute/full/summary reference measurements"},
+    {"id": "M8-C1", "status": "NEXT", "name": "N=1/2/8/32/64/128 compute-only scaling"},
     {"id": "M8-C2", "status": "PENDING", "name": "N=1/2/8/32/64/128 end-to-end scaling"},
     {"id": "M8-C3", "status": "PENDING", "name": "N=64/128 initial acceptance-gap report"},
     {"id": "M8-D1", "status": "PENDING", "name": "serial and packed lanes=4/8/16/32 sweep"},
@@ -265,5 +298,5 @@
     {"id": "M8-I2", "status": "PENDING", "name": "clean-checkout reproduction"},
     {"id": "M8-I3", "status": "PENDING", "name": "aggregate receipts and close M8"}
   ],
-  "stop_boundary": "M8-B2 CPU reference measurement and independent receipt verification are complete. Stop before M8-B3; no formal GPU performance campaigns were run in this segment."
+  "stop_boundary": "M8-B3 untuned GPU reference measurement and independent receipt verification are complete. Stop before M8-C1; no scaling or optimization campaign was run in this segment."
 }
