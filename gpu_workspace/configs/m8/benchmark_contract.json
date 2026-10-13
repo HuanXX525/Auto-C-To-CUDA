@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "revision": 3,
   "phase": "M8",
   "segment": "M8-B1",
   "purpose": "Frozen untuned benchmark protocol; this document contains no performance results.",
@@ -13,6 +14,9 @@
       "128": "gpu_workspace/configs/m8/generated/runtimes/uniform_n128.json"
     },
     "cpu_parallel_processes": 6,
+    "cpu_benchmark_environment_base_port": 62000,
+    "cpu_benchmark_flight_control_base_port": 62001,
+    "cpu_port_policy": "Derived CPU-only transport ports 62000..62255 are outside the observed Linux UDP ephemeral allocation range; physical/scenario/seed inputs are unchanged. Abort if the host ephemeral range overlaps these ports.",
     "gpu_mapping": "packed",
     "gpu_lanes_per_block": 4,
     "gpu_chunk_steps": 256
@@ -45,6 +49,6 @@
   "mode_order": ["cpu_sequential", "cpu_process_parallel", "gpu_compute_only", "gpu_full", "gpu_summary"],
   "provenance": ["parent_commit", "aircraft_simu_commit", "m7_report_sha256", "m8_a1_receipt_sha256", "m8_a2_receipt_sha256", "m8_a3_receipt_sha256", "contract_sha256", "harness_sha256", "input_sha256", "binary_sha256", "gpu_source_tree_sha256", "os", "cpu_model", "cpu_affinity", "gpu_model", "gpu_driver", "gpu_memory_mib", "cuda_toolkit", "cuda_runtime_version", "command_order"],
   "correctness_policy": "Each successful campaign must complete every instance without failure; its semantic result is checked before a measured sample is accepted. Formal CPU/GPU parity remains guarded by M8-A2/A3 and later M8-G.",
-  "output_policy": "New build/m8_b2_* or build/m8_b3_* root and new tracked receipt only; never overwrite a previous run, partial output or PASS receipt.",
+  "output_policy": "New build/m8_b2_* or build/m8_b3_* root and new tracked receipt only; pre-create the parent directory of each campaign output because the pinned CPU environment does not recursively create it; CPU-derived runtimes also use a fixed port range outside the host ephemeral range; never overwrite a previous run, partial output or PASS receipt.",
   "performance_claim_policy": "M8-B2/B3 publish raw untuned samples and statistics only; speedup and threshold verdicts belong to M8-C3/M8-H3. M8-A diagnostic wall times are not benchmark samples."
 }

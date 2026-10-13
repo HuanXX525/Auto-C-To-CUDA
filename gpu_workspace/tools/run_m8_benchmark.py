@@ -19,6 +19,7 @@ import signal
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,8 +29,11 @@ from typing import Any, Sequence
 WORKSPACE = Path(__file__).resolve().parents[1]
 REPO = WORKSPACE.parent
 CONTRACT = WORKSPACE / "configs/m8/benchmark_contract.json"
-B1_RECEIPT = WORKSPACE / "validation/m8_receipts/m8_b1_contract.json"
-B1_LOCAL = WORKSPACE / "build/m8_b1_contract/m8_b1_receipt.json"
+B1_RECEIPT = WORKSPACE / "validation/m8_receipts/m8_b1_contract_v3.json"
+B1_LOCAL = WORKSPACE / "build/m8_b1_contract_v3/m8_b1_receipt.json"
+SMOKE_ROOT = WORKSPACE / "build/m8_b1_smoke_v3"
+SUPERSEDED_B1_RECEIPT = WORKSPACE / "validation/m8_receipts/m8_b1_contract_v2.json"
+SUPERSEDED_B1_SHA256 = "a50e678a91d598ded18e105f5efba9e61c00da4f785f1ac01631a3d349705d94"
 RECEIPT_DIR = WORKSPACE / "validation/m8_receipts"
 SOURCE_RECEIPTS = {
     "m8_a1_receipt_sha256": "m8_a1_inputs.json",
@@ -114,9 +118,21 @@ def command_output(argv: Sequence[str], timeout: int = 15) -> str:
     return result.stdout.strip()
 
 
+def read_ephemeral_port_range() -> list[int]:
+    try:
+        fields = Path("/proc/sys/net/ipv4/ip_local_port_range").read_text(
+            encoding="ascii").split()
+        low, high = (int(value) for value in fields)
+    except (OSError, ValueError) as exc:
+        fail(f"cannot read host UDP ephemeral port range: {exc}")
+    if not 1 <= low <= high <= 65535:
+        fail(f"invalid host UDP ephemeral port range: {low}-{high}")
+    return [low, high]
+
+
 def validate_contract() -> dict[str, Any]:
     contract = read_json(CONTRACT)
-    for key, expected in (("schema_version", 1), ("phase", "M8"),
+    for key, expected in (("schema_version", 1), ("revision", 3), ("phase", "M8"),
                           ("segment", "M8-B1")):
         if contract.get(key) != expected:
             fail(f"contract {key} mismatch")
@@ -125,6 +141,8 @@ def validate_contract() -> dict[str, Any]:
         workload["instance_counts"] != [64, 128] or
         workload["steps"] != 12000 or workload["dt_s"] != 0.01 or
         workload["cpu_parallel_processes"] != 6 or
+        workload["cpu_benchmark_environment_base_port"] != 62000 or
+        workload["cpu_benchmark_flight_control_base_port"] != 62001 or
         workload["gpu_mapping"] != "packed" or
         workload["gpu_lanes_per_block"] != 4 or
         workload["gpu_chunk_steps"] != 256):
@@ -216,6 +234,12 @@ def self_test() -> list[str]:
     check("GPU compute has 20 measured samples each count",
           sum(item["mode"] == "gpu_compute_only" and item["phase"] == "measure"
               for item in gpu) == 40)
+    check("CPU benchmark port ceiling", 62001 + 2 * 127 == 62255)
+    with tempfile.TemporaryDirectory(prefix="m8_b1_parent_test_") as temporary:
+        output = Path(temporary) / "runs/n64/cpu_sequential/warmup_00"
+        prepare_output_parent(output)
+        check("campaign parent exists but output is fresh",
+              output.parent.is_dir() and not output.exists())
     try:
         checked_run_root(REPO, "cpu")
     except BenchmarkError:
@@ -249,6 +273,11 @@ def get_provenance(contract: dict[str, Any]) -> dict[str, Any]:
     gpu_binary_sha = sha256(BINARIES["gpu_campaign"])
     if gpu_binary_sha != a3["source"]["binary_sha256"]["gpu_campaign"]:
         fail("GPU executable differs from the protected M8-A3 correctness binary")
+    ephemeral = read_ephemeral_port_range()
+    cpu_first = contract["workload"]["cpu_benchmark_environment_base_port"]
+    cpu_last = contract["workload"]["cpu_benchmark_flight_control_base_port"] + 2 * 127
+    if not (cpu_last < ephemeral[0] or cpu_first > ephemeral[1]):
+        fail(f"CPU benchmark ports {cpu_first}-{cpu_last} overlap host ephemeral range {ephemeral}")
     cpu_model = "unknown"
     for line in Path("/proc/cpuinfo").read_text(encoding="utf-8").splitlines():
         if line.startswith("model name"):
@@ -268,6 +297,8 @@ def get_provenance(contract: dict[str, Any]) -> dict[str, Any]:
         "gpu_source_tree_sha256": source_tree_sha256(),
         "os": platform.platform(), "cpu_model": cpu_model,
         "cpu_affinity": sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None,
+        "udp_ephemeral_port_range": ephemeral,
+        "cpu_benchmark_port_range": [cpu_first, cpu_last],
         "gpu_model": fields[0], "gpu_driver": fields[1],
         "gpu_memory_mib": int(fields[2]),
         "cuda_runtime_version": a3["hardware"]["cuda_runtime_version"],
@@ -296,12 +327,28 @@ def freeze_contract() -> str:
     contract = validate_contract()
     provenance = get_provenance(contract)
     validate_prior_receipts(provenance)
+    if sha256(SUPERSEDED_B1_RECEIPT) != SUPERSEDED_B1_SHA256:
+        fail("superseded M8-B1 receipt was changed")
+    smoke_receipt = read_json(SMOKE_ROOT / "smoke_receipt.json")
+    if smoke_receipt.get("status") != "PASS" or \
+       smoke_receipt.get("cpu_binary_sha256") != provenance["binary_sha256"]["cpu_instance_manager"]:
+        fail("revised CPU nested-output integration smoke has not passed")
     plan = {section: make_plan(contract, section) for section in ("cpu", "gpu")}
     receipt = {
         "schema_version": 1, "phase": "M8", "segment": "M8-B1",
         "status": "PASS", "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "complete_m8_gate": False, "next_segment": "M8-B2",
         "source": provenance,
+        "correction": {
+            "superseded_receipt": str(SUPERSEDED_B1_RECEIPT.relative_to(REPO)),
+            "superseded_receipt_sha256": SUPERSEDED_B1_SHA256,
+            "reason": "first M8-B2 CPU sequential warmup failed before simulation because the pinned environment only mkdirs the output directory, not its missing parent",
+            "failed_output_preserved": "gpu_workspace/build/m8_b2_cpu_20261013",
+            "formal_samples_accepted_from_failed_output": 0,
+            "second_failure": "M8-B2 v2 N=128 parallel measure 1 had one environment UDP bind failure at port 55084, inside host ephemeral range 32768-60999; first 17 valid records are archived but not reused across port protocols",
+            "second_failed_output_preserved": "gpu_workspace/build/m8_b2_cpu_20261013_v2",
+            "integration_smoke_receipt_sha256": sha256(SMOKE_ROOT / "smoke_receipt.json"),
+        },
         "contract": contract,
         "dry_run_plan": plan,
         "self_tests": tests,
@@ -325,7 +372,12 @@ def check_contract() -> str:
     tracked = B1_RECEIPT.read_bytes()
     if local != tracked:
         fail("M8-B1 local/tracked receipts differ")
+    if sha256(SUPERSEDED_B1_RECEIPT) != SUPERSEDED_B1_SHA256:
+        fail("superseded M8-B1 receipt was changed")
     receipt = read_json(B1_RECEIPT)
+    if receipt["correction"]["integration_smoke_receipt_sha256"] != \
+       sha256(SMOKE_ROOT / "smoke_receipt.json"):
+        fail("M8-B1 integration smoke evidence changed")
     if receipt["status"] != "PASS" or receipt["contract"] != contract or \
        receipt["self_tests"] != tests:
         fail("M8-B1 receipt contract or tests changed")
@@ -422,6 +474,43 @@ def output_semantics(directory: Path, count: int, gpu: bool) -> dict[str, Any]:
     return result
 
 
+def smoke_cpu_nested_output() -> str:
+    """One functional CPU campaign; no timing sample enters any benchmark receipt."""
+    if SMOKE_ROOT.exists():
+        fail(f"refusing to replace existing smoke output: {SMOKE_ROOT}")
+    contract = validate_contract()
+    ephemeral = read_ephemeral_port_range()
+    if not (62001 + 2 * 127 < ephemeral[0] or 62000 > ephemeral[1]):
+        fail(f"smoke CPU ports overlap ephemeral range {ephemeral}")
+    source = REPO / contract["workload"]["runtimes"]["64"]
+    runtime = copy.deepcopy(read_json(source))
+    runtime["campaign"]["campaign_id"] = "m8_b1_nested_output_smoke"
+    runtime["campaign"]["instance_count"] = 8
+    runtime["campaign"]["schedule"] = "PARALLEL"
+    runtime["campaign"]["max_parallel_instances"] = 6
+    runtime["instances"] = runtime["instances"][:8]
+    runtime["network"]["environment_base_port"] = 62000
+    runtime["network"]["flight_control_base_port"] = 62001
+    output = SMOKE_ROOT / "runs/n8/cpu_process_parallel/warmup_00"
+    runtime["logging"]["output_dir"] = str(output)
+    SMOKE_ROOT.mkdir(parents=True)
+    runtime_path = SMOKE_ROOT / "runtime.json"
+    write_exclusive(runtime_path, encoded(runtime))
+    prepare_output_parent(output)
+    argv = [str(BINARIES["cpu_instance_manager"]), "--runtime", str(runtime_path)]
+    log = SMOKE_ROOT / "cpu.log"
+    run_process(argv, log)
+    result = output_semantics(output, 8, False)
+    receipt = {"schema_version": 1, "segment": "M8-B1", "status": "PASS",
+               "purpose": "functional nested-output check only; not a performance sample",
+               "cpu_binary_sha256": sha256(BINARIES["cpu_instance_manager"]),
+               "runtime_sha256": sha256(runtime_path), "log_sha256": sha256(log),
+               "semantic_sha256": result["semantic_sha256"],
+               "instance_count": 8, "formal_performance_samples": 0}
+    write_exclusive(SMOKE_ROOT / "smoke_receipt.json", encoded(receipt))
+    return sha256(SMOKE_ROOT / "smoke_receipt.json")
+
+
 def validate_mode_output(directory: Path, mode: str, semantics: dict[str, Any],
                          contract: dict[str, Any]) -> None:
     if mode.startswith("cpu_"):
@@ -429,6 +518,13 @@ def validate_mode_output(directory: Path, mode: str, semantics: dict[str, Any],
         expected = "SEQUENTIAL" if mode == "cpu_sequential" else "PARALLEL"
         if campaign["schedule"] != expected:
             fail(f"{directory}: unexpected CPU schedule")
+        for index in (0, campaign["instance_count"] - 1):
+            manifest = read_json(directory / f"instance_{index:04d}/run_manifest.json")
+            if manifest["environment_port"] != \
+               contract["workload"]["cpu_benchmark_environment_base_port"] + 2 * index or \
+               manifest["flight_control_port"] != \
+               contract["workload"]["cpu_benchmark_flight_control_base_port"] + 2 * index:
+                fail(f"{directory}: CPU transport port mapping differs from frozen contract")
         return
     metadata = semantics["gpu_execution"]
     expected = {"trace_mode": contract["modes"][mode]["trace_mode"],
@@ -501,6 +597,10 @@ def derive_command(contract: dict[str, Any], item: dict[str, Any],
     if mode.startswith("cpu_"):
         runtime = copy.deepcopy(read_json(source))
         runtime["logging"]["output_dir"] = str(output)
+        runtime["network"]["environment_base_port"] = \
+            contract["workload"]["cpu_benchmark_environment_base_port"]
+        runtime["network"]["flight_control_base_port"] = \
+            contract["workload"]["cpu_benchmark_flight_control_base_port"]
         if mode == "cpu_sequential":
             runtime["campaign"]["schedule"] = "SEQUENTIAL"
             runtime["campaign"]["max_parallel_instances"] = 1
@@ -516,6 +616,14 @@ def derive_command(contract: dict[str, Any], item: dict[str, Any],
                 contract["modes"][mode]["trace_mode"], "--mapping", "packed",
                 "--lanes-per-block", "4", "--chunk-steps", "256"]
     return argv, output, runtime_path
+
+
+def prepare_output_parent(output: Path) -> None:
+    if output.exists():
+        fail(f"refusing to replace existing campaign output: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        fail(f"campaign output appeared during parent creation: {output}")
 
 
 def group_measurements(contract: dict[str, Any], section: str,
@@ -615,6 +723,7 @@ def run_section(section: str, root: Path, tracked: Path, resume: bool,
         if record_path.exists():
             fail(f"unexpected record path: {record_path}")
         argv, output, runtime = derive_command(contract, item, root)
+        prepare_output_parent(output)
         log = root / "logs" / f"{position:03d}_n{item['count']}_{item['mode']}_{item['phase']}_{item['ordinal']:02d}.log"
         print(f"m8_benchmark: {section} {position + 1}/{len(plan)} "
               f"N={item['count']} {item['mode']} {item['phase']} {item['ordinal']}", flush=True)
@@ -724,6 +833,7 @@ def main() -> int:
     action.add_argument("--self-test", action="store_true")
     action.add_argument("--freeze-contract", action="store_true")
     action.add_argument("--check-contract", action="store_true")
+    action.add_argument("--smoke-cpu", action="store_true")
     action.add_argument("--run-section", choices=("cpu", "gpu"))
     action.add_argument("--check-run-section", choices=("cpu", "gpu"))
     parser.add_argument("--output", type=Path)
@@ -740,6 +850,8 @@ def main() -> int:
         print(f"m8_b1: PASS receipt_sha256={freeze_contract()}")
     elif args.check_contract:
         print(f"m8_b1: PASS checked receipt_sha256={check_contract()}")
+    elif args.smoke_cpu:
+        print(f"m8_b1: PASS CPU nested-output smoke_sha256={smoke_cpu_nested_output()}")
     elif args.run_section or args.check_run_section:
         if args.output is None or args.receipt is None:
             parser.error("benchmark run/check requires --output and --receipt")
