@@ -1,0 +1,55 @@
+{
+  "phase": "M6",
+  "status": "PASS",
+  "date": "2026-09-20",
+  "hardware": "NVIDIA GeForce RTX 5070 Laptop GPU",
+  "cuda_runtime_version": 13020,
+  "command": "python3 gpu_workspace/tools/run_m6_verification.py",
+  "runtime": {
+    "source": "gpu_workspace/configs/runtime_1.json",
+    "instances": 1,
+    "chunk_steps": 64,
+    "comparison": {
+      "rtol": 1e-10,
+      "atol": 1e-12
+    }
+  },
+  "cli_checks": [
+    "--config rejects legacy probe options",
+    "mapping=auto selects packed/4 for N=1",
+    "explicit serial mapping is recorded",
+    "full and summary trace modes are recorded"
+  ],
+  "output_contract": {
+    "full": [
+      "instance_XXXX/run_manifest.json",
+      "instance_XXXX/trajectory.csv",
+      "instance_XXXX/trajectory_diagnostics.csv",
+      "instance_XXXX/summary.json",
+      "instance_XXXX/event_log.txt",
+      "instance_XXXX/sensor_log.bin",
+      "instance_XXXX/command_log.bin",
+      "campaign_summary.json",
+      "gpu_execution.json"
+    ],
+    "summary": [
+      "instance_XXXX/run_manifest.json",
+      "instance_XXXX/summary.json",
+      "instance_XXXX/event_log.txt",
+      "campaign_summary.json",
+      "gpu_execution.json"
+    ]
+  },
+  "comparisons": [
+    "CPU baseline vs GPU full semantic fields and trajectory",
+    "CPU/GPU sensor and command protocol payloads",
+    "full vs summary final state, summary and event order"
+  ],
+  "result": {
+    "exit_reason": "hit",
+    "simulation_steps": 978,
+    "cpu_gpu_match": true,
+    "full_summary_match": true
+  },
+  "next_stage": "M7 complete correctness matrix"
+}

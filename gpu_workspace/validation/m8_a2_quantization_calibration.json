@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-A2",
+  "calibration_id": "uniform_seed12515_seeker_los_rate_z_adjacent_bin",
+  "scope": {
+    "profile": "uniform long-noise with empty faults",
+    "instance_counts": [64, 128],
+    "instance_id": 10,
+    "random_seed": 12515,
+    "steps": 12000,
+    "dt_s": 0.01,
+    "scenario_path": "gpu_workspace/configs/m8/generated/scenarios/uniform_long.json",
+    "scenario_sha256": "672714dcc9a3393a3581ba74441c9ef83d6dcc4af853da03e4b446dcbc1adeeb",
+    "flight_control_path": "external/Aircraft-Simu/configs/baseline/flight_control.json",
+    "flight_control_sha256": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf",
+    "faults_path": "gpu_workspace/configs/m8/generated/faults/empty.json",
+    "faults_sha256": "17a4a72205a2183dd406c3d1115afe438df3a8f0825067f25376b861818b407d"
+  },
+  "source_quantization": {
+    "field": "SensorFrame.target_los_rate_ecef_meas.z",
+    "wire_payload_index": 22,
+    "predecessor_seq": 978,
+    "packet_index": 979,
+    "payload_seq": 979,
+    "sim_time_s": 9.789999999999836,
+    "resolution": 1e-7,
+    "cpu_value": -0.0105284,
+    "gpu_value": -0.0105285,
+    "signed_bin_delta": -1,
+    "required_unique_first_default_tolerance_mismatch": true,
+    "round_input_probe": {
+      "measurement": "scaled value passed to round(value / resolution)",
+      "halfway_boundary": -105284.5,
+      "cpu_scaled_value": -105284.48895384357,
+      "cpu_offset_from_halfway_bins": 0.011046156432712451,
+      "gpu_scaled_value": -105284.50445655835,
+      "gpu_offset_from_halfway_bins": -0.0044565583521034569,
+      "cpu_probe_result_bin": -105284,
+      "gpu_probe_result_bin": -105285,
+      "inputs_straddle_same_halfway_boundary": true
+    }
+  },
+  "command_hold": {
+    "active_command_seq": 979,
+    "hold_start_seq": 980,
+    "hold_end_seq": 11999,
+    "hold_mode": 6,
+    "hold_status": 72,
+    "range_at_hold_start_m": 0.0,
+    "cpu_held_accel_ecef_mps2": [-8.556557072150724, 31.093278024693365, 22.56851081631039],
+    "gpu_held_accel_ecef_mps2": [-8.556642423431372, 31.09357206262129, 22.568510816302226]
+  },
+  "terminal_projection": {
+    "fields": ["missile_x_ecef_m", "missile_y_ecef_m"],
+    "cpu_xy_m": [-2854894.108834, 4911185.641251],
+    "gpu_xy_m": [-2854894.545624323, 4911187.138164049],
+    "signed_gpu_minus_cpu_xy_m": [-0.43679032335057855, 1.4969130493700504],
+    "horizontal_difference_m": 1.5593378286782649,
+    "delta_match_atol_m": 1e-9
+  },
+  "fma_diagnostic": {
+    "diagnostic_option": "--fmad=false",
+    "formal_build_uses_diagnostic_option": false,
+    "baseline_gpu_trajectory_sha256": "11da68682c0ad12121eb4c9bd84c4c4c34802a9917c1e5f92aee67faebd97337",
+    "all_fma_disabled_gpu_trajectory_sha256": "11da68682c0ad12121eb4c9bd84c4c4c34802a9917c1e5f92aee67faebd97337",
+    "critical_los_rate_z_unchanged": -0.0105285,
+    "terminal_gpu_xy_unchanged_m": [-2854894.545624323, 4911187.138164049],
+    "trajectory_outputs_identical": true,
+    "conclusion": "FMA is not the source of the adjacent quantization-bin difference."
+  },
+  "guardrails": {
+    "default_rtol": 1e-10,
+    "default_atol": 1e-12,
+    "allowed_calibrated_instances_per_batch": 1,
+    "all_other_instances_use_default_tolerance": true,
+    "gpu_repeat_must_be_exact": true,
+    "n64_n128_prefix_must_be_exact": true,
+    "full_trace_equivalence_claimed": false,
+    "complete_final_state_claimed": false,
+    "reason": "CPU and CUDA native double math place one noisy seeker LOS-rate sample on adjacent sides of a 1e-7 quantization boundary. The one-bin difference is held by flight control after range becomes zero. Global FMA disable does not change the branch, so this policy admits only the frozen signed terminal delta for the exact hashed input and leaves every other instance on the default tolerance."
+  }
+}

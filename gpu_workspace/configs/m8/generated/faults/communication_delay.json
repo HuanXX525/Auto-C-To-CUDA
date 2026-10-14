@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "faults": [
+    {
+      "id": "delay",
+      "start_time_s": 0.1,
+      "duration_s": 0.26,
+      "recovery_hold_s": 0.04,
+      "target": "sensor.frame",
+      "type": "COMMUNICATION_DELAY",
+      "value": 2
+    }
+  ]
+}

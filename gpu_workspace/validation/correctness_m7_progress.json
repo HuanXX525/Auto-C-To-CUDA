@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "phase": "M7",
+  "status": "PASS",
+  "date": "2026-09-29",
+  "completed_date": "2026-09-30",
+  "m7_complete": true,
+  "m8_started": true,
+  "m8_progress": "gpu_workspace/validation/performance_m8_progress.json",
+  "source": {
+    "baseline_parent_commit": "635c5e28fc113b64e27d0c7a8824fe3c3a19674b",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c"
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "cuda_runtime_version": 13020
+  },
+  "acceptance_policy": {
+    "default_rtol": 1e-10,
+    "default_atol": 1e-12,
+    "field_calibrations": [
+      {
+        "field": "SensorFrame.missile_height_agl_m_meas",
+        "case": "terrain_collision",
+        "atol": 1e-9,
+        "reason": "ECEF-to-LLA Earth-radius subtraction at the 892 m collision boundary"
+      },
+      {
+        "field": "SensorFrame.missile_vel_ecef_meas.y",
+        "case": "long_quiet",
+        "atol": 1e-10,
+        "reason": "12000-step CPU/CUDA rounding accumulation reaches 9.71e-11 in the near-zero velocity Y window at steps 1523-1548; all other sensor fields and integer semantics pass the default tolerance"
+      }
+    ],
+    "segment_rule": "M7-A uses this tracked harness checkpoint. For M7-B through M7-E, run one segment, publish both build-local and tracked hash-bound PASS receipts, update this checkpoint, commit, and stop.",
+    "closure_rule": "M7-F aggregates the immutable M7-B through M7-E receipts, revalidates their artifacts and ancestry, reruns the M5 and M6 CPU/GPU gates, publishes correctness_m7.json, and stops before M8.",
+    "invalidation_rule": "A changed runner, matrix, comparator, Aircraft-Simu revision, or executable hash invalidates earlier receipts that used the old value. Parent commits may advance only through an auditable ancestry chain of expected progress-record or documentation commits."
+  },
+  "completed_segment_history": [
+    {
+      "id": "M7-A",
+      "name": "acceptance harness freeze",
+      "status": "PASS",
+      "commit": "e037639bb49c6219431a7752c21205674df76765",
+      "checks": [
+        "Python and JSON static validation",
+        "CPU baseline and GPU build",
+        "M6 CPU/GPU/full-summary regression",
+        "matrix contract, field tolerance, receipt contract, and output scope guard"
+      ]
+    },
+    {
+      "id": "M7-B",
+      "name": "64-step functional semantics and error paths",
+      "status": "PASS",
+      "commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+      "receipt_sha256": "1365ab7da54c091337f9c9e914d4300f4b8a107f172734161563aad8b43a2612",
+      "revalidated_at_parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6",
+      "checks": [
+        "16 short CPU/GPU semantic comparisons",
+        "quiet, noise, dropout, fault, terrain, LOS, hit, and timeout semantics",
+        "missing reference, invalid dt, and missing-tile ERROR paths",
+        "source, binary, generated-input, and result fingerprints"
+      ]
+    },
+    {
+      "id": "M7-C",
+      "name": "mapping and chunk invariance",
+      "status": "PASS",
+      "commit": "28ae2d33089d3cd708067a35382bbee29c6b4895",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+      "receipt_sha256": "2a0fb6d3a95ce2021a4725d60696faa6b3bf3193c1405e3edfecdfca9e29b0cc",
+      "revalidated_at_parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6",
+      "checks": [
+        "N=1 and N=128 serial/1, packed/4, and packed/32 CPU/GPU comparisons",
+        "cross-mapping and cross-chunk invariance",
+        "full/summary equivalence and deterministic repeat",
+        "source, binary, generated-input, and result fingerprints"
+      ]
+    },
+    {
+      "id": "M7-D",
+      "name": "mixed multi-instance isolation",
+      "status": "PASS",
+      "commit": "308897abecadf7a3ffaee4ff81a875877961544e",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+      "receipt_sha256": "28f2f1359bdc8d9db16a0e2bc1351258e252a8861337166c9bbca0c6148f05a2",
+      "revalidated_at_parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6",
+      "checks": [
+        "N=1/2/8/32/64/128 mixed-profile CPU/GPU campaign comparisons",
+        "235 mixed instances have contiguous IDs and identical CPU/GPU semantic payloads",
+        "27 representative instances match independent runs with the same instance ID and seed",
+        "hit lanes terminate at step 0 while all other lanes terminate at timeout step 64",
+        "source, binary, generated-input, and result fingerprints"
+      ]
+    },
+    {
+      "id": "M7-E",
+      "name": "12000-step long regression",
+      "status": "PASS",
+      "commit": "900ed4c7064a00de4325beabb877d49689f3b648",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_e_long.json",
+      "receipt_sha256": "c6625aa54af9a2f3ecba3756d67139784687d35c4f88db4782f88e6554058aec",
+      "source_parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6",
+      "checks": [
+        "quiet, noise, dropout, and timeout CPU/GPU summary comparisons run for 12000 steps",
+        "quiet CPU/full and GPU full/summary comparisons pass",
+        "all four profiles terminate at timeout step 12000 with final time 120.0 s",
+        "scoped near-zero velocity-Y calibration leaves global tolerances unchanged"
+      ]
+    }
+  ],
+  "superseded_receipts": [
+    {
+      "segment": "M7-B",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional_pre_velocity_calibration.json",
+      "receipt_sha256": "dbd5386d159d1d471de7c2d0f9e688b2eef83b4bf2f19bb98425981976da99e3",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    },
+    {
+      "segment": "M7-C",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance_pre_velocity_calibration.json",
+      "receipt_sha256": "d305eb29aa30c78f45428185d26da551476c0bbb7738a88eff52c78aaa2d1f92",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    },
+    {
+      "segment": "M7-D",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_d_batch_pre_velocity_calibration.json",
+      "receipt_sha256": "d5b9ee513c33b4f3a593c3af0f85f8cbc1ade5b2e7ecbe37b723eb667bd3f6e4",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    }
+  ],
+  "current_segment": {
+    "id": "M7-F",
+    "name": "receipt aggregation and M7 closure",
+    "status": "PASS",
+    "command": "python3 gpu_workspace/tools/run_m7_closure.py --output gpu_workspace/build/m7_f_closure --skip-build",
+    "aggregated_segments": ["M7-B", "M7-C", "M7-D", "M7-E"],
+    "receipt": "gpu_workspace/validation/correctness_m7.json",
+    "receipt_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "receipt_created_at_utc": "2026-09-30T07:44:27.335020+00:00",
+    "source_parent_commit": "900ed4c7064a00de4325beabb877d49689f3b648",
+    "checks": [
+      "M7-B through M7-E tracked and build-local receipts are byte-identical",
+      "short, mapping, chunk, batch, long, and errors sections are covered exactly once",
+      "source, binary, tolerance, hardware, and CUDA records are identical across all segment receipts",
+      "all protected source, binary, generated-input, and result fingerprints were recomputed",
+      "M7 commit ancestry is a strict six-commit linear chain with only allowed post-calibration paths",
+      "M5 chunk/full/summary/RNG/fault/communication/early-termination regression passes with CPU comparison enabled",
+      "M6 production CLI, CPU/GPU full, and full/summary regression passes",
+      "M5 and M6 reruns use the same RTX 5070 Laptop GPU and CUDA runtime 13020",
+      "build-local and tracked M7 closure receipts are byte-identical"
+    ],
+    "result_summary": {
+      "covered_sections": [
+        "short",
+        "mapping",
+        "chunk",
+        "batch",
+        "long",
+        "errors"
+      ],
+      "segment_receipt_count": 4,
+      "aggregate_counts": {
+        "gpu_execution_count": 49,
+        "cpu_campaign_count": 35,
+        "gpu_campaign_count": 48,
+        "generated_input_file_count": 269,
+        "result_file_count": 7841,
+        "result_total_bytes": 124355334
+      },
+      "m5_regression_status": "PASS",
+      "m6_regression_status": "PASS",
+      "complete_m7_gate": true,
+      "m8_started": true,
+      "m8_progress": "gpu_workspace/validation/performance_m8_progress.json"
+    },
+    "artifacts": {
+      "closure_receipt": {
+        "sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+        "local_copy": "gpu_workspace/build/m7_f_closure/m7_closure_receipt.json"
+      },
+      "m5_regression": {
+        "sha256": "3d62cf2cbd7234cce2217055733f978b7fe4933f5c021fe53c6f0169ba45d6a4",
+        "file_count": 238,
+        "total_bytes": 2111878,
+        "gpu_execution_count": 15
+      },
+      "m6_regression": {
+        "sha256": "5208b4b39cf097a6cc6181acebc0a985c0bbcc48ad0c0bef4df87dac759f1ea1",
+        "file_count": 24,
+        "total_bytes": 1917198,
+        "gpu_execution_count": 2
+      }
+    },
+    "frozen_sha256": {
+      "closure_runner": "2a250f169af3acbe4d5da4489bb702cb14a3ede5b2f1aa3fd2268a8125aac76b",
+      "m5_runner": "796aa71d0f6b35415d5687ab4d3a07c61a670c18d79c01c08f1b2d39d6410e6b",
+      "m6_runner": "455222f9e620ca7c9a981a82b13108f1e97d46c5c01f85d265ddaeee6518f85c",
+      "runner": "981ce74e8e0e39c93a209e03f23a18a040e1aa683920ddf7e4f379ac0050f49a",
+      "matrix": "416de1834a992ec89011140b526ecaf8410791021014f7e67029003963637244",
+      "comparator": "0d02195b42a056246e3de4a930f4da89ebbee06b707e02131c909e3e7744f646",
+      "m4_asset_generator": "7362e2916987acfa212153a92e70f45b694872171ad53086b6b8dbff79f378a0",
+      "m4_case_matrix": "684ed0e1380f83eef4126506b83ed0696f88e9c167bdc8437bd42bac009e5369",
+      "terrain_tile_generator": "f9bb9277008996dc5e6ca9d3c2114f7639a0dbf13efad3b599de22db6f21d07e",
+      "cpu_build_script": "7fa143f3d2cbec0fcad6d21d3db25f8d969a744f63a9ced5c79d82180b8ce867",
+      "gpu_makefile": "9279913502701fa360b8adf76ff1cf4100366c70c4efc93faee3a8cb4fc60fac",
+      "baseline_scenario": "951d2a5133e76922de4c58bcffb9ef54ff815e492ee33a82a1938b205c0ea3b1",
+      "baseline_flight_control": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf",
+      "gpu_campaign": "7874c30b629ca669148a8552b135f1bc8e252c9ab8f6570a8285fd6f06a9d191",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    }
+  },
+  "pre_freeze_probe_evidence": [
+    {
+      "sections": ["short"],
+      "status": "PASS_REVIEWED",
+      "formal_receipt": false,
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short --output gpu_workspace/build/m7_short_checkpoint",
+      "evidence": "16 GPU campaigns; hit stopped at step 0, terrain collision at step 33, all timeout cases at step 64; LOS assertions passed"
+    },
+    {
+      "sections": ["mapping"],
+      "status": "PASS_REVIEWED",
+      "formal_receipt": false,
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping --output gpu_workspace/build/m7_mapping_probe",
+      "evidence": "N=1 and N=128 with serial, packed/4, and packed/32; CPU/GPU and cross-mapping comparisons passed"
+    },
+    {
+      "sections": ["chunk"],
+      "status": "PASS_REVIEWED",
+      "formal_receipt": false,
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections chunk --output gpu_workspace/build/m7_chunk_probe",
+      "evidence": "chunk=1/64/256/67(all), full/summary, and deterministic repeat comparisons passed"
+    }
+  ],
+  "segments": [
+    {
+      "id": "M7-A",
+      "status": "PASS",
+      "name": "acceptance harness freeze"
+    },
+    {
+      "id": "M7-B",
+      "status": "PASS",
+      "name": "64-step functional semantics and error paths",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections short,errors --output gpu_workspace/build/m7_b_functional --receipt gpu_workspace/validation/m7_receipts/m7_b_functional.json"
+    },
+    {
+      "id": "M7-C",
+      "status": "PASS",
+      "name": "mapping and chunk invariance",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections mapping,chunk --output gpu_workspace/build/m7_c_invariance --receipt gpu_workspace/validation/m7_receipts/m7_c_invariance.json"
+    },
+    {
+      "id": "M7-D",
+      "status": "PASS",
+      "name": "mixed multi-instance isolation",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections batch --output gpu_workspace/build/m7_d_batch --receipt gpu_workspace/validation/m7_receipts/m7_d_batch.json"
+    },
+    {
+      "id": "M7-E",
+      "status": "PASS",
+      "name": "12000-step long regression",
+      "command": "python3 gpu_workspace/tools/run_m7_correctness_matrix.py --skip-build --sections long --output gpu_workspace/build/m7_e_long --receipt gpu_workspace/validation/m7_receipts/m7_e_long.json"
+    },
+    {
+      "id": "M7-F",
+      "status": "PASS",
+      "name": "receipt aggregation and M7 closure",
+      "command": "python3 gpu_workspace/tools/run_m7_closure.py --output gpu_workspace/build/m7_f_closure --skip-build"
+    }
+  ],
+  "stop_boundary": "M7 is complete through M7-F. M8 has since started and is tracked independently in gpu_workspace/validation/performance_m8_progress.json."
+}

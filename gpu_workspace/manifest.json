@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "workspace": "gpu_workspace",
+  "source_repository": {
+    "path": "external/Aircraft-Simu",
+    "gitlink_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "checked_out_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "status": "pinned baseline; the parent repository gitlink and checkout must remain identical"
+  },
+  "toolchain": {
+    "translator": "build/bin/translate.out",
+    "cuda": "13.2",
+    "nvcc": "/usr/local/cuda-13.2/bin/nvcc",
+    "cuda_arch": "sm_120",
+    "validation_gpu": "NVIDIA GeForce RTX 5070",
+    "language": "C11-compatible subset / CUDA C++"
+  },
+  "conversion": {
+    "mode": "campaign_vertical_slice",
+    "include_root": "staging/headers",
+    "commands": {
+      "common": "tools/convert_minimal.sh",
+      "environment_probe": "tools/convert_environment_probe.sh",
+      "flight_control": "tools/convert_flight_control.sh",
+      "device_probe": "tools/probe_device_callability.sh"
+    },
+    "sources": [
+      {
+        "source": "common/src/vec3.c",
+        "staging": "staging/common/vec3.c",
+        "sha256": "3de42b9030e418093ce9514d8cc70d1115b282c0af0b92f7160cfa5fceea5eed",
+        "generated": "converted/common/vec3.cu",
+        "status": "device-linkable"
+      },
+      {
+        "source": "common/src/matrix3.c",
+        "staging": "staging/common/matrix3.c",
+        "sha256": "1624e4fddf46821d5da39c2c1c71f16903585fa77467cbc1db1dbe28fd5be577",
+        "generated": "converted/common/matrix3.cu",
+        "status": "device-linkable-with-audited-loop-index-sanitizer"
+      },
+      {
+        "source": "common/src/quaternion.c",
+        "staging": "staging/common/quaternion.c",
+        "sha256": "b1f936b8bd87bc8b5e3930c5af5c2b6b52a60d02ec84d2db6f71b0c8ba3a6e28",
+        "generated": "converted/common/quaternion.cu",
+        "status": "device-linkable"
+      },
+      {
+        "source": "common/src/random.c",
+        "staging": "staging/common/random.c",
+        "sha256": "f849124ead2fa3740f22a85af3a2cbb0209c9b7ffc4ee1a7efde957278e3eb2d",
+        "generated": "converted/common/random.cu",
+        "status": "device-linkable-in-campaign; CPU/GPU noise golden verified"
+      },
+      {
+        "source": "common/src/ring_buffer.c",
+        "staging": "staging/common/ring_buffer.c",
+        "generated": "converted/common/ring_buffer.cu",
+        "status": "device-linkable-with-relative-storage-offset-adaptation"
+      },
+      {
+        "source": "environment_sim/src/missile_plant_6dof.c",
+        "staging": "staging/environment/missile_plant_6dof.c",
+        "sha256": "0b5736fee21a80bbb7ed633ec0121102b7ff475a635b6267152cc16c1a304a6e",
+        "generated": "converted/environment/missile_plant_6dof.cu",
+        "status": "device-linkable-host-euler-probe-pass"
+      },
+      {
+        "source": "environment_sim/src/actuator_model.c",
+        "staging": "staging/environment/actuator_model.c",
+        "generated": "converted/environment/actuator_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
+        "source": "environment_sim/src/gravity_model.c",
+        "staging": "staging/environment/gravity_model.c",
+        "generated": "converted/environment/gravity_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
+        "source": "environment_sim/src/mass_model.c",
+        "staging": "staging/environment/mass_model.c",
+        "generated": "converted/environment/mass_model.cu",
+        "status": "device-linkable-in-production-chain; propellant and inertia golden verified"
+      },
+      {
+        "source": "environment_sim/src/propulsion_model.c",
+        "staging": "staging/environment/propulsion_model.c",
+        "generated": "converted/environment/propulsion_model.cu",
+        "status": "device-linkable-in-production-chain; CPU/GPU focused golden verified"
+      },
+      {
+        "source": "environment_sim/src/sensor_noise.c",
+        "staging": "staging/environment/sensor_noise.c",
+        "generated": "converted/environment/sensor_noise.cu",
+        "status": "device-linkable-in-campaign"
+      },
+      {
+        "source": "environment_sim/src/sensor_vector3.c",
+        "staging": "staging/environment/sensor_vector3.c",
+        "generated": "converted/environment/sensor_vector3.cu",
+        "status": "device-linkable-in-campaign"
+      },
+      {
+        "source": "environment_sim/src/sensor_seeker.c",
+        "staging": "staging/environment/sensor_seeker.c",
+        "generated": "converted/environment/sensor_seeker.cu",
+        "status": "device-linkable-in-campaign"
+      },
+      {
+        "source": "flight_control_sim/src/fc_state.c",
+        "staging": "staging/flight_control/fc_state.c",
+        "generated": "converted/flight_control/fc_state.cu",
+        "status": "device-linkable-in-campaign"
+      }
+    ],
+    "module_inventory": {
+      "device_linked_campaign": [
+        "common/{vec3,matrix3,quaternion,random,ring_buffer}",
+        "environment/{missile_plant_6dof,actuator_model,atmosphere_model,earth_model,geo_coordinate,fault_injection,gravity_model,mass_model,propulsion_model}",
+        "environment/{sensor_noise,sensor_vector3,sensor_imu,sensor_accel,sensor_speed,sensor_seeker}",
+        "flight_control/{autopilot,command_manager,estimator,fc_health,fc_modes,fc_scheduler,fc_state,guidance_manager,guidance_png,navigation,safety_monitor}"
+      ],
+      "device_buildable_not_yet_integrated": [
+        "environment/aero_model (production uses the pointer-free device_force adapter)"
+      ],
+      "host_only_adapters": [
+        "environment/{aero_database,map_tile,terrain_model}",
+        "gpu_campaign/{host_environment_packer,host_scenario_mapper,host_campaign_config}"
+      ]
+    },
+    "derived_sources": [
+      {
+        "source": "staging/environment/aero_surrogate_device.c",
+        "generated": "converted/environment/aero_surrogate_device.cu",
+        "status": "device-linkable-host-numeric-probe-pass",
+        "reason": "separates host file loading from device coefficient evaluation"
+      },
+      {
+        "source": "gpu_campaign/src/host_environment_packer.cpp",
+        "generated": "gpu_campaign/src/host_environment_packer.cpp",
+        "status": "host-pack-and-roundtrip-probe-pass",
+        "reason": "loads the existing aero/terrain binary formats and packs pointer-free device POD"
+      }
+    ]
+  },
+  "validation": {
+    "host_compile": "gpu_workspace/tools/build_common_probe.sh",
+    "host_test": "gpu_workspace/build/common_compare; gpu_workspace/build/plant_compare; gpu_workspace/build/aero_surrogate_compare; gpu_workspace/tools/build_campaign_chain_probe.sh",
+    "last_result": "PASS (M3 CPU-equivalent sensor/control/actuator/environment/plant chain)",
+    "device_kernel_link": "PASS (sensor/control/actuator/aero/atmosphere/propulsion/gravity/mass/plant/geodetic/fault campaign kernel)",
+    "single_instance_campaign_build": "make -C gpu_workspace",
+    "multi_instance_baseline": "gpu_workspace/tools/run_multi_baseline.sh 8 10 2",
+    "mapping_baseline": "gpu_workspace/tools/run_mapping_baseline.sh 8 32 20 2",
+    "scaling_baseline": "gpu_workspace/tools/run_scaling_baseline.sh 32 10 2 8 128 512 2048",
+      "table_terrain_audit": "gpu_workspace/tools/convert_table_terrain_probe.sh",
+      "device_environment_adapter_probe": "gpu_workspace/tools/build_device_environment_probe.sh",
+      "device_force_golden_probe": "gpu_workspace/tools/build_device_environment_probe.sh (device_force_probe)",
+      "host_environment_packer_probe": "gpu_workspace/tools/build_host_environment_packer_probe.sh",
+      "environment_campaign_runtime_probe": "gpu_workspace/tools/run_environment_campaign_probe.sh",
+      "campaign_environment_inputs": "gpu_campaign/src/main.cu --scenario/--aero-file/--terrain-file/--faults (active device dynamics)",
+      "campaign_environment_runtime_log": "gpu_workspace/logs/environment_campaign_runtime_2026-08-31.log",
+      "single_instance_runtime": "PASS on RTX 5070 (legacy 8-step campaign)",
+      "scenario_golden": "PASS on RTX 5070 (65 records, maximum relative deviation 9.5e-16)",
+      "batch_isolation": "PASS on RTX 5070 for N=1/2/8/32/64/128",
+      "noise_dropout_fault": "PASS on RTX 5070 for N=1/8/32/128",
+      "terrain_runtime": "PASS on RTX 5070: fly-over, collision at step 33, and batch isolation N=1/8/32/128",
+      "campaign_config_mapping": "PASS: unchanged runtime/scenario/flight-control/fault schema mapped for N=1/2/128; POD/index layout and three prelaunch error cases verified",
+      "production_physics_chain": "PASS on RTX 5070: baseline hit at step 978 plus focused actuator, gravity, propulsion/mass/inertia CPU/GPU goldens at rtol=1e-10, atol=1e-12",
+      "production_physics_verification": "gpu_workspace/tools/run_m3_physics_verification.sh",
+      "m4_terrain_los_fault_verification": "gpu_workspace/tools/run_m4_verification.sh",
+      "m4_batch_isolation": "PASS on RTX 5070 for N=1/8/32/128; chunk_steps=17; packed/4",
+      "m4_cases": "LOS clear/index order/occluded/borderline, FLAT_FILL, ERROR, all sensor/actuator/communication and overlap recovery",
+      "m4_result": "PASS CPU/GPU output and protocol/event semantics at rtol=1e-10, atol=1e-12"
+  }
+}

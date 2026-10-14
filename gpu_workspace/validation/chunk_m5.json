@@ -1,0 +1,41 @@
+{
+  "phase": "M5",
+  "status": "PASS",
+  "date": "2026-09-20",
+  "features": [
+    "resumable global-step chunks",
+    "full and summary output modes",
+    "summary retains compact fault-event rows rather than full trajectory",
+    "two pinned host trace buffers",
+    "two device trace/state snapshot buffers",
+    "nonblocking compute and copy streams",
+    "CUDA event ownership and overlap",
+    "STOP_ON_FAILURE skipped_after_failure semantics"
+  ],
+  "static_checks": {
+    "nvcc_make": "PASS",
+    "python_m5_script_compile": "PASS",
+    "host_environment_packer_probe": "PASS",
+    "campaign_config_probe": "PASS"
+  },
+  "runtime_matrix": {
+    "command": "python3 gpu_workspace/tools/run_m5_chunk_verification.py",
+    "status": "PASS",
+    "hardware": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "cuda_runtime_version": 13020,
+    "chunks_executed": [1, 64, 256, 131],
+    "trace_modes": ["full", "summary"],
+    "checks": [
+      "CPU baseline and CPU/GPU result comparison",
+      "deterministic repeatability",
+      "RNG, fault timeline and communication continuity",
+      "mixed early-termination isolation"
+    ]
+  },
+  "matrix_definition": {
+    "chunk_steps": [1, 64, 256, "all"],
+    "trace_modes": ["full", "summary"],
+    "stateful_inputs": ["sensor_rng", "fault_timeline", "actuator", "communication_delay", "communication_reorder"],
+    "batch_isolation": "early termination mixed with long-running instances"
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "phase": "M7",
+  "status": "PASS",
+  "complete_m7_gate": true,
+  "m7_complete": true,
+  "m8_started": false,
+  "created_at_utc": "2026-09-30T07:44:27.335020+00:00",
+  "command": [
+    "python3",
+    "gpu_workspace/tools/run_m7_closure.py",
+    "--output",
+    "gpu_workspace/build/m7_f_closure",
+    "--skip-build"
+  ],
+  "source": {
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "aircraft_simu_worktree_clean": true,
+    "sha256": {
+      "runner": "981ce74e8e0e39c93a209e03f23a18a040e1aa683920ddf7e4f379ac0050f49a",
+      "matrix": "416de1834a992ec89011140b526ecaf8410791021014f7e67029003963637244",
+      "comparator": "0d02195b42a056246e3de4a930f4da89ebbee06b707e02131c909e3e7744f646",
+      "m4_asset_generator": "7362e2916987acfa212153a92e70f45b694872171ad53086b6b8dbff79f378a0",
+      "m4_case_matrix": "684ed0e1380f83eef4126506b83ed0696f88e9c167bdc8437bd42bac009e5369",
+      "terrain_tile_generator": "f9bb9277008996dc5e6ca9d3c2114f7639a0dbf13efad3b599de22db6f21d07e",
+      "cpu_build_script": "7fa143f3d2cbec0fcad6d21d3db25f8d969a744f63a9ced5c79d82180b8ce867",
+      "gpu_makefile": "9279913502701fa360b8adf76ff1cf4100366c70c4efc93faee3a8cb4fc60fac",
+      "baseline_scenario": "951d2a5133e76922de4c58bcffb9ef54ff815e492ee33a82a1938b205c0ea3b1",
+      "baseline_flight_control": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf"
+    },
+    "closure_runner_sha256": "2a250f169af3acbe4d5da4489bb702cb14a3ede5b2f1aa3fd2268a8125aac76b",
+    "baseline_parent_commit": "635c5e28fc113b64e27d0c7a8824fe3c3a19674b",
+    "closure_parent_commit": "900ed4c7064a00de4325beabb877d49689f3b648",
+    "receipt_parent_commit": "f168c9d57525b8c776aa62981f73bd208e2148f6"
+  },
+  "coverage": {
+    "required_sections": [
+      "short",
+      "mapping",
+      "chunk",
+      "batch",
+      "long",
+      "errors"
+    ],
+    "covered_sections": [
+      "short",
+      "mapping",
+      "chunk",
+      "batch",
+      "long",
+      "errors"
+    ],
+    "complete": true,
+    "disjoint_segment_coverage": true
+  },
+  "segment_receipts": [
+    {
+      "segment": "M7-B",
+      "sections": [
+        "short",
+        "errors"
+      ],
+      "tracked_path": "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+      "build_local_path": "gpu_workspace/build/m7_b_functional/m7_pass_receipt.json",
+      "sha256": "1365ab7da54c091337f9c9e914d4300f4b8a107f172734161563aad8b43a2612",
+      "created_at_utc": "2026-09-29T09:01:49.298105+00:00",
+      "artifacts": {
+        "gpu_execution_count": 17,
+        "cpu_campaign_count": 16,
+        "gpu_campaign_count": 16,
+        "generated_inputs": {
+          "sha256": "c5c094ba18a511c0c6b1045778b27a8287ddbdb2f8dee6d529213fd267e3fb2a",
+          "file_count": 76,
+          "total_bytes": 177828
+        },
+        "results": {
+          "sha256": "1e1da4a63e8253a00091096089d6a6c6cf1acd90470a367938f1de7c81145001",
+          "file_count": 296,
+          "total_bytes": 2003653
+        }
+      }
+    },
+    {
+      "segment": "M7-C",
+      "sections": [
+        "mapping",
+        "chunk"
+      ],
+      "tracked_path": "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+      "build_local_path": "gpu_workspace/build/m7_c_invariance/m7_pass_receipt.json",
+      "sha256": "2a0fb6d3a95ce2021a4725d60696faa6b3bf3193c1405e3edfecdfca9e29b0cc",
+      "created_at_utc": "2026-09-29T09:02:36.013653+00:00",
+      "artifacts": {
+        "gpu_execution_count": 15,
+        "cpu_campaign_count": 3,
+        "gpu_campaign_count": 15,
+        "generated_inputs": {
+          "sha256": "692b1008b50c40518d3bd07b533c513fa18439641bde43b346cd7dfbea25b6d0",
+          "file_count": 61,
+          "total_bytes": 224010
+        },
+        "results": {
+          "sha256": "6ffc958a932b37c56b693551f3bae92cfe5c62df67b3e3163fb22475a4c83a98",
+          "file_count": 3829,
+          "total_bytes": 34531737
+        }
+      }
+    },
+    {
+      "segment": "M7-D",
+      "sections": [
+        "batch"
+      ],
+      "tracked_path": "gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+      "build_local_path": "gpu_workspace/build/m7_d_batch/m7_pass_receipt.json",
+      "sha256": "28f2f1359bdc8d9db16a0e2bc1351258e252a8861337166c9bbca0c6148f05a2",
+      "created_at_utc": "2026-09-29T09:03:28.209192+00:00",
+      "artifacts": {
+        "gpu_execution_count": 12,
+        "cpu_campaign_count": 12,
+        "gpu_campaign_count": 12,
+        "generated_inputs": {
+          "sha256": "026e1d04eea4d30d77e91294a8e20eecfd6cdf2c517a405226fdd33ffbef0f82",
+          "file_count": 70,
+          "total_bytes": 281918
+        },
+        "results": {
+          "sha256": "ca2cf9c53c4cd28e7c9366a881e488fd932307e2b7a41b71d542a2d5339edd5f",
+          "file_count": 3651,
+          "total_bytes": 27419831
+        }
+      }
+    },
+    {
+      "segment": "M7-E",
+      "sections": [
+        "long"
+      ],
+      "tracked_path": "gpu_workspace/validation/m7_receipts/m7_e_long.json",
+      "build_local_path": "gpu_workspace/build/m7_e_long/m7_pass_receipt.json",
+      "sha256": "c6625aa54af9a2f3ecba3756d67139784687d35c4f88db4782f88e6554058aec",
+      "created_at_utc": "2026-09-29T09:05:25.551647+00:00",
+      "artifacts": {
+        "gpu_execution_count": 5,
+        "cpu_campaign_count": 4,
+        "gpu_campaign_count": 5,
+        "generated_inputs": {
+          "sha256": "9d3743f9c525940e9bfcd2b7f434bccb69ffdf906e09855faa714f44b0af3de4",
+          "file_count": 62,
+          "total_bytes": 155593
+        },
+        "results": {
+          "sha256": "dd5598259644a759626d79a83c98c381995504ebcdf12342e8be0c7623f566ec",
+          "file_count": 65,
+          "total_bytes": 60400113
+        }
+      }
+    }
+  ],
+  "consistency": {
+    "source_sha256_identical": true,
+    "binary_sha256_identical": true,
+    "tolerance_identical": true,
+    "hardware_identical": true,
+    "cuda_runtime_versions_identical": true,
+    "tracked_and_build_local_byte_identical": true,
+    "artifacts_recomputed": true,
+    "binary_sha256_before_regressions": {
+      "gpu_campaign": "7874c30b629ca669148a8552b135f1bc8e252c9ab8f6570a8285fd6f06a9d191",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    },
+    "binary_sha256_after_regressions": {
+      "gpu_campaign": "7874c30b629ca669148a8552b135f1bc8e252c9ab8f6570a8285fd6f06a9d191",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    }
+  },
+  "ancestry": {
+    "head": "900ed4c7064a00de4325beabb877d49689f3b648",
+    "anchors": [
+      {
+        "name": "M7-A",
+        "commit": "e037639bb49c6219431a7752c21205674df76765"
+      },
+      {
+        "name": "M7-B",
+        "commit": "9823707a0366b8a9b13b684d840aa08ba2d9a2cd"
+      },
+      {
+        "name": "M7-C",
+        "commit": "28ae2d33089d3cd708067a35382bbee29c6b4895"
+      },
+      {
+        "name": "M7-D",
+        "commit": "308897abecadf7a3ffaee4ff81a875877961544e"
+      },
+      {
+        "name": "M7-E calibration",
+        "commit": "f168c9d57525b8c776aa62981f73bd208e2148f6"
+      },
+      {
+        "name": "M7-E record",
+        "commit": "900ed4c7064a00de4325beabb877d49689f3b648"
+      }
+    ],
+    "strict_linear": true,
+    "post_calibration_base": "f168c9d57525b8c776aa62981f73bd208e2148f6",
+    "post_calibration_changed_paths": [
+      "gpu_workspace/README.md",
+      "gpu_workspace/validation/correctness_m7_progress.json",
+      "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+      "gpu_workspace/validation/m7_receipts/m7_b_functional_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+      "gpu_workspace/validation/m7_receipts/m7_c_invariance_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+      "gpu_workspace/validation/m7_receipts/m7_d_batch_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_e_long.json",
+      "planA.md"
+    ],
+    "allowed_paths": [
+      "gpu_workspace/README.md",
+      "gpu_workspace/tools/run_m7_closure.py",
+      "gpu_workspace/validation/correctness_m7_progress.json",
+      "gpu_workspace/validation/m7_receipts/m7_b_functional.json",
+      "gpu_workspace/validation/m7_receipts/m7_b_functional_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_c_invariance.json",
+      "gpu_workspace/validation/m7_receipts/m7_c_invariance_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_d_batch.json",
+      "gpu_workspace/validation/m7_receipts/m7_d_batch_pre_velocity_calibration.json",
+      "gpu_workspace/validation/m7_receipts/m7_e_long.json",
+      "planA.md"
+    ],
+    "baseline_parent_commit": "635c5e28fc113b64e27d0c7a8824fe3c3a19674b"
+  },
+  "supporting_regressions": {
+    "m5": {
+      "status": "PASS",
+      "command": [
+        "python3",
+        "gpu_workspace/tools/run_m5_chunk_verification.py",
+        "--workspace",
+        "gpu_workspace",
+        "--output",
+        "gpu_workspace/build/m7_f_closure/m5_regression",
+        "--skip-build"
+      ],
+      "runner_sha256": "796aa71d0f6b35415d5687ab4d3a07c61a670c18d79c01c08f1b2d39d6410e6b",
+      "cpu_comparisons_skipped": false,
+      "output": "gpu_workspace/build/m7_f_closure/m5_regression",
+      "artifacts": {
+        "sha256": "3d62cf2cbd7234cce2217055733f978b7fe4933f5c021fe53c6f0169ba45d6a4",
+        "file_count": 238,
+        "total_bytes": 2111878
+      },
+      "environment": {
+        "gpu_execution_count": 15,
+        "hardware": [
+          "NVIDIA GeForce RTX 5070 Laptop GPU"
+        ],
+        "cuda_runtime_versions": [
+          13020
+        ]
+      }
+    },
+    "m6": {
+      "status": "PASS",
+      "command": [
+        "python3",
+        "gpu_workspace/tools/run_m6_verification.py",
+        "--workspace",
+        "gpu_workspace",
+        "--output",
+        "gpu_workspace/build/m7_f_closure/m6_regression",
+        "--skip-build"
+      ],
+      "runner_sha256": "455222f9e620ca7c9a981a82b13108f1e97d46c5c01f85d265ddaeee6518f85c",
+      "cpu_comparisons_skipped": false,
+      "output": "gpu_workspace/build/m7_f_closure/m6_regression",
+      "artifacts": {
+        "sha256": "5208b4b39cf097a6cc6181acebc0a985c0bbcc48ad0c0bef4df87dac759f1ea1",
+        "file_count": 24,
+        "total_bytes": 1917198
+      },
+      "environment": {
+        "gpu_execution_count": 2,
+        "hardware": [
+          "NVIDIA GeForce RTX 5070 Laptop GPU"
+        ],
+        "cuda_runtime_versions": [
+          13020
+        ]
+      }
+    }
+  },
+  "tolerance": {
+    "rtol": 1e-10,
+    "atol": 1e-12,
+    "field_calibrations": [
+      {
+        "case": "terrain_collision",
+        "field": "SensorFrame.missile_height_agl_m_meas",
+        "atol": 1e-09,
+        "reason": "ECEF-to-LLA Earth-radius subtraction at the 892 m collision boundary"
+      },
+      {
+        "case": "long_quiet",
+        "field": "SensorFrame.missile_vel_ecef_meas.y",
+        "atol": 1e-10,
+        "reason": "12000-step CPU/CUDA rounding accumulation reaches 9.71e-11 in the near-zero velocity Y window at steps 1523-1548; all other sensor fields and integer semantics pass the default tolerance"
+      }
+    ]
+  },
+  "hardware": [
+    "NVIDIA GeForce RTX 5070 Laptop GPU"
+  ],
+  "cuda_runtime_versions": [
+    13020
+  ],
+  "aggregate_counts": {
+    "gpu_execution_count": 49,
+    "cpu_campaign_count": 35,
+    "gpu_campaign_count": 48,
+    "generated_inputs": {
+      "file_count": 269,
+      "total_bytes": 839349
+    },
+    "results": {
+      "file_count": 7841,
+      "total_bytes": 124355334
+    }
+  },
+  "superseded_receipts": [
+    {
+      "segment": "M7-B",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_b_functional_pre_velocity_calibration.json",
+      "receipt_sha256": "dbd5386d159d1d471de7c2d0f9e688b2eef83b4bf2f19bb98425981976da99e3",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    },
+    {
+      "segment": "M7-C",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_c_invariance_pre_velocity_calibration.json",
+      "receipt_sha256": "d305eb29aa30c78f45428185d26da551476c0bbb7738a88eff52c78aaa2d1f92",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    },
+    {
+      "segment": "M7-D",
+      "receipt": "gpu_workspace/validation/m7_receipts/m7_d_batch_pre_velocity_calibration.json",
+      "receipt_sha256": "d5b9ee513c33b4f3a593c3af0f85f8cbc1ade5b2e7ecbe37b723eb667bd3f6e4",
+      "reason": "runner, matrix, and comparator changed for the scoped M7-E near-zero velocity calibration"
+    }
+  ]
+}

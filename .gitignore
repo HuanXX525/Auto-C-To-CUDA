@@ -57,6 +57,11 @@ HuanXX525/*
 work.md
 # **/skills/**
 
+# The GPU migration workspace intentionally versions both generated CUDA
+# translation results and handwritten CUDA orchestration code.  The generic
+# *.cu rule above only applies to ad-hoc translator output elsewhere.
+!gpu_workspace/**/*.cu
+
 demos
 
 # Translated output
