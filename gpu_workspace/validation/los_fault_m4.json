@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "stage": "M4",
+  "status": "PASS",
+  "date": "2026-09-19",
+  "source_gitlink_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "hardware": "NVIDIA GeForce RTX 5070",
+  "cuda": "13.2",
+  "command": "gpu_workspace/tools/run_m4_verification.sh",
+  "runtime": {
+    "steps": 64,
+    "chunk_steps": 17,
+    "mapping": "packed",
+    "lanes_per_block": 4,
+    "trace_mode": "full",
+    "comparison": {
+      "rtol": 1e-10,
+      "atol": 1e-12
+    }
+  },
+  "single_instance_cases": [
+    "los_clear",
+    "missing_flat",
+    "missing_error",
+    "los_index_clear",
+    "los_index_occluded",
+    "los_borderline",
+    "sensor_faults",
+    "actuator_faults",
+    "communication_delay",
+    "communication_reorder",
+    "fault_overlap_recovery"
+  ],
+  "multi_instance_isolation": [1, 8, 32, 128],
+  "checks": [
+    "CPU/GPU trajectory, diagnostics and summary comparison",
+    "ordered multi-tile index selection",
+    "16-point LOS clear/occluded/borderline semantics",
+    "FLAT_FILL and ERROR missing-tile behavior",
+    "sensor, actuator, communication delay/reorder and overlap recovery",
+    "event log and packet flag parity",
+    "instance-local state isolation"
+  ],
+  "next_stage": "M5 recoverable chunk execution and asynchronous double buffering"
+}

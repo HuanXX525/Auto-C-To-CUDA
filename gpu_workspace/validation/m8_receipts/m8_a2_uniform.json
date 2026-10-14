@@ -1,0 +1,524 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-A2",
+  "status": "PASS",
+  "created_at_utc": "2026-10-10T14:35:35.769714+00:00",
+  "complete_m8_gate": false,
+  "next_segment": "M8-A3",
+  "source": {
+    "parent_commit": "e4c229421f5d854c05b610b70075b28480d8350a",
+    "m8_a2_start_parent_commit": "e4c229421f5d854c05b610b70075b28480d8350a",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "aircraft_simu_tracked_worktree_clean": true,
+    "m7_closure_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "m8_a1_receipt_sha256": "c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb",
+    "sha256": {
+      "runner": "e21c7f16a93356e55dad8ace5488497678fdd1de4771309ddc71e2cbad5b5938",
+      "matrix": "5351c2e78150af46f90eb3c58e0632d6cd6d9a8f98e6a46a14453ddada47c1a7",
+      "input_generator": "b0b4171bb23d1e4328cee91d3b924e14e20325363d75e727009977cf5ac2956d",
+      "comparator": "0d02195b42a056246e3de4a930f4da89ebbee06b707e02131c909e3e7744f646",
+      "cpu_build_script": "7fa143f3d2cbec0fcad6d21d3db25f8d969a744f63a9ced5c79d82180b8ce867",
+      "gpu_makefile": "9279913502701fa360b8adf76ff1cf4100366c70c4efc93faee3a8cb4fc60fac",
+      "m8_a1_receipt": "c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb",
+      "m7_closure_report": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+      "m8_a2_quantization_calibration": "36b65205fb5acf93fcc6d827cdef98c63d0873093ef6929107e3c2ecaff6a224",
+      "uniform_runtime_n64": "d454b7ae9c99895e359fc5f6882b9d93a8a979df660b663084d4d1acb25d94cf",
+      "uniform_runtime_n128": "7144f17bba8b839025e0486ce539a012852edddc765041f0954e355cfb34de96",
+      "uniform_scenario": "672714dcc9a3393a3581ba74441c9ef83d6dcc4af853da03e4b446dcbc1adeeb",
+      "empty_faults": "17a4a72205a2183dd406c3d1115afe438df3a8f0825067f25376b861818b407d",
+      "baseline_flight_control": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf"
+    },
+    "gpu_source_tree": {
+      "sha256": "95fac2e23b7d883a1d5214016b9f2141057d9839cabe28653b99018124bc6bc5",
+      "file_count": 111,
+      "total_bytes": 520646
+    },
+    "binary_sha256": {
+      "gpu_campaign": "ee3b885e6bb4dd675aaaa299dd34a1fc005e4cb31e36599efa662a623900ec98",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    }
+  },
+  "contract": {
+    "profile": "uniform long-noise with empty faults",
+    "instance_counts": [
+      64,
+      128
+    ],
+    "steps": 12000,
+    "dt_s": 0.01,
+    "max_time_s": 120.0,
+    "expected_exit_reasons": [
+      "timeout",
+      "surface_collision"
+    ],
+    "termination_oracle": "pinned CPU baseline; each frozen seed must match the GPU exit reason and terminal step exactly",
+    "cpu_schedule": "PARALLEL",
+    "cpu_max_parallel_instances": 6,
+    "gpu_trace_mode": "summary",
+    "gpu_mapping": "packed",
+    "gpu_lanes_per_block": 4,
+    "gpu_chunk_steps": 256,
+    "gpu_expected_chunk_count": 47,
+    "rtol": 1e-10,
+    "atol": 1e-12,
+    "scoped_quantization_calibration": {
+      "policy": "gpu_workspace/validation/m8_a2_quantization_calibration.json",
+      "calibration_id": "uniform_seed12515_seeker_los_rate_z_adjacent_bin",
+      "applies_to_one_frozen_instance_per_batch": true,
+      "all_other_instances_use_default_tolerance": true,
+      "full_trace_equivalence_claimed": false
+    },
+    "direct_rng_state_observed": false,
+    "rng_continuity_claimed": false,
+    "rng_coverage": "indirect output-level evidence through the noisy-scenario CPU/GPU summaries and final time/x/y projection, exact GPU repeat, and N=64/N=128 output/projection prefix invariance; internal PRNG states and draw counts are not observed",
+    "complete_final_state_claimed": false,
+    "final_state_coverage": "final time and missile ECEF x/y projection only; complete terminal state is not exposed by production summary mode"
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "driver_version": "582.05",
+    "gpu_memory_total_mib": 8151,
+    "host_platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+    "host_machine": "x86_64",
+    "rlimit_memlock_soft_bytes": 67108864,
+    "rlimit_memlock_hard_bytes": 67108864,
+    "cuda_runtime_version": 13020
+  },
+  "allocation_budget": {
+    "scope": "exact trace/state/config byte formulas plus device-wide WDDM sampling; CUDA context, events, streams, and shared resource allocator overhead are not attributed per process",
+    "trace_record_bytes": 824,
+    "instance_state_bytes": 187880,
+    "instance_config_bytes": 2064,
+    "counts": {
+      "64": {
+        "raw_full_trace_reference_bytes": 632884736,
+        "chunk_256_cumulative_trace_d2h_bytes": 636998144,
+        "exact_device_trace_and_state_bytes": 63179264,
+        "exact_device_instance_config_bytes": 132096,
+        "known_device_request_lower_bound_bytes": 63311360,
+        "exact_host_pinned_trace_and_state_bytes": 51154944,
+        "host_state_vector_bytes": 12024320,
+        "pinned_request_exceeds_rlimit_memlock": false,
+        "allocation_result": "PASS (campaign exited zero; any CUDA allocation failure is fatal)"
+      },
+      "128": {
+        "raw_full_trace_reference_bytes": 1265769472,
+        "chunk_256_cumulative_trace_d2h_bytes": 1273996288,
+        "exact_device_trace_and_state_bytes": 126358528,
+        "exact_device_instance_config_bytes": 264192,
+        "known_device_request_lower_bound_bytes": 126622720,
+        "exact_host_pinned_trace_and_state_bytes": 102309888,
+        "host_state_vector_bytes": 24048640,
+        "pinned_request_exceeds_rlimit_memlock": true,
+        "allocation_result": "PASS (campaign exited zero; any CUDA allocation failure is fatal)"
+      }
+    }
+  },
+  "monitoring": {
+    "method": {
+      "host": "100 ms /proc process-tree aggregate VmRSS sampling with observed VmHWM/VmLck/VmPin sums",
+      "device": "250 ms nvidia-smi device-wide WDDM memory.used sampling; delta is relative to the immediately preceding baseline and is not a per-process allocation counter",
+      "timing_use": "diagnostic only; sampling perturbs wall time and this segment makes no performance claim"
+    },
+    "disk_free_before_bytes": 985802391552,
+    "runs": {
+      "n64": {
+        "cpu": {
+          "wall_seconds": 37.23226098699888,
+          "peak_process_tree_rss_bytes": 32112640,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 32112640,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 13,
+          "rss_sample_count": 355,
+          "sampling_interval_ms": 100,
+          "log": "cpu_n64.log"
+        },
+        "gpu_primary": {
+          "wall_seconds": 4.750467324000056,
+          "peak_process_tree_rss_bytes": 193429504,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 193429504,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 1,
+          "rss_sample_count": 30,
+          "sampling_interval_ms": 100,
+          "log": "gpu_primary_n64.log",
+          "gpu_memory_baseline_mib": 995,
+          "gpu_memory_peak_mib": 1263,
+          "gpu_memory_peak_delta_mib": 268,
+          "gpu_memory_sample_count": 16,
+          "gpu_memory_sampling_interval_ms": 250,
+          "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+        },
+        "gpu_repeat": {
+          "wall_seconds": 4.487707496000439,
+          "peak_process_tree_rss_bytes": 193110016,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 193110016,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 1,
+          "rss_sample_count": 29,
+          "sampling_interval_ms": 100,
+          "log": "gpu_repeat_n64.log",
+          "gpu_memory_baseline_mib": 993,
+          "gpu_memory_peak_mib": 1262,
+          "gpu_memory_peak_delta_mib": 269,
+          "gpu_memory_sample_count": 16,
+          "gpu_memory_sampling_interval_ms": 250,
+          "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+        }
+      },
+      "n128": {
+        "cpu": {
+          "wall_seconds": 70.68882468099946,
+          "peak_process_tree_rss_bytes": 33292288,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 33292288,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 13,
+          "rss_sample_count": 673,
+          "sampling_interval_ms": 100,
+          "log": "cpu_n128.log"
+        },
+        "gpu_primary": {
+          "wall_seconds": 5.566300815999057,
+          "peak_process_tree_rss_bytes": 256061440,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 256061440,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 1,
+          "rss_sample_count": 36,
+          "sampling_interval_ms": 100,
+          "log": "gpu_primary_n128.log",
+          "gpu_memory_baseline_mib": 973,
+          "gpu_memory_peak_mib": 1319,
+          "gpu_memory_peak_delta_mib": 346,
+          "gpu_memory_sample_count": 19,
+          "gpu_memory_sampling_interval_ms": 250,
+          "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+        },
+        "gpu_repeat": {
+          "wall_seconds": 5.314248697999574,
+          "peak_process_tree_rss_bytes": 256032768,
+          "peak_observed_process_tree_vm_hwm_sum_bytes": 256032768,
+          "peak_observed_process_tree_locked_bytes": 0,
+          "peak_observed_process_tree_pinned_bytes": 0,
+          "peak_process_count": 1,
+          "rss_sample_count": 35,
+          "sampling_interval_ms": 100,
+          "log": "gpu_repeat_n128.log",
+          "gpu_memory_baseline_mib": 987,
+          "gpu_memory_peak_mib": 1318,
+          "gpu_memory_peak_delta_mib": 331,
+          "gpu_memory_sample_count": 18,
+          "gpu_memory_sampling_interval_ms": 250,
+          "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+        }
+      }
+    },
+    "calibration_gpu_full": {
+      "wall_seconds": 4.257753650999803,
+      "peak_process_tree_rss_bytes": 145145856,
+      "peak_observed_process_tree_vm_hwm_sum_bytes": 148860928,
+      "peak_observed_process_tree_locked_bytes": 0,
+      "peak_observed_process_tree_pinned_bytes": 0,
+      "peak_process_count": 1,
+      "rss_sample_count": 29,
+      "sampling_interval_ms": 100,
+      "log": "gpu_calibration_seed12515_full.log",
+      "gpu_memory_baseline_mib": 981,
+      "gpu_memory_peak_mib": 1194,
+      "gpu_memory_peak_delta_mib": 213,
+      "gpu_memory_sample_count": 15,
+      "gpu_memory_sampling_interval_ms": 250,
+      "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+    },
+    "disk_free_after_bytes": 984088268800
+  },
+  "execution_metadata": {
+    "n64": {
+      "primary": {
+        "schema_version": 1,
+        "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+        "cuda_runtime_version": 13020,
+        "mapping": "packed",
+        "trace_mode": "summary",
+        "lanes_per_block": 4,
+        "chunk_steps": 256,
+        "chunk_count": 47,
+        "h2d_ms": 81.940529,
+        "kernel_ms": 3108.420116,
+        "d2h_ms": 3129.115811,
+        "host_encode_ms": 11.031124,
+        "output_ms": 26.449563,
+        "wall_ms": 3257.48208
+      },
+      "repeat": {
+        "schema_version": 1,
+        "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+        "cuda_runtime_version": 13020,
+        "mapping": "packed",
+        "trace_mode": "summary",
+        "lanes_per_block": 4,
+        "chunk_steps": 256,
+        "chunk_count": 47,
+        "h2d_ms": 47.351951,
+        "kernel_ms": 3093.606247,
+        "d2h_ms": 3123.98364,
+        "host_encode_ms": 10.046472,
+        "output_ms": 26.162975,
+        "wall_ms": 3229.55402
+      }
+    },
+    "n128": {
+      "primary": {
+        "schema_version": 1,
+        "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+        "cuda_runtime_version": 13020,
+        "mapping": "packed",
+        "trace_mode": "summary",
+        "lanes_per_block": 4,
+        "chunk_steps": 256,
+        "chunk_count": 47,
+        "h2d_ms": 159.879632,
+        "kernel_ms": 3143.796665,
+        "d2h_ms": 3252.204944,
+        "host_encode_ms": 25.874881,
+        "output_ms": 53.299845,
+        "wall_ms": 3453.849925
+      },
+      "repeat": {
+        "schema_version": 1,
+        "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+        "cuda_runtime_version": 13020,
+        "mapping": "packed",
+        "trace_mode": "summary",
+        "lanes_per_block": 4,
+        "chunk_steps": 256,
+        "chunk_count": 47,
+        "h2d_ms": 148.984609,
+        "kernel_ms": 3147.335823,
+        "d2h_ms": 3221.091298,
+        "host_encode_ms": 17.805316,
+        "output_ms": 52.991396,
+        "wall_ms": 3402.072668
+      }
+    },
+    "calibration_gpu_full": {
+      "schema_version": 1,
+      "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+      "cuda_runtime_version": 13020,
+      "mapping": "packed",
+      "trace_mode": "full",
+      "lanes_per_block": 4,
+      "chunk_steps": 256,
+      "chunk_count": 47,
+      "h2d_ms": 4.12737,
+      "kernel_ms": 2929.196831,
+      "d2h_ms": 2932.011976,
+      "host_encode_ms": 20.464411,
+      "output_ms": 597.226143,
+      "wall_ms": 2969.710943
+    }
+  },
+  "comparisons": {
+    "n64": {
+      "matched_instances": 64,
+      "comparator_log_sha256": {
+        "cpu_gpu": "53e1b5ffe6813f0b265f78bb1b7b4e680be277b2604d445435dee99ba19ba226",
+        "cpu_gpu_repeat": "4515f7217eaa80f419086d74c1359e64ea8a200d95928b35fe41fbe9f514c584",
+        "gpu_repeat": "d346035b7fa5f4c4d3e302e1fd657a49a1fe384359cc1a9a380ea4697d0191c9"
+      },
+      "gpu_primary_semantic_sha256": "d5f8429aadbb47a309d5d973bf7d555f9cb2a3825ae0e09758c51f714db579da",
+      "gpu_repeat_semantic_sha256": "d5f8429aadbb47a309d5d973bf7d555f9cb2a3825ae0e09758c51f714db579da",
+      "exact_normalized_gpu_repeat": true,
+      "termination": {
+        "counts": {
+          "timeout": 31,
+          "surface_collision": 33
+        },
+        "sequence_sha256": "c94468a29abff6f5fc6810e15b77577ac2944004b1d1e52dfd99bbe9bf2d1e83"
+      },
+      "final_time_xy_projection": {
+        "fields": [
+          "time_s",
+          "missile_x_ecef_m",
+          "missile_y_ecef_m"
+        ],
+        "cpu_sha256": "da55e3ebdc05521fea6ffb6c030c38904f4c0bad907813df535e56497d6b9708",
+        "gpu_primary_sha256": "b11127f59fead72622a83a28e918189ca72ce76ff114f7691e8f16f29af7f011",
+        "gpu_repeat_sha256": "b11127f59fead72622a83a28e918189ca72ce76ff114f7691e8f16f29af7f011",
+        "gpu_repeat_exact": true,
+        "default_tolerance_match_count": 63,
+        "scoped_calibration_match_count": 1,
+        "scoped_calibrations": [
+          {
+            "instance_id": 10,
+            "random_seed": 12515,
+            "signed_gpu_minus_cpu_xy_m": [
+              -0.43679032335057855,
+              1.4969130493700504
+            ],
+            "horizontal_difference_m": 1.5593378286782649
+          }
+        ],
+        "max_default_tolerance_horizontal_difference_m": 6.445716103498864e-07,
+        "max_abs_x_difference_m": 0.43679032335057855,
+        "max_abs_y_difference_m": 1.4969130493700504
+      }
+    },
+    "n128": {
+      "matched_instances": 128,
+      "comparator_log_sha256": {
+        "cpu_gpu": "c4b3c0519f372d6e66177e6ff841d8b1c0418f5d1c03d48bd77e506aaa12b017",
+        "cpu_gpu_repeat": "e2afd56d1efb8a1e7fa7cc5f179fbdaf51d1b3ed4d93290d6ad0ae141c5496db",
+        "gpu_repeat": "575ddbee3a3057a39143b2884ff5b27c26b68dd8717116bb1acb3cbede0fa102"
+      },
+      "gpu_primary_semantic_sha256": "14872c357bc0ce1ddbe9422a4fe39603990773910b7d1d9d5ac682491ed8638d",
+      "gpu_repeat_semantic_sha256": "14872c357bc0ce1ddbe9422a4fe39603990773910b7d1d9d5ac682491ed8638d",
+      "exact_normalized_gpu_repeat": true,
+      "termination": {
+        "counts": {
+          "timeout": 48,
+          "surface_collision": 80
+        },
+        "sequence_sha256": "b39c70fdac99170d23d3304f0cea662433e361c67374d8f108f1487c0e69a98e"
+      },
+      "final_time_xy_projection": {
+        "fields": [
+          "time_s",
+          "missile_x_ecef_m",
+          "missile_y_ecef_m"
+        ],
+        "cpu_sha256": "5b2519745fd845316a64d2a4c2ea14231652275e78af1a476f5bd6ffb713f62e",
+        "gpu_primary_sha256": "ac57ebd86c96da7eb99e4647da2d1b49fbb1593a06d3e58fb4a56aea7100f398",
+        "gpu_repeat_sha256": "ac57ebd86c96da7eb99e4647da2d1b49fbb1593a06d3e58fb4a56aea7100f398",
+        "gpu_repeat_exact": true,
+        "default_tolerance_match_count": 127,
+        "scoped_calibration_match_count": 1,
+        "scoped_calibrations": [
+          {
+            "instance_id": 10,
+            "random_seed": 12515,
+            "signed_gpu_minus_cpu_xy_m": [
+              -0.43679032335057855,
+              1.4969130493700504
+            ],
+            "horizontal_difference_m": 1.5593378286782649
+          }
+        ],
+        "max_default_tolerance_horizontal_difference_m": 6.880093123028495e-07,
+        "max_abs_x_difference_m": 0.43679032335057855,
+        "max_abs_y_difference_m": 1.4969130493700504
+      }
+    },
+    "prefix_invariance": {
+      "cpu_n64_vs_n128": "fa529782256378b6ca44868883c5b8d3f5a8b58d90625d0101eae17dee8931cf",
+      "gpu_n64_vs_n128": "140dfb94b5a26f84c7f84e69812f7707766b3c84ca67b89252345db46df7d7f4",
+      "gpu_repeat_n64_vs_n128": "140dfb94b5a26f84c7f84e69812f7707766b3c84ca67b89252345db46df7d7f4",
+      "gpu_primary_final_projection": "b11127f59fead72622a83a28e918189ca72ce76ff114f7691e8f16f29af7f011",
+      "gpu_repeat_final_projection": "b11127f59fead72622a83a28e918189ca72ce76ff114f7691e8f16f29af7f011"
+    },
+    "scoped_quantization_calibration": {
+      "calibration_id": "uniform_seed12515_seeker_los_rate_z_adjacent_bin",
+      "first_sensor_default_tolerance_mismatch": {
+        "packet_index": 979,
+        "payload_fields": [
+          22
+        ],
+        "field": "SensorFrame.target_los_rate_ecef_meas.z",
+        "cpu_value": -0.0105284,
+        "gpu_value": -0.0105285,
+        "resolution": 1e-07,
+        "signed_bin_delta": -1,
+        "round_input_probe": {
+          "measurement": "scaled value passed to round(value / resolution)",
+          "halfway_boundary": -105284.5,
+          "cpu_scaled_value": -105284.48895384357,
+          "cpu_offset_from_halfway_bins": 0.01104615643271245,
+          "gpu_scaled_value": -105284.50445655835,
+          "gpu_offset_from_halfway_bins": -0.004456558352103457,
+          "cpu_probe_result_bin": -105284,
+          "gpu_probe_result_bin": -105285,
+          "inputs_straddle_same_halfway_boundary": true
+        }
+      },
+      "first_command_default_tolerance_mismatch": {
+        "packet_index": 979,
+        "payload_fields": [
+          2,
+          3,
+          7,
+          11,
+          12
+        ]
+      },
+      "hold_chain": {
+        "start_seq": 980,
+        "end_seq": 11999,
+        "mode": 6,
+        "status": 72,
+        "verified_backend_count": 2
+      },
+      "artifact_sha256": {
+        "cpu_sensor_log": "9b19bd7c16221ee813b1bf599576b5c01a807427928e183a3022bc127dc9a843",
+        "gpu_sensor_log": "343697d49f01119fd748cc6f04730a4756c8228e7c8f91ed65a5dac337333407",
+        "cpu_command_log": "29ba423a77181ec20785bc5fd0b70b0655380df5a192d8307f4c5cbd8a1f4539",
+        "gpu_command_log": "01b332a2ab4b4fbfeb1d50ca7d1247129cc6c4305b797005ea50def121e679cb",
+        "cpu_trajectory": "3c00ea554fd41669f2874c0a33a10bfb5d84452593fb4369120f814e58bc021e",
+        "gpu_trajectory": "11da68682c0ad12121eb4c9bd84c4c4c34802a9917c1e5f92aee67faebd97337"
+      },
+      "fma_diagnostic": {
+        "diagnostic_option": "--fmad=false",
+        "formal_build_uses_diagnostic_option": false,
+        "baseline_gpu_trajectory_sha256": "11da68682c0ad12121eb4c9bd84c4c4c34802a9917c1e5f92aee67faebd97337",
+        "all_fma_disabled_gpu_trajectory_sha256": "11da68682c0ad12121eb4c9bd84c4c4c34802a9917c1e5f92aee67faebd97337",
+        "critical_los_rate_z_unchanged": -0.0105285,
+        "terminal_gpu_xy_unchanged_m": [
+          -2854894.545624323,
+          4911187.138164049
+        ],
+        "trajectory_outputs_identical": true,
+        "conclusion": "FMA is not the source of the adjacent quantization-bin difference."
+      }
+    }
+  },
+  "artifacts": {
+    "derived_inputs": {
+      "sha256": "cae81fbefc03e75f3122f7908639543d5dfb5a6457c28db0398261187440b44f",
+      "file_count": 3,
+      "total_bytes": 66705
+    },
+    "results": {
+      "sha256": "61252ff9f966d7ab46ef2de35a6d440112f26a1e5d5f084d19f489db858bbd60",
+      "file_count": 2707,
+      "total_bytes": 1553268755
+    },
+    "logs": {
+      "sha256": "2a6c7f7f8d8b608b931803d9b4658d4e644ff8a32ea8515ddb5cd4e56e21144e",
+      "file_count": 14,
+      "total_bytes": 104439385
+    },
+    "monitoring_sha256": "37274d9085dc3b65fe864babd97c27aaa248574318a396e3bea0bb34b71755f0",
+    "cpu_campaign_count": 2,
+    "gpu_campaign_count": 5,
+    "gpu_execution_count": 5
+  },
+  "validation": {
+    "cpu_gpu_semantic_comparison": "PASS",
+    "gpu_repeat_semantic_comparison": "PASS",
+    "exact_normalized_gpu_repeat": "PASS",
+    "n64_n128_prefix_invariance": "PASS",
+    "terminal_steps_reasons_and_flags": "PASS",
+    "cpu_gpu_final_time_xy_projection": "PASS_WITH_ONE_SCOPED_CALIBRATION_PER_BATCH",
+    "scoped_quantization_diagnostic": "PASS",
+    "rng_dependent_output_regression_indirect": "PASS",
+    "allocation_and_execution": "PASS",
+    "host_rss_and_device_wide_memory_observed": "PASS",
+    "performance_claimed": false
+  }
+}

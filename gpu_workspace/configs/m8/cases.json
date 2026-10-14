@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-A1",
+  "source": {
+    "m8_start_parent_commit": "9761dcecdc4402c9fa5913abb84b72053bc01128",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "m7_closure_report": "gpu_workspace/validation/correctness_m7.json",
+    "m7_closure_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "baseline_runtime": "external/Aircraft-Simu/configs/baseline/runtime.json",
+    "baseline_scenario": "external/Aircraft-Simu/configs/baseline/scenario.json",
+    "baseline_flight_control": "external/Aircraft-Simu/configs/baseline/flight_control.json",
+    "validated_fault_matrix": "gpu_workspace/configs/m4/cases.json"
+  },
+  "long_horizon": {
+    "dt_s": 0.01,
+    "steps": 12000,
+    "max_time_s": 120.0,
+    "hit_radius_m": 1e-9,
+    "terrain_enabled": false,
+    "los_occlusion_enabled": false,
+    "expected_exit": "timeout",
+    "chunk_steps": 256
+  },
+  "instances": {
+    "counts": [64, 128],
+    "maximum": 128,
+    "id_first": 0,
+    "id_last": 127,
+    "seed_base": 12345,
+    "seed_stride": 17,
+    "cpu_parallelism": 6
+  },
+  "datasets": {
+    "uniform": {
+      "description": "Equal-work long-noise instances for correctness and performance measurement",
+      "shared_scenario": "generated/scenarios/uniform_long.json",
+      "fault_profile": "empty",
+      "physical_scenario_count": 1,
+      "runtime_64": "generated/runtimes/uniform_n64.json",
+      "runtime_128": "generated/runtimes/uniform_n128.json"
+    },
+    "heterogeneous": {
+      "description": "Deterministic 8x16 physical-state grid with eight validated behavior profiles",
+      "scenario_pattern": "generated/scenarios/heterogeneous/scenario_${instance_id_04}.json",
+      "runtime_128": "generated/runtimes/heterogeneous_n128.json",
+      "physical_scenario_count": 128,
+      "grid_rows": 8,
+      "grid_columns": 16,
+      "instance_coordinates": {
+        "row": "instance_id // 16",
+        "column": "instance_id % 16"
+      },
+      "profile_cycle": [
+        "quiet",
+        "noise",
+        "dropout",
+        "sensor_faults",
+        "actuator_faults",
+        "communication_delay",
+        "communication_reorder",
+        "fault_overlap_recovery"
+      ],
+      "profile_assignment": "profile_cycle[instance_id % 8]",
+      "profile_scenario_policy": {
+        "quiet": "zero all sensor bias/noise/random-walk/resolution and sensor delay",
+        "noise": "retain baseline sensor configuration",
+        "dropout": "retain baseline sensor noise and set every sensor dropout_probability to 0.3",
+        "sensor_faults": "retain baseline sensor configuration and use the sensor_faults fault asset",
+        "actuator_faults": "retain baseline sensor configuration and use the actuator_faults fault asset",
+        "communication_delay": "retain baseline sensor configuration and use the communication_delay fault asset",
+        "communication_reorder": "retain baseline sensor configuration and use the communication_reorder fault asset",
+        "fault_overlap_recovery": "retain baseline sensor configuration and use the fault_overlap_recovery fault asset"
+      },
+      "dropout_probability": 0.3,
+      "perturbation": {
+        "missile_latitude_formula": "base + (row - 3.5) * 0.0001",
+        "missile_longitude_formula": "base + (column - 7.5) * 0.0001",
+        "missile_latitude_deg_per_row": 0.0001,
+        "missile_longitude_deg_per_column": 0.0001,
+        "missile_height_m_cycle": [-20.0, -10.0, 0.0, 10.0, 20.0],
+        "missile_height_formula": "base + missile_height_m_cycle[instance_id % 5]",
+        "missile_velocity_x_mps_cycle_step": 2.0,
+        "missile_velocity_x_formula": "base + ((instance_id % 9) - 4) * 2.0",
+        "missile_velocity_y_mps_cycle_step": 2.0,
+        "missile_velocity_y_formula": "base + ((instance_id % 11) - 5) * 2.0",
+        "missile_velocity_z_mps_cycle_step": 0.5,
+        "missile_velocity_z_formula": "base + ((instance_id % 5) - 2) * 0.5",
+        "target_latitude_formula": "base + ((column % 8) - 3.5) * 0.0001",
+        "target_longitude_formula": "base + (row - 3.5) * 0.0002",
+        "target_latitude_deg_per_column_mod8": 0.0001,
+        "target_longitude_deg_per_row": 0.0002,
+        "target_height_m_cycle": [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0],
+        "target_height_formula": "base + target_height_m_cycle[instance_id % 7]",
+        "target_velocity_x_mps_cycle_step": 1.5,
+        "target_velocity_x_formula": "base + ((instance_id % 7) - 3) * 1.5",
+        "target_velocity_y_mps_cycle_step": 1.5,
+        "target_velocity_y_formula": "base + ((instance_id % 9) - 4) * 1.5",
+        "target_velocity_z_mps_cycle_step": 0.5,
+        "target_velocity_z_formula": "base + ((instance_id % 3) - 1) * 0.5"
+      }
+    }
+  },
+  "fault_profiles": [
+    "empty",
+    "sensor_faults",
+    "actuator_faults",
+    "communication_delay",
+    "communication_reorder",
+    "fault_overlap_recovery"
+  ],
+  "layout_expectations": {
+    "device_trace_record_bytes": 824,
+    "device_instance_state_bytes": 187880,
+    "device_instance_config_bytes": 2064,
+    "full_trace_records_per_instance": 12001,
+    "exact_trace_bytes_per_instance": 9888824,
+    "conservative_full_output_bytes_per_instance": 12582912,
+    "exact_budgets": {
+      "64": {
+        "trace_bytes": 632884736,
+        "state_bytes": 12024320,
+        "combined_bytes": 644909056,
+        "chunk_256_single_trace_buffer_bytes": 13553152,
+        "chunk_256_double_device_trace_bytes": 27106304,
+        "device_state_plus_two_snapshots_bytes": 36072960,
+        "chunk_256_device_trace_and_state_bytes": 63179264,
+        "chunk_256_double_pinned_trace_and_state_bytes": 51154944
+      },
+      "128": {
+        "trace_bytes": 1265769472,
+        "state_bytes": 24048640,
+        "combined_bytes": 1289818112,
+        "chunk_256_single_trace_buffer_bytes": 27106304,
+        "chunk_256_double_device_trace_bytes": 54212608,
+        "device_state_plus_two_snapshots_bytes": 72145920,
+        "chunk_256_device_trace_and_state_bytes": 126358528,
+        "chunk_256_double_pinned_trace_and_state_bytes": 102309888
+      }
+    },
+    "budget_scope": "trace/state only; raw full-trace totals are output-volume references, while chunk_256 values model the existing double-buffered runner and exclude configs, fault assets, CUDA bookkeeping, host encoding, and CSV expansion"
+  },
+  "acceptance": {
+    "default_rtol": 1e-10,
+    "default_atol": 1e-12,
+    "field_calibrations": [
+      {
+        "profile": "quiet",
+        "field": "SensorFrame.missile_vel_ecef_meas.y",
+        "atol": 1e-10,
+        "reason": "inherit the M7 long_quiet near-zero velocity-Y calibration; all integer semantics and other fields retain the default tolerance"
+      }
+    ],
+    "integer_and_event_semantics": "exact",
+    "require_deterministic_regeneration": true,
+    "require_uniform_64_prefix_of_128": true,
+    "require_unique_ids": true,
+    "require_unique_seeds": true,
+    "require_unique_heterogeneous_scenarios": true,
+    "require_host_loader_probe": true
+  }
+}

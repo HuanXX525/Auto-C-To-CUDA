@@ -1,0 +1,1003 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-A3",
+  "status": "PASS",
+  "created_at_utc": "2026-10-12T06:13:12.594329+00:00",
+  "complete_m8_gate": false,
+  "next_segment": "M8-B1",
+  "contract": {
+    "instances": 128,
+    "steps": 12000,
+    "dt_s": 0.01,
+    "profiles": {
+      "quiet": 16,
+      "noise": 16,
+      "dropout": 16,
+      "sensor_faults": 16,
+      "actuator_faults": 16,
+      "communication_delay": 16,
+      "communication_reorder": 16,
+      "fault_overlap_recovery": 16
+    },
+    "cpu_trace_mode": "full",
+    "gpu_trace_mode": "summary",
+    "gpu_variants": {
+      "primary": [
+        "packed",
+        4,
+        256
+      ],
+      "repeat": [
+        "packed",
+        4,
+        256
+      ],
+      "packed32": [
+        "packed",
+        32,
+        256
+      ],
+      "chunk64": [
+        "packed",
+        4,
+        64
+      ]
+    },
+    "default_rtol": 1e-10,
+    "default_atol": 1e-12,
+    "a2_calibration_applies": false,
+    "direct_internal_rng_state_observed": false,
+    "full_trace_equivalence_claimed": false
+  },
+  "source": {
+    "parent_commit": "e4c229421f5d854c05b610b70075b28480d8350a",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "m7_closure_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "m8_a1_receipt_sha256": "c8273dc5e3211d0d6a8560a419ebf217e0ec7bd47a703c56dd78eed0fe1778eb",
+    "m8_a2_receipt_sha256": "73674f9df5378792c7659b4a6436ea9be61df1c383282a2e6f6209fd34c8354d",
+    "heterogeneous_input_sha256": "e099229f79ea22b649efbff7a735c0c56c46896a944029072eb26381f3391ddf",
+    "heterogeneous_scenario_tree": {
+      "sha256": "48cf4837b95a3291e55a1837da248c99b6cb9437efcafc0ead975ab97bbc8668",
+      "file_count": 128,
+      "total_bytes": 506283
+    },
+    "runner_sha256": "7dbe6950bff0c629adb1ba78993c5e45327a1df0b9aba5210022f31f94f391f9",
+    "comparator_sha256": "0d02195b42a056246e3de4a930f4da89ebbee06b707e02131c909e3e7744f646",
+    "gpu_source_tree": {
+      "sha256": "95fac2e23b7d883a1d5214016b9f2141057d9839cabe28653b99018124bc6bc5",
+      "file_count": 111,
+      "total_bytes": 520646
+    },
+    "binary_sha256": {
+      "gpu_campaign": "2b5da610f75b785637a3975ab29dbd00298c127479d341dbb22546914df3aedb",
+      "cpu_environment": "520f62acbc7a13b44fdfc7a716253ec085305ae2225b1e3faa1c601a038d0527",
+      "cpu_flight_control": "ed70189f8e101d3376f3ccf56b5d273f04e930aea60355cdb6e0df05f7f56de2",
+      "cpu_instance_manager": "1e74a6f8e4d63f9170e06d37e2c6a713c1a8fb9d8936255b78ecac7dd6d161dd"
+    }
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "driver_version": "582.05",
+    "gpu_memory_total_mib": 8151,
+    "host_platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+    "host_machine": "x86_64",
+    "rlimit_memlock_soft_bytes": 67108864,
+    "rlimit_memlock_hard_bytes": 67108864,
+    "cuda_runtime_version": 13020
+  },
+  "monitoring": {
+    "method": "A2 100 ms host process-tree RSS and 250 ms device-wide WDDM GPU memory sampling; diagnostic, not benchmark",
+    "disk_free_before_bytes": 983884115968,
+    "runs": {
+      "cpu": {
+        "wall_seconds": 73.31253600899981,
+        "peak_process_tree_rss_bytes": 32505856,
+        "peak_observed_process_tree_vm_hwm_sum_bytes": 32505856,
+        "peak_observed_process_tree_locked_bytes": 0,
+        "peak_observed_process_tree_pinned_bytes": 0,
+        "peak_process_count": 13,
+        "rss_sample_count": 697,
+        "sampling_interval_ms": 100,
+        "log": "cpu.log"
+      },
+      "primary": {
+        "wall_seconds": 6.233524855999349,
+        "peak_process_tree_rss_bytes": 256487424,
+        "peak_observed_process_tree_vm_hwm_sum_bytes": 256487424,
+        "peak_observed_process_tree_locked_bytes": 0,
+        "peak_observed_process_tree_pinned_bytes": 0,
+        "peak_process_count": 1,
+        "rss_sample_count": 39,
+        "sampling_interval_ms": 100,
+        "log": "gpu_primary.log",
+        "gpu_memory_baseline_mib": 1136,
+        "gpu_memory_peak_mib": 1477,
+        "gpu_memory_peak_delta_mib": 341,
+        "gpu_memory_sample_count": 21,
+        "gpu_memory_sampling_interval_ms": 250,
+        "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+      },
+      "repeat": {
+        "wall_seconds": 5.4971584909999365,
+        "peak_process_tree_rss_bytes": 256430080,
+        "peak_observed_process_tree_vm_hwm_sum_bytes": 256430080,
+        "peak_observed_process_tree_locked_bytes": 0,
+        "peak_observed_process_tree_pinned_bytes": 0,
+        "peak_process_count": 1,
+        "rss_sample_count": 35,
+        "sampling_interval_ms": 100,
+        "log": "gpu_repeat.log",
+        "gpu_memory_baseline_mib": 1137,
+        "gpu_memory_peak_mib": 1477,
+        "gpu_memory_peak_delta_mib": 340,
+        "gpu_memory_sample_count": 19,
+        "gpu_memory_sampling_interval_ms": 250,
+        "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+      },
+      "packed32": {
+        "wall_seconds": 6.066945283000678,
+        "peak_process_tree_rss_bytes": 256270336,
+        "peak_observed_process_tree_vm_hwm_sum_bytes": 256270336,
+        "peak_observed_process_tree_locked_bytes": 0,
+        "peak_observed_process_tree_pinned_bytes": 0,
+        "peak_process_count": 1,
+        "rss_sample_count": 40,
+        "sampling_interval_ms": 100,
+        "log": "gpu_packed32.log",
+        "gpu_memory_baseline_mib": 1142,
+        "gpu_memory_peak_mib": 1476,
+        "gpu_memory_peak_delta_mib": 334,
+        "gpu_memory_sample_count": 21,
+        "gpu_memory_sampling_interval_ms": 250,
+        "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+      },
+      "chunk64": {
+        "wall_seconds": 6.248919689000104,
+        "peak_process_tree_rss_bytes": 218763264,
+        "peak_observed_process_tree_vm_hwm_sum_bytes": 218763264,
+        "peak_observed_process_tree_locked_bytes": 0,
+        "peak_observed_process_tree_pinned_bytes": 0,
+        "peak_process_count": 1,
+        "rss_sample_count": 42,
+        "sampling_interval_ms": 100,
+        "log": "gpu_chunk64.log",
+        "gpu_memory_baseline_mib": 1142,
+        "gpu_memory_peak_mib": 1442,
+        "gpu_memory_peak_delta_mib": 300,
+        "gpu_memory_sample_count": 21,
+        "gpu_memory_sampling_interval_ms": 250,
+        "gpu_memory_scope": "device-wide WDDM observation, not a per-process allocation counter"
+      }
+    },
+    "disk_free_after_bytes": 982731784192
+  },
+  "results": {
+    "cpu": {
+      "exit_counts": {
+        "surface_collision": 76,
+        "timeout": 52
+      },
+      "fault_profile_instances": {
+        "sensor_faults": 16,
+        "actuator_faults": 16,
+        "communication_delay": 16,
+        "communication_reorder": 16,
+        "fault_overlap_recovery": 16
+      },
+      "gpu_execution": {}
+    },
+    "gpu": {
+      "primary": {
+        "exit_counts": {
+          "surface_collision": 76,
+          "timeout": 52
+        },
+        "fault_profile_instances": {
+          "sensor_faults": 16,
+          "actuator_faults": 16,
+          "communication_delay": 16,
+          "communication_reorder": 16,
+          "fault_overlap_recovery": 16
+        },
+        "gpu_execution": {
+          "schema_version": 1,
+          "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+          "cuda_runtime_version": 13020,
+          "mapping": "packed",
+          "trace_mode": "summary",
+          "lanes_per_block": 4,
+          "chunk_steps": 256,
+          "chunk_count": 47,
+          "h2d_ms": 306.538728,
+          "kernel_ms": 3215.016399,
+          "d2h_ms": 3319.099763,
+          "host_encode_ms": 22.599114,
+          "output_ms": 58.733148,
+          "wall_ms": 3523.416944
+        }
+      },
+      "repeat": {
+        "exit_counts": {
+          "surface_collision": 76,
+          "timeout": 52
+        },
+        "fault_profile_instances": {
+          "sensor_faults": 16,
+          "actuator_faults": 16,
+          "communication_delay": 16,
+          "communication_reorder": 16,
+          "fault_overlap_recovery": 16
+        },
+        "gpu_execution": {
+          "schema_version": 1,
+          "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+          "cuda_runtime_version": 13020,
+          "mapping": "packed",
+          "trace_mode": "summary",
+          "lanes_per_block": 4,
+          "chunk_steps": 256,
+          "chunk_count": 47,
+          "h2d_ms": 145.491879,
+          "kernel_ms": 3211.559418,
+          "d2h_ms": 3315.938922,
+          "host_encode_ms": 23.749558,
+          "output_ms": 64.730558,
+          "wall_ms": 3515.555195
+        }
+      },
+      "packed32": {
+        "exit_counts": {
+          "surface_collision": 76,
+          "timeout": 52
+        },
+        "fault_profile_instances": {
+          "sensor_faults": 16,
+          "actuator_faults": 16,
+          "communication_delay": 16,
+          "communication_reorder": 16,
+          "fault_overlap_recovery": 16
+        },
+        "gpu_execution": {
+          "schema_version": 1,
+          "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+          "cuda_runtime_version": 13020,
+          "mapping": "packed",
+          "trace_mode": "summary",
+          "lanes_per_block": 32,
+          "chunk_steps": 256,
+          "chunk_count": 47,
+          "h2d_ms": 153.117858,
+          "kernel_ms": 3559.160534,
+          "d2h_ms": 3667.936206,
+          "host_encode_ms": 25.705574,
+          "output_ms": 76.231475,
+          "wall_ms": 3868.680259
+        }
+      },
+      "chunk64": {
+        "exit_counts": {
+          "surface_collision": 76,
+          "timeout": 52
+        },
+        "fault_profile_instances": {
+          "sensor_faults": 16,
+          "actuator_faults": 16,
+          "communication_delay": 16,
+          "communication_reorder": 16,
+          "fault_overlap_recovery": 16
+        },
+        "gpu_execution": {
+          "schema_version": 1,
+          "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+          "cuda_runtime_version": 13020,
+          "mapping": "packed",
+          "trace_mode": "summary",
+          "lanes_per_block": 4,
+          "chunk_steps": 64,
+          "chunk_count": 188,
+          "h2d_ms": 85.892575,
+          "kernel_ms": 3214.923371,
+          "d2h_ms": 3660.385402,
+          "host_encode_ms": 27.144448,
+          "output_ms": 66.67617,
+          "wall_ms": 4291.01898
+        }
+      }
+    },
+    "comparisons": {
+      "primary": "c046eee4fa1aa570da937432605f626f14d602611c300a71d951c8d7c1658629",
+      "repeat": "8572ce8840cffbe7a7c983c5299557353cb5bb0bb51256ba91e2708be8bb44db",
+      "packed32": "1f979ff6a780c7fdcbd0295aed61e57ebd417f66aa7d7c7da0af173f9c508604",
+      "chunk64": "f62cf82228154a33df2d16acb51eb382597891e46db9d323c86d2dbc10f89cd6"
+    },
+    "final_projections": {
+      "cpu_sha256": "ceeb82fe5ff981014c55be1fdf51c7898f1da5641ed38ac4cbda2bad0d4cca4d",
+      "primary": "d73e79c6110ceec563169938a5948c2354e69bd3de836bacc748e9be67023997",
+      "repeat": "d73e79c6110ceec563169938a5948c2354e69bd3de836bacc748e9be67023997",
+      "packed32": "d73e79c6110ceec563169938a5948c2354e69bd3de836bacc748e9be67023997",
+      "chunk64": "d73e79c6110ceec563169938a5948c2354e69bd3de836bacc748e9be67023997"
+    },
+    "exact_variant_sha256": {
+      "repeat": "a10010f2dae3b0acc6e2f28eacbd1e3b8065e087ba0ed9427ae85ba8980cd51b",
+      "packed32": "a10010f2dae3b0acc6e2f28eacbd1e3b8065e087ba0ed9427ae85ba8980cd51b",
+      "chunk64": "a10010f2dae3b0acc6e2f28eacbd1e3b8065e087ba0ed9427ae85ba8980cd51b"
+    },
+    "termination": {
+      "counts": {
+        "surface_collision": 76,
+        "timeout": 52
+      },
+      "sequence": [
+        {
+          "instance_id": 0,
+          "steps": 9405,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 1,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 2,
+          "steps": 3252,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 3,
+          "steps": 3275,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 4,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 5,
+          "steps": 5204,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 6,
+          "steps": 4970,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 7,
+          "steps": 4048,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 8,
+          "steps": 5911,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 9,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 10,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 11,
+          "steps": 3967,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 12,
+          "steps": 3293,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 13,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 14,
+          "steps": 6869,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 15,
+          "steps": 3762,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 16,
+          "steps": 8194,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 17,
+          "steps": 4062,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 18,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 19,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 20,
+          "steps": 3333,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 21,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 22,
+          "steps": 6881,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 23,
+          "steps": 6666,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 24,
+          "steps": 6968,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 25,
+          "steps": 4397,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 26,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 27,
+          "steps": 9745,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 28,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 29,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 30,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 31,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 32,
+          "steps": 6910,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 33,
+          "steps": 3727,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 34,
+          "steps": 3606,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 35,
+          "steps": 4414,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 36,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 37,
+          "steps": 3793,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 38,
+          "steps": 5544,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 39,
+          "steps": 10202,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 40,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 41,
+          "steps": 8910,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 42,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 43,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 44,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 45,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 46,
+          "steps": 8864,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 47,
+          "steps": 4530,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 48,
+          "steps": 8317,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 49,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 50,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 51,
+          "steps": 5132,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 52,
+          "steps": 5167,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 53,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 54,
+          "steps": 3332,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 55,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 56,
+          "steps": 8789,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 57,
+          "steps": 6646,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 58,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 59,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 60,
+          "steps": 6357,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 61,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 62,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 63,
+          "steps": 3829,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 64,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 65,
+          "steps": 4085,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 66,
+          "steps": 9309,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 67,
+          "steps": 2946,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 68,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 69,
+          "steps": 6216,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 70,
+          "steps": 6389,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 71,
+          "steps": 4016,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 72,
+          "steps": 8436,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 73,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 74,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 75,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 76,
+          "steps": 4212,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 77,
+          "steps": 4375,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 78,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 79,
+          "steps": 6701,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 80,
+          "steps": 6842,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 81,
+          "steps": 10527,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 82,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 83,
+          "steps": 4972,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 84,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 85,
+          "steps": 5124,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 86,
+          "steps": 7200,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 87,
+          "steps": 4087,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 88,
+          "steps": 8558,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 89,
+          "steps": 4595,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 90,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 91,
+          "steps": 2863,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 92,
+          "steps": 4781,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 93,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 94,
+          "steps": 3140,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 95,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 96,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 97,
+          "steps": 4519,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 98,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 99,
+          "steps": 5270,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 100,
+          "steps": 5171,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 101,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 102,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 103,
+          "steps": 4193,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 104,
+          "steps": 7267,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 105,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 106,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 107,
+          "steps": 4763,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 108,
+          "steps": 4547,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 109,
+          "steps": 3741,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 110,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 111,
+          "steps": 4227,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 112,
+          "steps": 5763,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 113,
+          "steps": 4048,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 114,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 115,
+          "steps": 3890,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 116,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 117,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 118,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 119,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 120,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 121,
+          "steps": 4323,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 122,
+          "steps": 12000,
+          "exit_reason": "timeout"
+        },
+        {
+          "instance_id": 123,
+          "steps": 4302,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 124,
+          "steps": 5468,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 125,
+          "steps": 3100,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 126,
+          "steps": 4884,
+          "exit_reason": "surface_collision"
+        },
+        {
+          "instance_id": 127,
+          "steps": 4804,
+          "exit_reason": "surface_collision"
+        }
+      ]
+    },
+    "calibration_applied_instances": [],
+    "internal_rng_state_observed": false
+  },
+  "artifacts": {
+    "derived_inputs": {
+      "sha256": "8c281f9e0aedff20d92f3d7a494ac80e6140ba8fb0181351af509803c56a9ad2",
+      "file_count": 1,
+      "total_bytes": 46291
+    },
+    "results": {
+      "sha256": "513c8a47a0297be3f070d83bd6a71795f7021796c71ea64ef57a393324b75d63",
+      "file_count": 2569,
+      "total_bytes": 1067379352
+    },
+    "logs": {
+      "sha256": "5d2d6ad9c6846d898211f6c42757b364f3f4d7c3cfd3cda2cbce14e917e240c8",
+      "file_count": 10,
+      "total_bytes": 73666595
+    },
+    "monitoring_sha256": "3bf67b4da195933056af568d9612b20218b39af48fbf988b169e41d6c13e55c0"
+  },
+  "validation": {
+    "cpu_gpu_semantic": "PASS",
+    "gpu_repeat": "PASS",
+    "mapping_and_chunk_exact": "PASS",
+    "terminal_projection": "PASS",
+    "instance_isolation": "PASS (per-instance outputs invariant across packed/4, packed/32, and chunk=64)",
+    "performance_claimed": false
+  }
+}

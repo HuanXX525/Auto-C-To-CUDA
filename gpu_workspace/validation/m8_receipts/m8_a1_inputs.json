@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "phase": "M8",
+  "segment": "M8-A1",
+  "status": "PASS",
+  "created_at_utc": "2026-10-08T14:39:38.270468+00:00",
+  "complete_m8_gate": false,
+  "next_segment": "M8-A2",
+  "source": {
+    "parent_commit": "9761dcecdc4402c9fa5913abb84b72053bc01128",
+    "m8_start_parent_commit": "9761dcecdc4402c9fa5913abb84b72053bc01128",
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "aircraft_simu_tracked_worktree_clean": true,
+    "m7_closure_sha256": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+    "sha256": {
+      "generator": "b0b4171bb23d1e4328cee91d3b924e14e20325363d75e727009977cf5ac2956d",
+      "matrix": "5351c2e78150af46f90eb3c58e0632d6cd6d9a8f98e6a46a14453ddada47c1a7",
+      "probe_source": "c5d28b83ca60bb1f8d6c16cdc436dc963d423687825215ccd934933d7ab0789b",
+      "probe_build_script": "13e5af08ae402d6fa1147998cee47bd7eda67bb07b2c4b2bbe744a103234cf85",
+      "m4_case_matrix": "684ed0e1380f83eef4126506b83ed0696f88e9c167bdc8437bd42bac009e5369",
+      "baseline_runtime": "54190f7e62f6bf9452bf4d31f2d0945699614ed5a6795fa077afbc6d847afea8",
+      "baseline_scenario": "951d2a5133e76922de4c58bcffb9ef54ff815e492ee33a82a1938b205c0ea3b1",
+      "baseline_flight_control": "02e6b73a91fd4ba633dc5303618ef35aa2675372eb9d90ba79e8f98e4f5c82bf",
+      "gpu_types": "f34834cb0bfcb9c782644462bc535df9cf3e2d9237dbdcbe01dce38b605c2992",
+      "host_campaign_loader": "a402cbde9fc4f807776f2f5f2d39e66fc34d6bb54b8a6f174d583aed78ebd936",
+      "m7_closure_report": "6068d5bb44c3fdc4bde11ea05aabfc7cffbde8a165db1f88bce4450ac2b90627",
+      "probe_dependency_tree": "14a8964894377034f91ac087b3ad0aee3498e9c19f97952cb183007f50ab25ee"
+    }
+  },
+  "inputs": {
+    "publication": "published_new_tree",
+    "generated_root": "gpu_workspace/configs/m8/generated",
+    "generated": {
+      "sha256": "3818ffec2f07f09b1e96b585b0d185aaf2469a75a6ccf162189af6ca22e780d9",
+      "file_count": 138,
+      "total_bytes": 624499
+    },
+    "scenarios": {
+      "sha256": "d3791d5fd31f31241cf3a2b371758bedcae8d625b5d56f783f7299b65840a7d4",
+      "file_count": 129,
+      "total_bytes": 510229
+    },
+    "faults": {
+      "sha256": "59693cdf124e77a37974bcc9f805f8b50dcf6b16a19ca38e8eb726b38b23500a",
+      "file_count": 6,
+      "total_bytes": 2790
+    },
+    "runtimes": {
+      "sha256": "a2228dfd55631ffca63cab43045d1debc1a38393a0ee47557402acc5a8d98ebd",
+      "file_count": 3,
+      "total_bytes": 111480
+    },
+    "uniform": {
+      "instance_counts": [
+        64,
+        128
+      ],
+      "physical_scenario_count": 1,
+      "uniform64_is_exact_instance_prefix_of_uniform128": true
+    },
+    "heterogeneous": {
+      "instance_count": 128,
+      "physical_scenario_count": 128,
+      "unique_scenario_hash_count": 128,
+      "profile_counts": {
+        "quiet": 16,
+        "noise": 16,
+        "dropout": 16,
+        "sensor_faults": 16,
+        "actuator_faults": 16,
+        "communication_delay": 16,
+        "communication_reorder": 16,
+        "fault_overlap_recovery": 16
+      }
+    }
+  },
+  "host_loader_probe": {
+    "status": "PASS",
+    "uniform64_instances": 64,
+    "uniform128_instances": 128,
+    "heterogeneous128_instances": 128,
+    "device_trace_record_bytes": 824,
+    "device_instance_state_bytes": 187880,
+    "device_instance_config_bytes": 2064
+  },
+  "resource_budget": {
+    "scope": "trace/state only; raw full-trace totals are output-volume references, while chunk_256 values model the existing double-buffered runner and exclude configs, fault assets, CUDA bookkeeping, host encoding, and CSV expansion",
+    "trace_record_bytes": 824,
+    "instance_state_bytes": 187880,
+    "instance_config_bytes": 2064,
+    "full_trace_records_per_instance": 12001,
+    "exact_trace_bytes_per_instance": 9888824,
+    "counts": {
+      "64": {
+        "trace_bytes": 632884736,
+        "state_bytes": 12024320,
+        "combined_bytes": 644909056,
+        "chunk_256_single_trace_buffer_bytes": 13553152,
+        "chunk_256_double_device_trace_bytes": 27106304,
+        "device_state_plus_two_snapshots_bytes": 36072960,
+        "chunk_256_device_trace_and_state_bytes": 63179264,
+        "chunk_256_double_pinned_trace_and_state_bytes": 51154944
+      },
+      "128": {
+        "trace_bytes": 1265769472,
+        "state_bytes": 24048640,
+        "combined_bytes": 1289818112,
+        "chunk_256_single_trace_buffer_bytes": 27106304,
+        "chunk_256_double_device_trace_bytes": 54212608,
+        "device_state_plus_two_snapshots_bytes": 72145920,
+        "chunk_256_device_trace_and_state_bytes": 126358528,
+        "chunk_256_double_pinned_trace_and_state_bytes": 102309888
+      }
+    }
+  },
+  "validation": {
+    "deterministic_regeneration": "PASS",
+    "exact_generated_file_set": "PASS",
+    "all_generated_json_parseable": "PASS",
+    "uniform_prefix": "PASS",
+    "unique_instance_ids_and_seeds": "PASS",
+    "heterogeneous_scenario_uniqueness": "PASS",
+    "profile_distribution": "PASS",
+    "host_loader_and_abi_probe": "PASS",
+    "cpu_or_gpu_long_run_executed": false,
+    "performance_claimed": false
+  }
+}

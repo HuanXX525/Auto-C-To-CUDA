@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-16",
+  "gpu": "NVIDIA GeForce RTX 5070",
+  "cuda": "13.2",
+  "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "steps": 64,
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-12
+  },
+  "flyover": {
+    "result": "PASS",
+    "exit_reason": 1,
+    "completed_steps": 64,
+    "kernel_ms": 29.858751
+  },
+  "surface_collision": {
+    "result": "PASS",
+    "exit_reason": 7,
+    "collision_step": 33,
+    "kernel_ms": 20.489697,
+    "zero_tail_records": 31
+  },
+  "batch_isolation": {
+    "result": "PASS",
+    "instance_counts": [1, 8, 32, 128]
+  },
+  "maximum_reported_absolute_deviation": {
+    "field": "density",
+    "value": 2.038e-13
+  }
+}

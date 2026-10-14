@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+    "scenario": "external/Aircraft-Simu/configs/baseline/scenario.json",
+    "flight_control": "external/Aircraft-Simu/configs/baseline/flight_control.json",
+    "faults": "external/Aircraft-Simu/configs/baseline/faults.json",
+    "runtime_1": "gpu_workspace/configs/runtime_1.json",
+    "runtime_2": "external/Aircraft-Simu/configs/baseline/runtime.json",
+    "runtime_128": "external/Aircraft-Simu/configs/baseline/runtime_128.json"
+  },
+  "correctness": {
+    "instance_counts": [1, 2, 8, 32, 64, 128],
+    "short_steps": 64,
+    "long_steps": 12000,
+    "relative_tolerance": 1e-10,
+    "absolute_tolerance": 1e-12,
+    "mappings": ["serial", "packed-4", "packed-32"]
+  },
+  "performance": {
+    "warmup_repeats": 3,
+    "compute_repeats": 20,
+    "end_to_end_repeats": 5
+  }
+}

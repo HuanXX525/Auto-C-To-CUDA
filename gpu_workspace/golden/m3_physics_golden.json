@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "aircraft_simu_commit": "970bdfbe97db21aafb6cd94afee0ecbe72c8544c",
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-12
+  },
+  "cases": {
+    "actuator": {
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "miss_distance": 7307.998533,
+      "time_of_closest_approach": 0.49,
+      "final": {
+        "time_s": 0.5,
+        "missile_x_ecef_m": -2764760.467351,
+        "missile_y_ecef_m": 4788030.504741,
+        "missile_z_ecef_m": 3170873.733919,
+        "missile_mass_kg": 100.0,
+        "missile_propellant_mass_kg": 0.0,
+        "force_b_x_n": -8666.366256,
+        "force_b_y_n": 15725.033595,
+        "force_b_z_n": 0.579945
+      }
+    },
+    "gravity": {
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "miss_distance": 7308.209661,
+      "time_of_closest_approach": 0.49,
+      "final": {
+        "time_s": 0.5,
+        "missile_x_ecef_m": -2764755.800369,
+        "missile_y_ecef_m": 4788022.266894,
+        "missile_z_ecef_m": 3170873.125232,
+        "missile_mass_kg": 100.0,
+        "missile_propellant_mass_kg": 0.0,
+        "missile_ax_ecef_mps2": 4.256256,
+        "missile_ay_ecef_mps2": -7.371033,
+        "missile_az_ecef_mps2": -4.881468
+      }
+    },
+    "propulsion": {
+      "simulation_steps": 50,
+      "exit_reason": "timeout",
+      "miss_distance": 7309.787479,
+      "time_of_closest_approach": 0.49,
+      "final": {
+        "time_s": 0.5,
+        "missile_x_ecef_m": -2764754.455355,
+        "missile_y_ecef_m": 4788023.188268,
+        "missile_z_ecef_m": 3170873.735384,
+        "missile_mass_kg": 99.75,
+        "missile_propellant_mass_kg": 1.75,
+        "missile_vx_ecef_mps": -384.993990,
+        "missile_vy_ecef_mps": -675.0,
+        "missile_vz_ecef_mps": 0.0
+      }
+    }
+  }
+}

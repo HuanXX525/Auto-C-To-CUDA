@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "actuator",
+      "flight_control": "baseline",
+      "overrides": {
+        "simulation.max_time": 0.5,
+        "simulation.hit_radius_m": 0.01,
+        "earth.enable_rotation_terms": false,
+        "map.enable_terrain": false,
+        "map.enable_los_occlusion": false,
+        "gravity.enabled": false,
+        "atmosphere.enabled": false,
+        "propulsion.enabled": false,
+        "aerodynamics.enabled": false
+      }
+    },
+    {
+      "name": "gravity",
+      "flight_control": "zero_guidance",
+      "overrides": {
+        "simulation.max_time": 0.5,
+        "simulation.hit_radius_m": 0.01,
+        "earth.enable_rotation_terms": false,
+        "map.enable_terrain": false,
+        "map.enable_los_occlusion": false,
+        "gravity.enabled": true,
+        "atmosphere.enabled": false,
+        "propulsion.enabled": false,
+        "aerodynamics.enabled": false
+      }
+    },
+    {
+      "name": "propulsion",
+      "flight_control": "zero_guidance",
+      "overrides": {
+        "simulation.max_time": 0.5,
+        "simulation.hit_radius_m": 0.01,
+        "earth.enable_rotation_terms": false,
+        "map.enable_terrain": false,
+        "map.enable_los_occlusion": false,
+        "plant.propellant_mass_kg": 2.0,
+        "gravity.enabled": false,
+        "atmosphere.enabled": false,
+        "propulsion.enabled": true,
+        "propulsion.thrust_n": 2000.0,
+        "propulsion.mass_flow_kgps": 1.0,
+        "propulsion.burn_time_s": 0.25,
+        "aerodynamics.enabled": false
+      }
+    }
+  ]
+}
